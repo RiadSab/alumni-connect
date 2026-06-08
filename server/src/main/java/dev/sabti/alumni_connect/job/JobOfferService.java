@@ -7,8 +7,11 @@ import dev.sabti.alumni_connect.company.entities.CompanyStatus;
 import dev.sabti.alumni_connect.company.entities.CompanyUserProfile;
 import dev.sabti.alumni_connect.company.repositories.CompanyUserProfileRepository;
 import dev.sabti.alumni_connect.job.entities.JobOffer;
+import dev.sabti.alumni_connect.job.entities.JobStatus;
 import dev.sabti.alumni_connect.job.repositories.JobOfferRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,6 +23,13 @@ public class JobOfferService {
     private final JobOfferRepository jobOfferRepository;
     private final UserRepository userRepository;
     private final CompanyUserProfileRepository companyUserProfileRepository;
+
+    // Only OPEN offers are publicly browsable — DRAFT/CLOSED/EXPIRED must stay invisible
+    // to candidates, the same "discoverable set is a filtered subset" reasoning as
+    // CompanyService.getActiveCompanies (only ACTIVE companies are joinable/browsable).
+    public Page<JobOffer> getOpenJobOffers(Pageable pageable) {
+        return jobOfferRepository.findByStatus(JobStatus.OPEN, pageable);
+    }
 
     // Posting is restricted to a company's own OWNER/RECRUITER, and only while that
     // company is ACTIVE — the same authority-boundary reasoning that shaped the

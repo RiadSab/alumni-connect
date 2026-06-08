@@ -42,6 +42,10 @@ public class SecurityConfig {
                     // form, which runs before the registrant has an account. Scoped to GET only
                     // so future write endpoints on /api/companies/** stay behind authentication.
                     .requestMatchers(HttpMethod.GET, "/api/companies", "/api/companies/**").permitAll()
+                    // Public job-offer browsing — candidates search/apply before having an
+                    // account. Scoped to GET only; POST (posting an offer) stays authenticated
+                    // and is further authority-checked in JobOfferService.
+                    .requestMatchers(HttpMethod.GET, "/api/job-offers", "/api/job-offers/**").permitAll()
                     .requestMatchers("/api/admin/**").hasRole("ADMINISTRATOR")
                     .anyRequest().authenticated()
                 )
