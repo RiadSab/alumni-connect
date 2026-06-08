@@ -46,6 +46,10 @@ public class SecurityConfig {
                     // account. Scoped to GET only; POST (posting an offer) stays authenticated
                     // and is further authority-checked in JobOfferService.
                     .requestMatchers(HttpMethod.GET, "/api/job-offers", "/api/job-offers/**").permitAll()
+                    // Unlike posting (OWNER/RECRUITER — too fine-grained for hasRole, checked
+                    // in JobOfferService), "must be a candidate" maps exactly onto a single
+                    // role, so it's safe and precise to gate it here too.
+                    .requestMatchers(HttpMethod.POST, "/api/job-offers/*/apply").hasRole("CANDIDATE")
                     .requestMatchers("/api/admin/**").hasRole("ADMINISTRATOR")
                     .anyRequest().authenticated()
                 )
