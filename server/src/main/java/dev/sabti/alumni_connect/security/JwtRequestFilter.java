@@ -32,16 +32,6 @@ public class JwtRequestFilter extends OncePerRequestFilter {
                             // when we call filterChain.doFilter(request, response) we are passing control to the next filter in the chain
         throws ServletException, IOException{
 
-        // Skip JWT processing for public endpoints
-        String requestPath = request.getRequestURI();
-        if ((requestPath.startsWith("/api/auth/") && !requestPath.equals("/api/auth/change-password")) ||
-            requestPath.equals("/api/companies/all-names") ||
-            requestPath.startsWith("/api/job-offers/public")) {
-            log.debug("Skipping JWT filter for public endpoint: {}", requestPath);
-            filterChain.doFilter(request, response);
-            return;
-        }
-
         String jwt = parseJwt(request);
         if(jwt != null && jwtUtil.validateToken(jwt)
                 && SecurityContextHolder.getContext().getAuthentication() == null )
@@ -68,12 +58,12 @@ public class JwtRequestFilter extends OncePerRequestFilter {
             // after this, the user is authenticated for the current request, and we can access user details in controllers via @AuthenticationPrincipal
             log.info("Authenticated user: {}, setting security context", email);
 
-            filterChain.doFilter(request, response); // continue the filter chain
         }
-        else {
-            log.debug("No valid JWT token found");
-            throw new RuntimeException("No valid JWT token found");
-        }
+        // No token, invalid token, or already authenticated — either way, just move on.
+        // Whether the request is actually allowed is authorizeHttpRequests' decision
+        // (permitAll/authenticated/hasRole), not this filter's: it only populates the
+        // SecurityContext when it can, and never blocks the chain.
+        filterChain.doFilter(request, response);
     }
 
     private String parseJwt(HttpServletRequest request){

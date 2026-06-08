@@ -2,6 +2,7 @@ package dev.sabti.alumni_connect.security;
 
 import lombok.AllArgsConstructor;
 import org.springframework.context.annotation.Bean;
+import org.springframework.http.HttpMethod;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.Customizer;
@@ -37,6 +38,10 @@ public class SecurityConfig {
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // set session management to stateless, no HTTP session is created or used by spring security
                 .authorizeHttpRequests(auth -> auth
                     .requestMatchers("/api/auth/**").permitAll()
+                    // Public read access — feeds the "join an existing company" registration
+                    // form, which runs before the registrant has an account. Scoped to GET only
+                    // so future write endpoints on /api/companies/** stay behind authentication.
+                    .requestMatchers(HttpMethod.GET, "/api/companies", "/api/companies/**").permitAll()
                     .requestMatchers("/api/admin/**").hasRole("ADMINISTRATOR")
                     .anyRequest().authenticated()
                 )
