@@ -4,15 +4,21 @@ import dev.sabti.alumni_connect.auth.entities.CandidateProfile;
 import dev.sabti.alumni_connect.auth.entities.User;
 import dev.sabti.alumni_connect.auth.repositories.CandidateProfileRepository;
 import dev.sabti.alumni_connect.auth.repositories.UserRepository;
+import dev.sabti.alumni_connect.company.entities.CompanyRole;
+import dev.sabti.alumni_connect.company.entities.CompanyUserProfile;
+import dev.sabti.alumni_connect.company.repositories.CompanyUserProfileRepository;
 import dev.sabti.alumni_connect.job.entities.JobApplication;
 import dev.sabti.alumni_connect.job.entities.JobOffer;
 import dev.sabti.alumni_connect.job.entities.JobStatus;
 import dev.sabti.alumni_connect.job.repositories.JobApplicationRepository;
 import dev.sabti.alumni_connect.job.repositories.JobOfferRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 @Service
@@ -22,6 +28,7 @@ public class JobApplicationService {
     private final JobOfferRepository jobOfferRepository;
     private final UserRepository userRepository;
     private final CandidateProfileRepository candidateProfileRepository;
+    private final CompanyUserProfileRepository companyUserProfileRepository;
 
     // Applying requires: a real CandidateProfile behind the caller, an OPEN offer,
     // no pre-existing application from this candidate to this offer, and — if the
@@ -56,5 +63,53 @@ public class JobApplicationService {
         jobOfferRepository.save(offer);
 
         return Optional.of(application);
+    }
+
+    // Listing applicants is restricted to the OWNER/RECRUITER of the company that
+    // posted THIS specific offer — same authority boundary as reviewing (see review()).
+    public Optional<Page<JobApplication>> getApplicationsForOffer(String reviewerEmail, Long jobOfferId, Pageable pageable) {
+        JobOffer offer = jobOfferRepository.findById(jobOfferId).orElse(null);
+        if (offer == null) return Optional.empty();
+
+        if (resolveReviewerForCompany(reviewerEmail, offer.getCompany().getId()).isEmpty()) {
+            return Optional.empty();
+        }
+
+        return Optional.of(jobApplicationRepository.findByJobOffer(offer, pageable));
+    }
+
+    // Reviewing requires the caller to be an OWNER/RECRUITER of the SAME company that
+    // posted the offer this application belongs to — the check the old updateJobApplication
+    // was missing (it let any COMPANYUSER review any application, regardless of company).
+    // Fields in the DTO are all nullable: null means "leave unchanged", letting the caller
+    // update just a status, just a note, etc. reviewedAt/reviewedBy are set server-side.
+    @Transactional
+    public Optional<JobApplication> review(String reviewerEmail, Long applicationId, ReviewApplicationDTO dto) {
+        JobApplication application = jobApplicationRepository.findById(applicationId).orElse(null);
+        if (application == null) return Optional.empty();
+
+        Long postingCompanyId = application.getJobOffer().getCompany().getId();
+        CompanyUserProfile reviewer = resolveReviewerForCompany(reviewerEmail, postingCompanyId).orElse(null);
+        if (reviewer == null) return Optional.empty();
+
+        if (dto.getApplicationStatus() != null) application.setApplicationStatus(dto.getApplicationStatus());
+        if (dto.getCompanyUserNote() != null) application.setCompanyUserNote(dto.getCompanyUserNote());
+        if (dto.getPriority() != null) application.setPriority(dto.getPriority());
+        if (dto.getRating() != null) application.setRating(dto.getRating());
+
+        application.setReviewedAt(LocalDateTime.now());
+        application.setReviewedBy(reviewer);
+
+        return Optional.of(jobApplicationRepository.save(application));
+    }
+
+    // Shared authority check for both listing and reviewing: caller must be a real
+    // CompanyUserProfile, OWNER or RECRUITER, AND belong to the exact company that
+    // owns the offer/application in question — not just "some COMPANYUSER somewhere".
+    private Optional<CompanyUserProfile> resolveReviewerForCompany(String email, Long companyId) {
+        return userRepository.findByEmail(email)
+                .flatMap(companyUserProfileRepository::findByUser)
+                .filter(profile -> profile.getCompanyRole() == CompanyRole.OWNER || profile.getCompanyRole() == CompanyRole.RECRUITER)
+                .filter(profile -> profile.getCompany().getId().equals(companyId));
     }
 }

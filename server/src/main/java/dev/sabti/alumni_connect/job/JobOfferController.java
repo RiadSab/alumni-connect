@@ -38,6 +38,20 @@ public class JobOfferController {
                 .orElseGet(() -> ResponseEntity.status(HttpStatus.FORBIDDEN).build());
     }
 
+    // Applicant lists are private to the posting company's own OWNER/RECRUITER —
+    // authority is checked in JobApplicationService (Optional empty -> 403), the
+    // same "soft failure" pattern as postJobOffer/apply. Note this sub-resource
+    // must stay locked down in SecurityConfig despite the broad public GET on
+    // /api/job-offers/**.
+    @GetMapping("/{id}/applications")
+    public ResponseEntity<Page<JobApplication>> getApplicationsForOffer(@PathVariable Long id,
+                                                                         @AuthenticationPrincipal UserDetails principal,
+                                                                         @PageableDefault Pageable pageable) {
+        return jobApplicationService.getApplicationsForOffer(principal.getUsername(), id, pageable)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.status(HttpStatus.FORBIDDEN).build());
+    }
+
     // Named business action (apply), not a generic sub-resource POST — mirrors the
     // /approve, /reject pattern in AdminController (security/auditability rationale).
     @PostMapping("/{id}/apply")
