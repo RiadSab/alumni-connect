@@ -42,6 +42,12 @@ public class SecurityConfig {
                     // form, which runs before the registrant has an account. Scoped to GET only
                     // so future write endpoints on /api/companies/** stay behind authentication.
                     .requestMatchers(HttpMethod.GET, "/api/companies", "/api/companies/**").permitAll()
+                    // Applicant lists are private to the posting company's own OWNER/RECRUITER —
+                    // must be declared BEFORE the broad public job-offers GET matcher below,
+                    // since /api/job-offers/** would otherwise also match this sub-resource
+                    // and wrongly expose candidates' applications. Fine-grained "same company"
+                    // authority is checked in JobApplicationService.
+                    .requestMatchers(HttpMethod.GET, "/api/job-offers/*/applications").authenticated()
                     // Public job-offer browsing — candidates search/apply before having an
                     // account. Scoped to GET only; POST (posting an offer) stays authenticated
                     // and is further authority-checked in JobOfferService.
