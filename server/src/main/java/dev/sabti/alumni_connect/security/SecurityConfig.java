@@ -36,14 +36,9 @@ public class SecurityConfig {
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // set session management to stateless, no HTTP session is created or used by spring security
                 .authorizeHttpRequests(auth -> auth
-//                    .requestMatchers("/api/auth/**").permitAll()
-//                    .requestMatchers("/api/admin/**").hasRole("ADMINISTRATOR")
-//                    .requestMatchers("/api/company/user/**").hasAnyRole("COMPANYUSER", "ADMINISTRATOR")
-//                    .requestMatchers("/api/candidate/**").hasAnyRole("CANDIDATE", "ADMINISTRATOR")
-//                    .requestMatchers("/api/job-offers/**").hasAnyRole("COMPANYUSER", "ADMINISTRATOR", "CANDIDATE")
-//                    .requestMatchers("/api/applications/**").hasAnyRole("COMPANYUSER", "ADMINISTRATOR", "CANDIDATE")
-//                    .anyRequest().authenticated()
-                                .anyRequest().permitAll()
+                    .requestMatchers("/api/auth/**").permitAll()
+                    .requestMatchers("/api/admin/**").hasRole("ADMINISTRATOR")
+                    .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtRequestFilter, UsernamePasswordAuthenticationFilter.class);  // add our custom JWT filter before the built-in UsernamePasswordAuthenticationFilter
                     // if we dont add it before, our filter will not be executed
