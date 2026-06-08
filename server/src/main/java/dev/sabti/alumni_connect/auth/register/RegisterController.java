@@ -20,4 +20,10 @@ public class RegisterController {
         registerService.registerCandidate(dto);
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
+
+    @PostMapping("/company")
+    public ResponseEntity<Void> registerCompany(@RequestBody @Valid RegisterCompanyDTO dto) {
+        registerService.registerCompanyOwner(dto);
+        return ResponseEntity.status(HttpStatus.CREATED).build();
+    }
 }

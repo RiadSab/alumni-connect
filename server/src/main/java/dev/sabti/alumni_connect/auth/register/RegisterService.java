@@ -5,6 +5,11 @@ import dev.sabti.alumni_connect.auth.entities.User;
 import dev.sabti.alumni_connect.auth.entities.UserType;
 import dev.sabti.alumni_connect.auth.repositories.CandidateProfileRepository;
 import dev.sabti.alumni_connect.auth.repositories.UserRepository;
+import dev.sabti.alumni_connect.company.entities.Company;
+import dev.sabti.alumni_connect.company.entities.CompanyRole;
+import dev.sabti.alumni_connect.company.entities.CompanyUserProfile;
+import dev.sabti.alumni_connect.company.repositories.CompanyRepository;
+import dev.sabti.alumni_connect.company.repositories.CompanyUserProfileRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -15,6 +20,8 @@ import org.springframework.transaction.annotation.Transactional;
 public class RegisterService {
     private final UserRepository userRepository;
     private final CandidateProfileRepository candidateProfileRepository;
+    private final CompanyRepository companyRepository;
+    private final CompanyUserProfileRepository companyUserProfileRepository;
     private final PasswordEncoder passwordEncoder;
 
     @Transactional
@@ -43,6 +50,40 @@ public class RegisterService {
         profile.setPortfolioUrl(dto.getPortfolioUrl());
         profile.setBio(dto.getBio());
         candidateProfileRepository.save(profile);
+
+        return user;
+    }
+
+    // Creates the company's first user (its OWNER) together with the Company itself, atomically —
+    // there is no path to a Company existing without an accountable person attached to it.
+    @Transactional
+    public User registerCompanyOwner(RegisterCompanyDTO dto) {
+        User user = new User();
+        user.setEmail(dto.getEmail());
+        user.setPasswordHash(passwordEncoder.encode(dto.getPassword()));
+        user.setFirstName(dto.getFirstName());
+        user.setLastName(dto.getLastName());
+        user.setPhoneNumber(dto.getPhoneNumber());
+        user.setUserType(UserType.COMPANY_USER);
+        user = userRepository.save(user);
+
+        Company company = new Company();
+        company.setName(dto.getCompanyName());
+        company.setEmail(dto.getCompanyEmail());
+        company.setPhone(dto.getCompanyPhone());
+        company.setField(dto.getCompanyField());
+        company.setDescription(dto.getCompanyDescription());
+        company.setWebsite(dto.getCompanyWebsite());
+        company.setAddress(dto.getCompanyAddress());
+        company.setSize(dto.getCompanySize());
+        company = companyRepository.save(company);
+
+        CompanyUserProfile profile = new CompanyUserProfile();
+        profile.setUser(user);
+        profile.setCompany(company);
+        profile.setCompanyRole(CompanyRole.OWNER);
+        profile.setPosition(dto.getPosition());
+        companyUserProfileRepository.save(profile);
 
         return user;
     }
