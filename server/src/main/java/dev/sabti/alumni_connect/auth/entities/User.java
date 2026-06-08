@@ -1,5 +1,6 @@
 package dev.sabti.alumni_connect.auth.entities;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import dev.sabti.alumni_connect.shared.BaseEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -26,6 +27,9 @@ public class User extends BaseEntity {
     @Column(nullable = false, unique = true)
     private String email;
 
+    // Never serialized in API responses — only ever written internally
+    // (registration/password-change), and read for authentication.
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     @Column(nullable = false)
     private String passwordHash;
 
