@@ -1,4 +1,4 @@
-package dev.sabti.alumni_connect.job;
+package dev.sabti.alumni_connect.job.applications;
 
 import dev.sabti.alumni_connect.job.entities.JobApplication;
 import jakarta.validation.Valid;

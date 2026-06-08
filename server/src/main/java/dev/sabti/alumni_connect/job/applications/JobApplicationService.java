@@ -1,4 +1,4 @@
-package dev.sabti.alumni_connect.job;
+package dev.sabti.alumni_connect.job.applications;
 
 import dev.sabti.alumni_connect.auth.entities.CandidateProfile;
 import dev.sabti.alumni_connect.auth.entities.User;
@@ -10,6 +10,7 @@ import dev.sabti.alumni_connect.company.repositories.CompanyUserProfileRepositor
 import dev.sabti.alumni_connect.job.entities.JobApplication;
 import dev.sabti.alumni_connect.job.entities.JobOffer;
 import dev.sabti.alumni_connect.job.entities.JobStatus;
+import dev.sabti.alumni_connect.job.offers.ApplyToJobOfferDTO;
 import dev.sabti.alumni_connect.job.repositories.JobApplicationRepository;
 import dev.sabti.alumni_connect.job.repositories.JobOfferRepository;
 import lombok.RequiredArgsConstructor;

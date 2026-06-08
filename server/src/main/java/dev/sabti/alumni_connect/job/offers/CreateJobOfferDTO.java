@@ -1,4 +1,4 @@
-package dev.sabti.alumni_connect.job;
+package dev.sabti.alumni_connect.job.offers;
 
 import dev.sabti.alumni_connect.job.entities.EmploymentType;
 import dev.sabti.alumni_connect.job.entities.JobCity;
