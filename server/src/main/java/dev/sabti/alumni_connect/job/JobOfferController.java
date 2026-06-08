@@ -10,7 +10,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
+import dev.sabti.alumni_connect.job.entities.JobApplication;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -21,6 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class JobOfferController {
     private final JobOfferService jobOfferService;
+    private final JobApplicationService jobApplicationService;
 
     @GetMapping
     public ResponseEntity<Page<JobOffer>> getOpenJobOffers(@PageableDefault Pageable pageable) {
@@ -33,5 +36,16 @@ public class JobOfferController {
         return jobOfferService.postJobOffer(principal.getUsername(), dto)
                 .map(offer -> ResponseEntity.status(HttpStatus.CREATED).body(offer))
                 .orElseGet(() -> ResponseEntity.status(HttpStatus.FORBIDDEN).build());
+    }
+
+    // Named business action (apply), not a generic sub-resource POST — mirrors the
+    // /approve, /reject pattern in AdminController (security/auditability rationale).
+    @PostMapping("/{id}/apply")
+    public ResponseEntity<JobApplication> apply(@PathVariable Long id,
+                                                 @AuthenticationPrincipal UserDetails principal,
+                                                 @RequestBody @Valid ApplyToJobOfferDTO dto) {
+        return jobApplicationService.apply(principal.getUsername(), id, dto)
+                .map(application -> ResponseEntity.status(HttpStatus.CREATED).body(application))
+                .orElseGet(() -> ResponseEntity.badRequest().build());
     }
 }
