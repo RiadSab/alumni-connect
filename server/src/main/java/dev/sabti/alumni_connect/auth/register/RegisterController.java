@@ -26,4 +26,11 @@ public class RegisterController {
         registerService.registerCompanyOwner(dto);
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
+
+    @PostMapping("/company-member")
+    public ResponseEntity<Void> registerCompanyMember(@RequestBody @Valid RegisterCompanyMemberDTO dto) {
+        return registerService.registerCompanyMember(dto)
+                .map(user -> ResponseEntity.status(HttpStatus.CREATED).<Void>build())
+                .orElseGet(() -> ResponseEntity.badRequest().build());
+    }
 }

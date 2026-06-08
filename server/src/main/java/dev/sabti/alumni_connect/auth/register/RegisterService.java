@@ -10,10 +10,13 @@ import dev.sabti.alumni_connect.company.entities.CompanyRole;
 import dev.sabti.alumni_connect.company.entities.CompanyUserProfile;
 import dev.sabti.alumni_connect.company.repositories.CompanyRepository;
 import dev.sabti.alumni_connect.company.repositories.CompanyUserProfileRepository;
+import dev.sabti.alumni_connect.company.entities.CompanyStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -86,5 +89,34 @@ public class RegisterService {
         companyUserProfileRepository.save(profile);
 
         return user;
+    }
+
+    // Joins an existing Company as a MEMBER. Unlike registerCandidate/registerCompanyOwner,
+    // this can fail on a business rule that @Valid can't express (the referenced company must
+    // exist AND be ACTIVE) — modeled as Optional, the same way LoginService signals soft failures.
+    @Transactional
+    public Optional<User> registerCompanyMember(RegisterCompanyMemberDTO dto) {
+        Company company = companyRepository.findById(dto.getCompanyId()).orElse(null);
+        if (company == null || company.getStatus() != CompanyStatus.ACTIVE) {
+            return Optional.empty();
+        }
+
+        User user = new User();
+        user.setEmail(dto.getEmail());
+        user.setPasswordHash(passwordEncoder.encode(dto.getPassword()));
+        user.setFirstName(dto.getFirstName());
+        user.setLastName(dto.getLastName());
+        user.setPhoneNumber(dto.getPhoneNumber());
+        user.setUserType(UserType.COMPANY_USER);
+        user = userRepository.save(user);
+
+        CompanyUserProfile profile = new CompanyUserProfile();
+        profile.setUser(user);
+        profile.setCompany(company);
+        profile.setCompanyRole(CompanyRole.MEMBER);
+        profile.setPosition(dto.getPosition());
+        companyUserProfileRepository.save(profile);
+
+        return Optional.of(user);
     }
 }
