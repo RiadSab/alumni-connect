@@ -37,6 +37,10 @@ public class SecurityConfig {
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // set session management to stateless, no HTTP session is created or used by spring security
                 .authorizeHttpRequests(auth -> auth
+                    // A logged-in user changing their own password — must be declared BEFORE the
+                    // broad /api/auth/** permitAll below, which otherwise (first match wins) would
+                    // make this public. Everything else under /api/auth (login, register) is public.
+                    .requestMatchers(HttpMethod.POST, "/api/auth/change-password").authenticated()
                     .requestMatchers("/api/auth/**").permitAll()
                     // Public read access — feeds the "join an existing company" registration
                     // form, which runs before the registrant has an account. Scoped to GET only
