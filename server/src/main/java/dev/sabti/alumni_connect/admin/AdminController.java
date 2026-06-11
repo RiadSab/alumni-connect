@@ -39,6 +39,20 @@ public class AdminController {
         return changeUserStatus(id, dto, UserStatus.REJECTED, "rejected");
     }
 
+    // Suspend/reactivate are post-approval lifecycle actions (acting on an already-ACTIVE
+    // account), distinct from approve/reject which act on a PENDING one. Both reuse the same
+    // generic changeUserStatus path — reactivate targets ACTIVE just like approve, but stays
+    // a separate endpoint so the admin's intent (un-suspending) reads clearly.
+    @PostMapping("/users/{id}/suspend")
+    public ResponseEntity<?> suspendUser(@PathVariable Long id, @RequestBody @Valid StatusChangeDTO dto) {
+        return changeUserStatus(id, dto, UserStatus.SUSPENDED, "suspended");
+    }
+
+    @PostMapping("/users/{id}/reactivate")
+    public ResponseEntity<?> reactivateUser(@PathVariable Long id, @RequestBody @Valid StatusChangeDTO dto) {
+        return changeUserStatus(id, dto, UserStatus.ACTIVE, "reactivated");
+    }
+
     @PostMapping("/companies/{id}/approve")
     public ResponseEntity<?> approveCompany(@PathVariable Long id, @RequestBody @Valid StatusChangeDTO dto) {
         return changeCompanyStatus(id, dto, CompanyStatus.ACTIVE, "approved");
@@ -47,6 +61,16 @@ public class AdminController {
     @PostMapping("/companies/{id}/reject")
     public ResponseEntity<?> rejectCompany(@PathVariable Long id, @RequestBody @Valid StatusChangeDTO dto) {
         return changeCompanyStatus(id, dto, CompanyStatus.REJECTED, "rejected");
+    }
+
+    @PostMapping("/companies/{id}/suspend")
+    public ResponseEntity<?> suspendCompany(@PathVariable Long id, @RequestBody @Valid StatusChangeDTO dto) {
+        return changeCompanyStatus(id, dto, CompanyStatus.SUSPENDED, "suspended");
+    }
+
+    @PostMapping("/companies/{id}/reactivate")
+    public ResponseEntity<?> reactivateCompany(@PathVariable Long id, @RequestBody @Valid StatusChangeDTO dto) {
+        return changeCompanyStatus(id, dto, CompanyStatus.ACTIVE, "reactivated");
     }
 
     private ResponseEntity<?> changeUserStatus(Long id, StatusChangeDTO dto, UserStatus newStatus, String action) {
