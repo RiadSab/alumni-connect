@@ -52,6 +52,13 @@ public class SecurityConfig {
                     // matcher below, same reasoning as /*/applications: it's a private,
                     // company-scoped view, not a publicly browsable offer.
                     .requestMatchers(HttpMethod.GET, "/api/job-offers/me").authenticated()
+                    // Candidate self-profile — declared before /api/candidates/* below so
+                    // "/me" isn't caught by the admin-only by-id matcher.
+                    .requestMatchers(HttpMethod.GET, "/api/candidates/me").authenticated()
+                    .requestMatchers(HttpMethod.PATCH, "/api/candidates/me").authenticated()
+                    // Admin review of any candidate's profile by User id (e.g. from
+                    // /api/admin/pending-users before approve/reject).
+                    .requestMatchers(HttpMethod.GET, "/api/candidates/*").hasRole("ADMINISTRATOR")
                     // Public job-offer browsing — candidates search/apply before having an
                     // account. Scoped to GET only; POST (posting an offer) stays authenticated
                     // and is further authority-checked in JobOfferService.
