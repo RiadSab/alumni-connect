@@ -6,6 +6,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -17,6 +18,17 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class JobApplicationController {
     private final JobApplicationService jobApplicationService;
+
+    // Visible only to the applicant or the posting company's own OWNER/RECRUITER —
+    // checked in the service. "Not found" and "not yours" both -> 404, so this
+    // endpoint never confirms whether an application id you can't access exists.
+    @GetMapping("/{id}")
+    public ResponseEntity<JobApplicationDTO> getApplicationById(@PathVariable Long id,
+                                                                  @AuthenticationPrincipal UserDetails principal) {
+        return jobApplicationService.getApplicationById(principal.getUsername(), id)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
 
     // PATCH (not a named action like /approve) because reviewing genuinely is a
     // partial update of several independent fields at once (status, note, priority,

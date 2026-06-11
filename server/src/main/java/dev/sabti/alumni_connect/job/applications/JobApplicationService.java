@@ -104,6 +104,33 @@ public class JobApplicationService {
         return Optional.of(JobApplicationDTO.from(jobApplicationRepository.save(application)));
     }
 
+    // Visible only to the applicant themselves or the posting company's own
+    // OWNER/RECRUITER — the old GET /{id} let any authenticated user (any role)
+    // read any application's cover letter/notes by guessing an id. "Doesn't exist"
+    // and "exists but not yours" both return empty -> 404, so the controller never
+    // confirms whether an application id you can't access exists.
+    @Transactional(readOnly = true)
+    public Optional<JobApplicationDTO> getApplicationById(String callerEmail, Long applicationId) {
+        JobApplication application = jobApplicationRepository.findById(applicationId).orElse(null);
+        if (application == null) return Optional.empty();
+
+        User user = userRepository.findByEmail(callerEmail).orElse(null);
+        if (user == null) return Optional.empty();
+
+        boolean isApplicant = candidateProfileRepository.findByUser(user)
+                .map(applicant -> applicant.getId().equals(application.getApplicant().getId()))
+                .orElse(false);
+
+        if (!isApplicant) {
+            Long postingCompanyId = application.getJobOffer().getCompany().getId();
+            if (resolveReviewerForCompany(callerEmail, postingCompanyId).isEmpty()) {
+                return Optional.empty();
+            }
+        }
+
+        return Optional.of(JobApplicationDTO.from(application));
+    }
+
     // Shared authority check for both listing and reviewing: caller must be a real
     // CompanyUserProfile, OWNER or RECRUITER, AND belong to the exact company that
     // owns the offer/application in question — not just "some COMPANYUSER somewhere".
