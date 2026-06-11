@@ -28,14 +28,14 @@ public class JobOfferController {
 
     @GetMapping
     public ResponseEntity<Page<JobOfferDTO>> getOpenJobOffers(@PageableDefault Pageable pageable) {
-        return ResponseEntity.ok(jobOfferService.getOpenJobOffers(pageable).map(JobOfferDTO::from));
+        return ResponseEntity.ok(jobOfferService.getOpenJobOffers(pageable));
     }
 
     @PostMapping
     public ResponseEntity<JobOfferDTO> postJobOffer(@AuthenticationPrincipal UserDetails principal,
                                                      @RequestBody @Valid CreateJobOfferDTO dto) {
         return jobOfferService.postJobOffer(principal.getUsername(), dto)
-                .map(offer -> ResponseEntity.status(HttpStatus.CREATED).body(JobOfferDTO.from(offer)))
+                .map(offer -> ResponseEntity.status(HttpStatus.CREATED).body(offer))
                 .orElseGet(() -> ResponseEntity.status(HttpStatus.FORBIDDEN).build());
     }
 
@@ -49,7 +49,7 @@ public class JobOfferController {
                                                                             @AuthenticationPrincipal UserDetails principal,
                                                                             @PageableDefault Pageable pageable) {
         return jobApplicationService.getApplicationsForOffer(principal.getUsername(), id, pageable)
-                .map(page -> ResponseEntity.ok(page.map(JobApplicationDTO::from)))
+                .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.status(HttpStatus.FORBIDDEN).build());
     }
 
@@ -60,7 +60,7 @@ public class JobOfferController {
                                                     @AuthenticationPrincipal UserDetails principal,
                                                     @RequestBody @Valid ApplyToJobOfferDTO dto) {
         return jobApplicationService.apply(principal.getUsername(), id, dto)
-                .map(application -> ResponseEntity.status(HttpStatus.CREATED).body(JobApplicationDTO.from(application)))
+                .map(application -> ResponseEntity.status(HttpStatus.CREATED).body(application))
                 .orElseGet(() -> ResponseEntity.badRequest().build());
     }
 }

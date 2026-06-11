@@ -27,8 +27,12 @@ public class JobOfferService {
     // Only OPEN offers are publicly browsable — DRAFT/CLOSED/EXPIRED must stay invisible
     // to candidates, the same "discoverable set is a filtered subset" reasoning as
     // CompanyService.getActiveCompanies (only ACTIVE companies are joinable/browsable).
-    public Page<JobOffer> getOpenJobOffers(Pageable pageable) {
-        return jobOfferRepository.findByStatus(JobStatus.OPEN, pageable);
+    // @Transactional keeps the Hibernate session open while .from() resolves the lazy
+    // company/postedBy.user associations, so the DTO mapping doesn't depend on
+    // Open-Session-In-View.
+    @Transactional(readOnly = true)
+    public Page<JobOfferDTO> getOpenJobOffers(Pageable pageable) {
+        return jobOfferRepository.findByStatus(JobStatus.OPEN, pageable).map(JobOfferDTO::from);
     }
 
     // Posting is restricted to a company's own OWNER/RECRUITER, and only while that
@@ -36,7 +40,7 @@ public class JobOfferService {
     // join-flow (registerCompanyMember). Modeled as Optional, the same "soft failure"
     // pattern, since @Valid can't express "is this caller allowed to act for this company".
     @Transactional
-    public Optional<JobOffer> postJobOffer(String posterEmail, CreateJobOfferDTO dto) {
+    public Optional<JobOfferDTO> postJobOffer(String posterEmail, CreateJobOfferDTO dto) {
         User user = userRepository.findByEmail(posterEmail).orElse(null);
         if (user == null) return Optional.empty();
 
@@ -65,6 +69,6 @@ public class JobOfferService {
         offer.setMaxApplications(dto.getMaxApplications());
         offer.setContactEmail(dto.getContactEmail());
 
-        return Optional.of(jobOfferRepository.save(offer));
+        return Optional.of(JobOfferDTO.from(jobOfferRepository.save(offer)));
     }
 }
