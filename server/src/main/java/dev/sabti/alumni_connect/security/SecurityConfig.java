@@ -48,6 +48,10 @@ public class SecurityConfig {
                     // and wrongly expose candidates' applications. Fine-grained "same company"
                     // authority is checked in JobApplicationService.
                     .requestMatchers(HttpMethod.GET, "/api/job-offers/*/applications").authenticated()
+                    // "My company's postings" — must also be declared before the broad public
+                    // matcher below, same reasoning as /*/applications: it's a private,
+                    // company-scoped view, not a publicly browsable offer.
+                    .requestMatchers(HttpMethod.GET, "/api/job-offers/me").authenticated()
                     // Public job-offer browsing — candidates search/apply before having an
                     // account. Scoped to GET only; POST (posting an offer) stays authenticated
                     // and is further authority-checked in JobOfferService.
