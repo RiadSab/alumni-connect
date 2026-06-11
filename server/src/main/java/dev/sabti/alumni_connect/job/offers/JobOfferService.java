@@ -132,7 +132,10 @@ public class JobOfferService {
     // the discovery entry point for that same authority.
     @Transactional(readOnly = true)
     public Optional<Page<JobOfferDTO>> getMyCompanyJobOffers(String callerEmail, Pageable pageable) {
-        CompanyUserProfile profile = resolvePoster(callerEmail).orElse(null);
+        CompanyUserProfile profile = userRepository.findByEmail(callerEmail)
+                .flatMap(companyUserProfileRepository::findByUser)
+                .filter(p -> p.getCompanyRole() == CompanyRole.OWNER || p.getCompanyRole() == CompanyRole.RECRUITER)
+                .orElse(null);
         if (profile == null) return Optional.empty();
 
         return Optional.of(jobOfferRepository.findByCompany(profile.getCompany(), pageable).map(JobOfferDTO::from));
@@ -141,15 +144,9 @@ public class JobOfferService {
     // Duplicated from JobApplicationService.resolveReviewerForCompany on purpose —
     // small enough that sharing it isn't worth coupling the two sub-features.
     private Optional<CompanyUserProfile> resolvePosterForCompany(String email, Long companyId) {
-        return resolvePoster(email).filter(profile -> profile.getCompany().getId().equals(companyId));
-    }
-
-    // Caller must be a real CompanyUserProfile, OWNER or RECRUITER — the same
-    // company-wide posting/editing authority level, before any specific company is
-    // checked.
-    private Optional<CompanyUserProfile> resolvePoster(String email) {
         return userRepository.findByEmail(email)
                 .flatMap(companyUserProfileRepository::findByUser)
-                .filter(profile -> profile.getCompanyRole() == CompanyRole.OWNER || profile.getCompanyRole() == CompanyRole.RECRUITER);
+                .filter(profile -> profile.getCompanyRole() == CompanyRole.OWNER || profile.getCompanyRole() == CompanyRole.RECRUITER)
+                .filter(profile -> profile.getCompany().getId().equals(companyId));
     }
 }
