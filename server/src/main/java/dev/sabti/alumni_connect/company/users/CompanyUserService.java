@@ -25,6 +25,15 @@ public class CompanyUserService {
                         .map(profile -> CompanyUserProfileDTO.from(user, profile)));
     }
 
+    // Admin-only lookup by User id (e.g. reviewing a pending company-user from
+    // /api/admin/pending-users). Empty -> 404 if the id doesn't exist or isn't a company user.
+    @Transactional(readOnly = true)
+    public Optional<CompanyUserProfileDTO> getProfileById(Long userId) {
+        return userRepository.findById(userId)
+                .flatMap(user -> companyUserProfileRepository.findByUser(user)
+                        .map(profile -> CompanyUserProfileDTO.from(user, profile)));
+    }
+
     // Partial update across both User (name/phone) and CompanyUserProfile (position only —
     // companyRole/company are admin/owner-controlled). Fields are all nullable: null
     // means "leave unchanged".
