@@ -59,6 +59,11 @@ public class SecurityConfig {
                     // Admin review of any candidate's profile by User id (e.g. from
                     // /api/admin/pending-users before approve/reject).
                     .requestMatchers(HttpMethod.GET, "/api/candidates/*").hasRole("ADMINISTRATOR")
+                    // Company-user self-profile — same ordering reasoning as /api/candidates/me.
+                    .requestMatchers(HttpMethod.GET, "/api/company-users/me").authenticated()
+                    .requestMatchers(HttpMethod.PATCH, "/api/company-users/me").authenticated()
+                    // Admin review of any company-user's profile by User id.
+                    .requestMatchers(HttpMethod.GET, "/api/company-users/*").hasRole("ADMINISTRATOR")
                     // Public job-offer browsing — candidates search/apply before having an
                     // account. Scoped to GET only; POST (posting an offer) stays authenticated
                     // and is further authority-checked in JobOfferService.
