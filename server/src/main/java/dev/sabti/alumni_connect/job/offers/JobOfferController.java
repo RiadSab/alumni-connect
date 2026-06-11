@@ -13,6 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -36,6 +37,31 @@ public class JobOfferController {
                                                      @RequestBody @Valid CreateJobOfferDTO dto) {
         return jobOfferService.postJobOffer(principal.getUsername(), dto)
                 .map(offer -> ResponseEntity.status(HttpStatus.CREATED).body(offer))
+                .orElseGet(() -> ResponseEntity.status(HttpStatus.FORBIDDEN).build());
+    }
+
+    // OPEN offers are publicly visible (permitAll in SecurityConfig), so principal
+    // may be null here — non-OPEN offers fall back to the posting company's own
+    // OWNER/RECRUITER, checked in the service. Both "not found" and "not visible to
+    // you" return 404, so draft postings don't leak their existence.
+    @GetMapping("/{id}")
+    public ResponseEntity<JobOfferDTO> getJobOfferById(@PathVariable Long id,
+                                                        @AuthenticationPrincipal UserDetails principal) {
+        String email = principal != null ? principal.getUsername() : null;
+        return jobOfferService.getJobOfferById(email, id)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    // Partial update; status is one of the editable fields, so closing/reopening an
+    // offer is just PATCH {"status": "CLOSED"} — no separate delete endpoint.
+    // Authority (posting company's OWNER/RECRUITER) is checked in the service.
+    @PatchMapping("/{id}")
+    public ResponseEntity<JobOfferDTO> updateJobOffer(@PathVariable Long id,
+                                                       @AuthenticationPrincipal UserDetails principal,
+                                                       @RequestBody @Valid UpdateJobOfferDTO dto) {
+        return jobOfferService.updateJobOffer(principal.getUsername(), id, dto)
+                .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.status(HttpStatus.FORBIDDEN).build());
     }
 

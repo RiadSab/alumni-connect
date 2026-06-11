@@ -71,4 +71,66 @@ public class JobOfferService {
 
         return Optional.of(JobOfferDTO.from(jobOfferRepository.save(offer)));
     }
+
+    // OPEN offers are publicly visible (same as getOpenJobOffers). Anything else
+    // (DRAFT/CLOSED/EXPIRED) is only visible to the posting company's own
+    // OWNER/RECRUITER — otherwise the controller maps to 404, deliberately not
+    // distinguishing "doesn't exist" from "exists but not yours to see", so a
+    // draft posting's existence isn't leaked to outsiders.
+    @Transactional(readOnly = true)
+    public Optional<JobOfferDTO> getJobOfferById(String callerEmail, Long id) {
+        JobOffer offer = jobOfferRepository.findById(id).orElse(null);
+        if (offer == null) return Optional.empty();
+
+        if (offer.getStatus() == JobStatus.OPEN) {
+            return Optional.of(JobOfferDTO.from(offer));
+        }
+
+        if (callerEmail == null || resolvePosterForCompany(callerEmail, offer.getCompany().getId()).isEmpty()) {
+            return Optional.empty();
+        }
+
+        return Optional.of(JobOfferDTO.from(offer));
+    }
+
+    // Editing (including closing/reopening via status) is restricted to the posting
+    // company's own OWNER/RECRUITER — the old PUT /update had no such check, letting
+    // any COMPANYUSER edit any company's offer. Fields are all nullable: null means
+    // "leave unchanged", same pattern as ReviewApplicationDTO.
+    @Transactional
+    public Optional<JobOfferDTO> updateJobOffer(String callerEmail, Long id, UpdateJobOfferDTO dto) {
+        JobOffer offer = jobOfferRepository.findById(id).orElse(null);
+        if (offer == null) return Optional.empty();
+
+        if (resolvePosterForCompany(callerEmail, offer.getCompany().getId()).isEmpty()) {
+            return Optional.empty();
+        }
+
+        if (dto.getTitle() != null) offer.setTitle(dto.getTitle());
+        if (dto.getDescription() != null) offer.setDescription(dto.getDescription());
+        if (dto.getRequirements() != null) offer.setRequirements(dto.getRequirements());
+        if (dto.getCity() != null) offer.setCity(dto.getCity());
+        if (dto.getMinSalary() != null) offer.setMinSalary(dto.getMinSalary());
+        if (dto.getMaxSalary() != null) offer.setMaxSalary(dto.getMaxSalary());
+        if (dto.getEmploymentType() != null) offer.setEmploymentType(dto.getEmploymentType());
+        if (dto.getApplicationDeadline() != null) offer.setApplicationDeadline(dto.getApplicationDeadline());
+        if (dto.getStatus() != null) offer.setStatus(dto.getStatus());
+        if (dto.getExperienceYears() != null) offer.setExperienceYears(dto.getExperienceYears());
+        if (dto.getSkillsRequired() != null) offer.setSkillsRequired(dto.getSkillsRequired());
+        if (dto.getIsRemote() != null) offer.setIsRemote(dto.getIsRemote());
+        if (dto.getIsUrgent() != null) offer.setIsUrgent(dto.getIsUrgent());
+        if (dto.getMaxApplications() != null) offer.setMaxApplications(dto.getMaxApplications());
+        if (dto.getContactEmail() != null) offer.setContactEmail(dto.getContactEmail());
+
+        return Optional.of(JobOfferDTO.from(jobOfferRepository.save(offer)));
+    }
+
+    // Duplicated from JobApplicationService.resolveReviewerForCompany on purpose —
+    // small enough that sharing it isn't worth coupling the two sub-features.
+    private Optional<CompanyUserProfile> resolvePosterForCompany(String email, Long companyId) {
+        return userRepository.findByEmail(email)
+                .flatMap(companyUserProfileRepository::findByUser)
+                .filter(profile -> profile.getCompanyRole() == CompanyRole.OWNER || profile.getCompanyRole() == CompanyRole.RECRUITER)
+                .filter(profile -> profile.getCompany().getId().equals(companyId));
+    }
 }
