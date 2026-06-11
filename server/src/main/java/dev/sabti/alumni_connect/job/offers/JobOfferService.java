@@ -125,12 +125,31 @@ public class JobOfferService {
         return Optional.of(JobOfferDTO.from(jobOfferRepository.save(offer)));
     }
 
+    // All offers belonging to the caller's own company (any status), regardless of
+    // who posted them — matches the company-wide authority already enforced by
+    // resolvePosterForCompany (an OWNER/RECRUITER can edit/review any of their
+    // company's offers, not just ones they personally posted), so this listing is
+    // the discovery entry point for that same authority.
+    @Transactional(readOnly = true)
+    public Optional<Page<JobOfferDTO>> getMyCompanyJobOffers(String callerEmail, Pageable pageable) {
+        CompanyUserProfile profile = resolvePoster(callerEmail).orElse(null);
+        if (profile == null) return Optional.empty();
+
+        return Optional.of(jobOfferRepository.findByCompany(profile.getCompany(), pageable).map(JobOfferDTO::from));
+    }
+
     // Duplicated from JobApplicationService.resolveReviewerForCompany on purpose —
     // small enough that sharing it isn't worth coupling the two sub-features.
     private Optional<CompanyUserProfile> resolvePosterForCompany(String email, Long companyId) {
+        return resolvePoster(email).filter(profile -> profile.getCompany().getId().equals(companyId));
+    }
+
+    // Caller must be a real CompanyUserProfile, OWNER or RECRUITER — the same
+    // company-wide posting/editing authority level, before any specific company is
+    // checked.
+    private Optional<CompanyUserProfile> resolvePoster(String email) {
         return userRepository.findByEmail(email)
                 .flatMap(companyUserProfileRepository::findByUser)
-                .filter(profile -> profile.getCompanyRole() == CompanyRole.OWNER || profile.getCompanyRole() == CompanyRole.RECRUITER)
-                .filter(profile -> profile.getCompany().getId().equals(companyId));
+                .filter(profile -> profile.getCompanyRole() == CompanyRole.OWNER || profile.getCompanyRole() == CompanyRole.RECRUITER);
     }
 }

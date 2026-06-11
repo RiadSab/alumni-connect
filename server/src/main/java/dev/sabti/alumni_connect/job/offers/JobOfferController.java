@@ -40,6 +40,18 @@ public class JobOfferController {
                 .orElseGet(() -> ResponseEntity.status(HttpStatus.FORBIDDEN).build());
     }
 
+    // All of the caller's own company's offers, any status — the discovery entry
+    // point for the same company-wide OWNER/RECRUITER authority already enforced on
+    // edit/review. Must be registered (and matched in SecurityConfig) before
+    // /{id} below, since "/me" would otherwise be parsed as an offer id.
+    @GetMapping("/me")
+    public ResponseEntity<Page<JobOfferDTO>> getMyCompanyJobOffers(@AuthenticationPrincipal UserDetails principal,
+                                                                    @PageableDefault Pageable pageable) {
+        return jobOfferService.getMyCompanyJobOffers(principal.getUsername(), pageable)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.status(HttpStatus.FORBIDDEN).build());
+    }
+
     // OPEN offers are publicly visible (permitAll in SecurityConfig), so principal
     // may be null here — non-OPEN offers fall back to the posting company's own
     // OWNER/RECRUITER, checked in the service. Both "not found" and "not visible to
