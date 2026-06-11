@@ -1,4 +1,4 @@
-package dev.sabti.alumni_connect.job.offers;
+package dev.sabti.alumni_connect.job.applications;
 
 import lombok.Data;
 

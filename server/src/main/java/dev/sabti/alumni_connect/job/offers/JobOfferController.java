@@ -1,5 +1,6 @@
 package dev.sabti.alumni_connect.job.offers;
 
+import dev.sabti.alumni_connect.job.applications.ApplyToJobOfferDTO;
 import dev.sabti.alumni_connect.job.applications.JobApplicationService;
 import dev.sabti.alumni_connect.job.entities.JobApplication;
 import dev.sabti.alumni_connect.job.entities.JobOffer;
