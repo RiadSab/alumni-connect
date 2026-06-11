@@ -1,6 +1,5 @@
 package dev.sabti.alumni_connect.job.applications;
 
-import dev.sabti.alumni_connect.job.entities.JobApplication;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -25,11 +24,11 @@ public class JobApplicationController {
     // approve/reject does. Authority (same-company OWNER/RECRUITER) is checked in
     // the service; Optional empty -> 403.
     @PatchMapping("/{id}")
-    public ResponseEntity<JobApplication> review(@PathVariable Long id,
-                                                  @AuthenticationPrincipal UserDetails principal,
-                                                  @RequestBody @Valid ReviewApplicationDTO dto) {
+    public ResponseEntity<JobApplicationDTO> review(@PathVariable Long id,
+                                                     @AuthenticationPrincipal UserDetails principal,
+                                                     @RequestBody @Valid ReviewApplicationDTO dto) {
         return jobApplicationService.review(principal.getUsername(), id, dto)
-                .map(ResponseEntity::ok)
+                .map(application -> ResponseEntity.ok(JobApplicationDTO.from(application)))
                 .orElseGet(() -> ResponseEntity.status(HttpStatus.FORBIDDEN).build());
     }
 }
