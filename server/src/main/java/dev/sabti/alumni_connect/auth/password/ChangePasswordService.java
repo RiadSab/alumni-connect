@@ -15,17 +15,17 @@ public class ChangePasswordService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
-    // false signals "soft failure" — the supplied old password didn't match (the only
-    // outcome the caller can act on). The user always exists: email comes from the
-    // authenticated principal, so a missing user would be an inconsistent state, logged
-    // and reported the same way rather than surfaced as a distinct status.
+    // Returns exactly one thing: whether the supplied old password matched. That's the only
+    // failure the caller can produce — the user is guaranteed to exist here (email comes from
+    // the authenticated principal, and JwtRequestFilter already loaded it to authenticate the
+    // request), so a missing user is an invariant violation, not a client error: throw (500)
+    // rather than fold it into the false/400 path and mislabel it as a wrong password.
     @Transactional
     public boolean changePassword(String email, ChangePasswordDTO dto) {
-        User user = userRepository.findByEmail(email).orElse(null);
-        if (user == null) {
-            log.warn("Change password failed: no user found with email {}", email);
-            return false;
-        }
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalStateException(
+                        "Authenticated principal has no matching user: " + email));
+
         if (!passwordEncoder.matches(dto.getOldPassword(), user.getPasswordHash())) {
             log.warn("Change password failed: incorrect old password for email {}", email);
             return false;
