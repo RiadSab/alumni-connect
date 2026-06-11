@@ -28,7 +28,7 @@ public class JobApplicationController {
                                                      @AuthenticationPrincipal UserDetails principal,
                                                      @RequestBody @Valid ReviewApplicationDTO dto) {
         return jobApplicationService.review(principal.getUsername(), id, dto)
-                .map(application -> ResponseEntity.ok(JobApplicationDTO.from(application)))
+                .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.status(HttpStatus.FORBIDDEN).build());
     }
 }

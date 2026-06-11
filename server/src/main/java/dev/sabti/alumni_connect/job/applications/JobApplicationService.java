@@ -36,7 +36,7 @@ public class JobApplicationService {
     // "can't apply" outcome, the same Optional "soft failure" pattern as
     // registerCompanyMember/postJobOffer (the controller maps empty -> 400).
     @Transactional
-    public Optional<JobApplication> apply(String applicantEmail, Long jobOfferId, ApplyToJobOfferDTO dto) {
+    public Optional<JobApplicationDTO> apply(String applicantEmail, Long jobOfferId, ApplyToJobOfferDTO dto) {
         User user = userRepository.findByEmail(applicantEmail).orElse(null);
         if (user == null) return Optional.empty();
 
@@ -62,12 +62,13 @@ public class JobApplicationService {
         offer.setCurrentApplicationCount(offer.getCurrentApplicationCount() + 1);
         jobOfferRepository.save(offer);
 
-        return Optional.of(application);
+        return Optional.of(JobApplicationDTO.from(application));
     }
 
     // Listing applicants is restricted to the OWNER/RECRUITER of the company that
     // posted THIS specific offer — same authority boundary as reviewing (see review()).
-    public Optional<Page<JobApplication>> getApplicationsForOffer(String reviewerEmail, Long jobOfferId, Pageable pageable) {
+    @Transactional(readOnly = true)
+    public Optional<Page<JobApplicationDTO>> getApplicationsForOffer(String reviewerEmail, Long jobOfferId, Pageable pageable) {
         JobOffer offer = jobOfferRepository.findById(jobOfferId).orElse(null);
         if (offer == null) return Optional.empty();
 
@@ -75,7 +76,7 @@ public class JobApplicationService {
             return Optional.empty();
         }
 
-        return Optional.of(jobApplicationRepository.findByJobOffer(offer, pageable));
+        return Optional.of(jobApplicationRepository.findByJobOffer(offer, pageable).map(JobApplicationDTO::from));
     }
 
     // Reviewing requires the caller to be an OWNER/RECRUITER of the SAME company that
@@ -84,7 +85,7 @@ public class JobApplicationService {
     // Fields in the DTO are all nullable: null means "leave unchanged", letting the caller
     // update just a status, just a note, etc. reviewedAt/reviewedBy are set server-side.
     @Transactional
-    public Optional<JobApplication> review(String reviewerEmail, Long applicationId, ReviewApplicationDTO dto) {
+    public Optional<JobApplicationDTO> review(String reviewerEmail, Long applicationId, ReviewApplicationDTO dto) {
         JobApplication application = jobApplicationRepository.findById(applicationId).orElse(null);
         if (application == null) return Optional.empty();
 
@@ -100,7 +101,7 @@ public class JobApplicationService {
         application.setReviewedAt(LocalDateTime.now());
         application.setReviewedBy(reviewer);
 
-        return Optional.of(jobApplicationRepository.save(application));
+        return Optional.of(JobApplicationDTO.from(jobApplicationRepository.save(application)));
     }
 
     // Shared authority check for both listing and reviewing: caller must be a real
