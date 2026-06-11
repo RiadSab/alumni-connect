@@ -2,6 +2,9 @@ package dev.sabti.alumni_connect.job.applications;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -18,6 +21,18 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class JobApplicationController {
     private final JobApplicationService jobApplicationService;
+
+    // The candidate's own application history, any status — mirrors
+    // GET /api/job-offers/me on the company side. Empty -> 403 if the caller has no
+    // CandidateProfile. Must be registered (Spring matches literal path segments
+    // before path variables) before /{id} below, so "/me" isn't parsed as an id.
+    @GetMapping("/me")
+    public ResponseEntity<Page<JobApplicationDTO>> getMyApplications(@AuthenticationPrincipal UserDetails principal,
+                                                                       @PageableDefault Pageable pageable) {
+        return jobApplicationService.getMyApplications(principal.getUsername(), pageable)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.status(HttpStatus.FORBIDDEN).build());
+    }
 
     // Visible only to the applicant or the posting company's own OWNER/RECRUITER —
     // checked in the service. "Not found" and "not yours" both -> 404, so this

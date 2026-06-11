@@ -13,4 +13,6 @@ public interface JobApplicationRepository extends JpaRepository<JobApplication, 
     boolean existsByJobOfferAndApplicant(JobOffer jobOffer, CandidateProfile applicant);
 
     Page<JobApplication> findByJobOffer(JobOffer jobOffer, Pageable pageable);
+
+    Page<JobApplication> findByApplicant(CandidateProfile applicant, Pageable pageable);
 }

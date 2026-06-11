@@ -65,6 +65,21 @@ public class JobApplicationService {
         return Optional.of(JobApplicationDTO.from(application));
     }
 
+    // The candidate's own application history, any status. Empty -> 403 if the
+    // caller has no CandidateProfile (this endpoint doesn't apply to them) — old
+    // code instead used messy instanceof-principal checks and silently returned an
+    // empty page for non-candidates.
+    @Transactional(readOnly = true)
+    public Optional<Page<JobApplicationDTO>> getMyApplications(String applicantEmail, Pageable pageable) {
+        User user = userRepository.findByEmail(applicantEmail).orElse(null);
+        if (user == null) return Optional.empty();
+
+        CandidateProfile applicant = candidateProfileRepository.findByUser(user).orElse(null);
+        if (applicant == null) return Optional.empty();
+
+        return Optional.of(jobApplicationRepository.findByApplicant(applicant, pageable).map(JobApplicationDTO::from));
+    }
+
     // Listing applicants is restricted to the OWNER/RECRUITER of the company that
     // posted THIS specific offer — same authority boundary as reviewing (see review()).
     @Transactional(readOnly = true)
