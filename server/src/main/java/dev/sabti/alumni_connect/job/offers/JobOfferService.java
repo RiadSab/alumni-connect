@@ -1,6 +1,8 @@
 package dev.sabti.alumni_connect.job.offers;
 
+import dev.sabti.alumni_connect.auth.entities.CandidateProfile;
 import dev.sabti.alumni_connect.auth.entities.User;
+import dev.sabti.alumni_connect.auth.repositories.CandidateProfileRepository;
 import dev.sabti.alumni_connect.auth.repositories.UserRepository;
 import dev.sabti.alumni_connect.company.entities.CompanyRole;
 import dev.sabti.alumni_connect.company.entities.CompanyStatus;
@@ -16,7 +18,9 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -24,6 +28,7 @@ public class JobOfferService {
     private final JobOfferRepository jobOfferRepository;
     private final UserRepository userRepository;
     private final CompanyUserProfileRepository companyUserProfileRepository;
+    private final CandidateProfileRepository candidateProfileRepository;
 
     // Only OPEN offers are publicly browsable — DRAFT/CLOSED/EXPIRED must stay invisible
     // to candidates, the same "discoverable set is a filtered subset" reasoning as
@@ -54,6 +59,35 @@ public class JobOfferService {
             }
         }
         return jobOfferRepository.findAll(spec, pageable).map(JobOfferDTO::from);
+    }
+
+    // "Recommended for you": OPEN offers ranked by how many of their required skills overlap
+    // with the candidate's own profile skills (system-push, vs the caller-pull of the search
+    // above). The endpoint is gated to ROLE CANDIDATE, so the profile is expected to exist; the
+    // defensive empties cover the impossible cases the same way without throwing. A candidate
+    // with no skills gets an empty page on purpose — that's the signal to go fill their profile,
+    // not a reason to fall back to generic listings (which would hide the gap).
+    @Transactional(readOnly = true)
+    public Page<JobOfferDTO> getRecommendedOffers(String candidateEmail, Pageable pageable) {
+        User user = userRepository.findByEmail(candidateEmail).orElse(null);
+        if (user == null) return Page.empty(pageable);
+
+        CandidateProfile profile = candidateProfileRepository.findByUser(user).orElse(null);
+        if (profile == null) return Page.empty(pageable);
+
+        Set<String> skills = profile.getSkills();
+        if (skills == null || skills.isEmpty()) return Page.empty(pageable);
+
+        // Lowercased to match the query's lower(s) comparison; skillsRequired isn't normalized on
+        // write, so the matching is made case-insensitive here rather than relying on stored case.
+        List<String> normalized = skills.stream()
+                .filter(s -> s != null && !s.isBlank())
+                .map(s -> s.trim().toLowerCase())
+                .distinct()
+                .toList();
+        if (normalized.isEmpty()) return Page.empty(pageable);
+
+        return jobOfferRepository.findOpenOffersMatchingSkills(normalized, pageable).map(JobOfferDTO::from);
     }
 
     // Posting is restricted to a company's own OWNER/RECRUITER, and only while that

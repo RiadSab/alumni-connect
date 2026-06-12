@@ -56,6 +56,10 @@ public class SecurityConfig {
                     // matcher below, same reasoning as /*/applications: it's a private,
                     // company-scoped view, not a publicly browsable offer.
                     .requestMatchers(HttpMethod.GET, "/api/job-offers/me").authenticated()
+                    // "Recommended for you" — candidate-only, ranked against the caller's own
+                    // profile skills. Declared before the broad public GET below so it isn't made
+                    // public; "must be a candidate" maps cleanly onto one role, like /*/apply.
+                    .requestMatchers(HttpMethod.GET, "/api/job-offers/recommended").hasRole("CANDIDATE")
                     // Candidate self-profile — declared before /api/candidates/* below so
                     // "/me" isn't caught by the admin-only by-id matcher.
                     .requestMatchers(HttpMethod.GET, "/api/candidates/me").authenticated()

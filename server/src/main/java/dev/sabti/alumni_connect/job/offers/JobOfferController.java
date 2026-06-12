@@ -69,6 +69,16 @@ public class JobOfferController {
                 .orElseGet(() -> ResponseEntity.status(HttpStatus.FORBIDDEN).build());
     }
 
+    // "Recommended for you" — OPEN offers ranked by skill overlap with the candidate's
+    // profile. Candidate-only (gated to ROLE CANDIDATE in SecurityConfig, declared before the
+    // public /** GET so it isn't made public). Literal "/recommended" so it isn't parsed as an
+    // offer id by /{id} below. No default sort: the service's query supplies its own ranking.
+    @GetMapping("/recommended")
+    public ResponseEntity<Page<JobOfferDTO>> getRecommendedOffers(@AuthenticationPrincipal UserDetails principal,
+                                                                   @PageableDefault Pageable pageable) {
+        return ResponseEntity.ok(jobOfferService.getRecommendedOffers(principal.getUsername(), pageable));
+    }
+
     // OPEN offers are publicly visible (permitAll in SecurityConfig), so principal
     // may be null here — non-OPEN offers fall back to the posting company's own
     // OWNER/RECRUITER, checked in the service. Both "not found" and "not visible to
