@@ -12,12 +12,14 @@ import dev.sabti.alumni_connect.job.entities.JobOffer;
 import dev.sabti.alumni_connect.job.entities.JobStatus;
 import dev.sabti.alumni_connect.job.repositories.JobApplicationRepository;
 import dev.sabti.alumni_connect.job.repositories.JobOfferRepository;
+import dev.sabti.alumni_connect.storage.StoredFileService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -30,14 +32,19 @@ public class JobApplicationService {
     private final UserRepository userRepository;
     private final CandidateProfileRepository candidateProfileRepository;
     private final CompanyUserProfileRepository companyUserProfileRepository;
+    private final StoredFileService storedFileService;
 
     // Applying requires: a real CandidateProfile behind the caller, an OPEN offer,
     // no pre-existing application from this candidate to this offer, and — if the
     // offer caps applications — room left under that cap. All collapse to one
     // "can't apply" outcome, the same Optional "soft failure" pattern as
     // registerCompanyMember/postJobOffer (the controller maps empty -> 400).
+    // A resume is optional: the applicant either uploads one specific to this offer, or reuses
+    // their profile resume (which gets copied — see below). All the "can't apply" checks run
+    // before any file work, so we never store a resume for an application that won't be created.
     @Transactional
-    public Optional<JobApplicationDTO> apply(String applicantEmail, Long jobOfferId, ApplyToJobOfferDTO dto) {
+    public Optional<JobApplicationDTO> apply(String applicantEmail, Long jobOfferId, ApplyToJobOfferDTO dto,
+                                             MultipartFile resume, Boolean useProfileResume) {
         User user = userRepository.findByEmail(applicantEmail).orElse(null);
         if (user == null) return Optional.empty();
 
@@ -54,10 +61,22 @@ public class JobApplicationService {
             return Optional.empty();
         }
 
+        // An uploaded offer-specific resume wins over the profile one if both are sent (it's the
+        // more deliberate choice). Reusing the profile resume copies the file so this application
+        // keeps its own snapshot — independent of any later profile-resume replace/delete.
+        String resumeStorageId = null;
+        if (resume != null && !resume.isEmpty()) {
+            resumeStorageId = storedFileService.store(resume).getStorageId();
+        } else if (Boolean.TRUE.equals(useProfileResume)) {
+            if (applicant.getResumeId() == null) return Optional.empty();  // asked to reuse, but none on file
+            resumeStorageId = storedFileService.copy(applicant.getResumeId()).getStorageId();
+        }
+
         JobApplication application = new JobApplication();
         application.setJobOffer(offer);
         application.setApplicant(applicant);
         application.setCoverLetter(dto.getCoverLetter());
+        application.setResumeStorageId(resumeStorageId);
         application = jobApplicationRepository.save(application);
 
         offer.setCurrentApplicationCount(offer.getCurrentApplicationCount() + 1);

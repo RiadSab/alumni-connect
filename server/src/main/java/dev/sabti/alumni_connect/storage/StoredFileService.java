@@ -32,6 +32,21 @@ public class StoredFileService {
         return repository.save(metadata);
     }
 
+    // Snapshots an existing file: copies the bytes to a new storageId and records a matching
+    // metadata row (same filename/type/size). The copy is fully independent of the source, so
+    // deleting one never affects the other.
+    @Transactional
+    public StoredFile copy(String sourceStorageId) {
+        StoredFile source = repository.findByStorageId(sourceStorageId)
+                .orElseThrow(() -> new StorageException("Cannot copy unknown file: " + sourceStorageId));
+        StoredFile copy = new StoredFile();
+        copy.setStorageId(storageService.copy(sourceStorageId));
+        copy.setOriginalFilename(source.getOriginalFilename());
+        copy.setContentType(source.getContentType());
+        copy.setSize(source.getSize());
+        return repository.save(copy);
+    }
+
     @Transactional(readOnly = true)
     public Optional<FileDownload> load(String storageId) {
         return repository.findByStorageId(storageId)

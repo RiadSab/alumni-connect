@@ -14,10 +14,12 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -25,6 +27,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -129,11 +132,20 @@ public class JobOfferController {
 
     // Named business action (apply), not a generic sub-resource POST — mirrors the
     // /approve, /reject pattern in AdminController (security/auditability rationale).
-    @PostMapping("/{id}/apply")
+    // Multipart so the applicant can attach a resume: an offer-specific PDF upload (`resume`),
+    // or `useProfileResume=true` to reuse their profile CV (copied onto the application). Both
+    // optional; if both are sent the upload wins. A non-PDF upload is rejected here as 400.
+    @PostMapping(value = "/{id}/apply", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<JobApplicationDTO> apply(@PathVariable Long id,
                                                     @AuthenticationPrincipal UserDetails principal,
-                                                    @RequestBody @Valid ApplyToJobOfferDTO dto) {
-        return jobApplicationService.apply(principal.getUsername(), id, dto)
+                                                    @ModelAttribute @Valid ApplyToJobOfferDTO dto,
+                                                    @RequestParam(required = false) MultipartFile resume,
+                                                    @RequestParam(required = false) Boolean useProfileResume) {
+        if (resume != null && !resume.isEmpty()
+                && !MediaType.APPLICATION_PDF_VALUE.equalsIgnoreCase(resume.getContentType())) {
+            return ResponseEntity.badRequest().build();
+        }
+        return jobApplicationService.apply(principal.getUsername(), id, dto, resume, useProfileResume)
                 .map(application -> ResponseEntity.status(HttpStatus.CREATED).body(application))
                 .orElseGet(() -> ResponseEntity.badRequest().build());
     }

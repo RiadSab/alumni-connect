@@ -12,6 +12,11 @@ public interface StorageService {
     // Persists the bytes under a freshly generated, unguessable storageId, which it returns.
     String store(MultipartFile file);
 
+    // Duplicates an existing file under a new storageId, returned. Used to snapshot a candidate's
+    // profile resume onto an application so the two are independent (a later profile replace,
+    // which deletes the profile's file, can't break the application's copy).
+    String copy(String sourceStorageId);
+
     Resource loadAsResource(String storageId);
 
     void delete(String storageId);

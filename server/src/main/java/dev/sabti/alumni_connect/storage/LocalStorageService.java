@@ -52,6 +52,18 @@ public class LocalStorageService implements StorageService {
     }
 
     @Override
+    public String copy(String sourceStorageId) {
+        Path source = resolveWithinRoot(sourceStorageId);
+        String newStorageId = UUID.randomUUID().toString();
+        try {
+            Files.copy(source, resolveWithinRoot(newStorageId), StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException e) {
+            throw new StorageException("Failed to copy file " + sourceStorageId, e);
+        }
+        return newStorageId;
+    }
+
+    @Override
     public Resource loadAsResource(String storageId) {
         Path file = resolveWithinRoot(storageId);
         try {
