@@ -3,6 +3,8 @@ package dev.sabti.alumni_connect.job.offers;
 import dev.sabti.alumni_connect.job.applications.ApplyToJobOfferDTO;
 import dev.sabti.alumni_connect.job.applications.JobApplicationDTO;
 import dev.sabti.alumni_connect.job.applications.JobApplicationService;
+import dev.sabti.alumni_connect.job.applications.JobApplicationSearchCriteria;
+import dev.sabti.alumni_connect.job.entities.ApplicationStatus;
 import dev.sabti.alumni_connect.job.entities.EmploymentType;
 import dev.sabti.alumni_connect.job.entities.JobCity;
 import jakarta.validation.Valid;
@@ -109,11 +111,18 @@ public class JobOfferController {
     // same "soft failure" pattern as postJobOffer/apply. Note this sub-resource
     // must stay locked down in SecurityConfig despite the broad public GET on
     // /api/job-offers/**.
+    // Optional triage filters (status / reviewed / minRating) let the company narrow a busy
+    // offer's applicants; sort via ?sort= (default newest-first). None supplied reproduces the
+    // previous unfiltered list. Authority/ordering unchanged from above.
     @GetMapping("/{id}/applications")
     public ResponseEntity<Page<JobApplicationDTO>> getApplicationsForOffer(@PathVariable Long id,
                                                                             @AuthenticationPrincipal UserDetails principal,
-                                                                            @PageableDefault Pageable pageable) {
-        return jobApplicationService.getApplicationsForOffer(principal.getUsername(), id, pageable)
+                                                                            @RequestParam(required = false) ApplicationStatus status,
+                                                                            @RequestParam(required = false) Boolean reviewed,
+                                                                            @RequestParam(required = false) Integer minRating,
+                                                                            @PageableDefault(sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        JobApplicationSearchCriteria criteria = new JobApplicationSearchCriteria(status, reviewed, minRating);
+        return jobApplicationService.getApplicationsForOffer(principal.getUsername(), id, criteria, pageable)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.status(HttpStatus.FORBIDDEN).build());
     }

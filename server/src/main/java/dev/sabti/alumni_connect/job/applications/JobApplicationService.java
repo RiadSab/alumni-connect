@@ -15,6 +15,7 @@ import dev.sabti.alumni_connect.job.repositories.JobOfferRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -82,8 +83,12 @@ public class JobApplicationService {
 
     // Listing applicants is restricted to the OWNER/RECRUITER of the company that
     // posted THIS specific offer — same authority boundary as reviewing (see review()).
+    // The optional triage filters (status / reviewed / minRating) only narrow within this
+    // offer's applicants: forOffer(...) is the non-optional base, ANDed with whatever the
+    // caller supplied. The authority check runs first, so filters never run for an outsider.
     @Transactional(readOnly = true)
-    public Optional<Page<JobApplicationDTO>> getApplicationsForOffer(String reviewerEmail, Long jobOfferId, Pageable pageable) {
+    public Optional<Page<JobApplicationDTO>> getApplicationsForOffer(String reviewerEmail, Long jobOfferId,
+                                                                     JobApplicationSearchCriteria criteria, Pageable pageable) {
         JobOffer offer = jobOfferRepository.findById(jobOfferId).orElse(null);
         if (offer == null) return Optional.empty();
 
@@ -91,7 +96,19 @@ public class JobApplicationService {
             return Optional.empty();
         }
 
-        return Optional.of(jobApplicationRepository.findByJobOffer(offer, pageable).map(JobApplicationDTO::from));
+        Specification<JobApplication> spec = JobApplicationSpecs.forOffer(offer);
+        if (criteria != null) {
+            if (criteria.status() != null) {
+                spec = spec.and(JobApplicationSpecs.hasStatus(criteria.status()));
+            }
+            if (criteria.reviewed() != null) {
+                spec = spec.and(JobApplicationSpecs.isReviewed(criteria.reviewed()));
+            }
+            if (criteria.minRating() != null) {
+                spec = spec.and(JobApplicationSpecs.minRating(criteria.minRating()));
+            }
+        }
+        return Optional.of(jobApplicationRepository.findAll(spec, pageable).map(JobApplicationDTO::from));
     }
 
     // Reviewing requires the caller to be an OWNER/RECRUITER of the SAME company that
