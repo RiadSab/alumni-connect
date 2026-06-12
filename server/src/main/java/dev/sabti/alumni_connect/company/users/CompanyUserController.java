@@ -2,6 +2,9 @@ package dev.sabti.alumni_connect.company.users;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -18,6 +21,17 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class CompanyUserController {
     private final CompanyUserService companyUserService;
+
+    // The caller's own company roster (the list an OWNER picks a member from before changing
+    // their role). Scoped to the caller's company by identity — no company id in the path, so
+    // no one can list another company's members. Empty -> 403 if the caller isn't a company user.
+    @GetMapping
+    public ResponseEntity<Page<CompanyUserProfileDTO>> getMyCompanyMembers(@AuthenticationPrincipal UserDetails principal,
+                                                                           @PageableDefault Pageable pageable) {
+        return companyUserService.getMyCompanyMembers(principal.getUsername(), pageable)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.status(HttpStatus.FORBIDDEN).build());
+    }
 
     // Empty -> 403 if the caller isn't a company user (no CompanyUserProfile).
     @GetMapping("/me")

@@ -7,6 +7,8 @@ import dev.sabti.alumni_connect.company.entities.CompanyUserProfile;
 import dev.sabti.alumni_connect.company.repositories.CompanyUserProfileRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,6 +28,25 @@ public class CompanyUserService {
         return userRepository.findByEmail(email)
                 .flatMap(user -> companyUserProfileRepository.findByUser(user)
                         .map(profile -> CompanyUserProfileDTO.from(user, profile)));
+    }
+
+    // The caller's own company roster — every member of the company the caller belongs to.
+    // Scoped by identity, not by a path id, so no one can list another company's members.
+    // Empty Optional -> 403 if the caller isn't a company user (e.g. a candidate); a present
+    // (possibly small) page is the success case. Mapping each member needs its User, resolved
+    // lazily within this read-only transaction.
+    @Transactional(readOnly = true)
+    public Optional<Page<CompanyUserProfileDTO>> getMyCompanyMembers(String email, Pageable pageable) {
+        User user = userRepository.findByEmail(email).orElse(null);
+        if (user == null) return Optional.empty();
+
+        CompanyUserProfile profile = companyUserProfileRepository.findByUser(user).orElse(null);
+        if (profile == null) return Optional.empty();
+
+        Page<CompanyUserProfileDTO> members = companyUserProfileRepository
+                .findByCompany(profile.getCompany(), pageable)
+                .map(member -> CompanyUserProfileDTO.from(member.getUser(), member));
+        return Optional.of(members);
     }
 
     // Admin-only lookup by User id (e.g. reviewing a pending company-user from

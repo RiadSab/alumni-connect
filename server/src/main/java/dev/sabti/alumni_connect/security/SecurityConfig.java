@@ -67,6 +67,10 @@ public class SecurityConfig {
                     // Admin review of any candidate's profile by User id (e.g. from
                     // /api/admin/pending-users before approve/reject).
                     .requestMatchers(HttpMethod.GET, "/api/candidates/*").hasRole("ADMINISTRATOR")
+                    // The caller's own company roster — authenticated; "is a company user" is
+                    // checked in the service (a candidate gets 403). Exact path, distinct from
+                    // the /me and /* matchers.
+                    .requestMatchers(HttpMethod.GET, "/api/company-users").authenticated()
                     // Company-user self-profile — same ordering reasoning as /api/candidates/me.
                     .requestMatchers(HttpMethod.GET, "/api/company-users/me").authenticated()
                     .requestMatchers(HttpMethod.PATCH, "/api/company-users/me").authenticated()
