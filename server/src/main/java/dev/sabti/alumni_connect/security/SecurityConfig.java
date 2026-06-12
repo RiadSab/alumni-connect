@@ -64,6 +64,10 @@ public class SecurityConfig {
                     // "/me" isn't caught by the admin-only by-id matcher.
                     .requestMatchers(HttpMethod.GET, "/api/candidates/me").authenticated()
                     .requestMatchers(HttpMethod.PATCH, "/api/candidates/me").authenticated()
+                    // Candidate's own CV upload/download — authenticated; "is a candidate" is
+                    // checked in the service. Multi-segment paths, so not caught by /candidates/*.
+                    .requestMatchers(HttpMethod.POST, "/api/candidates/me/resume").authenticated()
+                    .requestMatchers(HttpMethod.GET, "/api/candidates/me/resume").authenticated()
                     // Admin review of any candidate's profile by User id (e.g. from
                     // /api/admin/pending-users before approve/reject).
                     .requestMatchers(HttpMethod.GET, "/api/candidates/*").hasRole("ADMINISTRATOR")

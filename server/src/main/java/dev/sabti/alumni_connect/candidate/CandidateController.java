@@ -2,16 +2,22 @@ package dev.sabti.alumni_connect.candidate;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/candidates")
@@ -35,6 +41,37 @@ public class CandidateController {
         return candidateService.updateMyProfile(principal.getUsername(), dto)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.status(HttpStatus.FORBIDDEN).build());
+    }
+
+    // Upload (or replace) the caller's own CV. Multipart; the content-type guard keeps it to a
+    // non-empty PDF (a caller error -> 400, distinct from the 403 for "not a candidate"). Returns
+    // the stored file's metadata, including the storageId.
+    @PostMapping(value = "/me/resume", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> uploadMyResume(@AuthenticationPrincipal UserDetails principal,
+                                            @RequestParam("file") MultipartFile file) {
+        if (file.isEmpty() || !MediaType.APPLICATION_PDF_VALUE.equalsIgnoreCase(file.getContentType())) {
+            return ResponseEntity.badRequest().body("Resume must be a non-empty PDF");
+        }
+        return candidateService.uploadResume(principal.getUsername(), file)
+                .<ResponseEntity<?>>map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.status(HttpStatus.FORBIDDEN).build());
+    }
+
+    // Stream back the caller's own CV. 403 if they're not a candidate (consistent with the other
+    // /me endpoints), 404 if they are but haven't uploaded one. Content-Disposition inline so a
+    // browser can preview the PDF; the original filename is echoed.
+    @GetMapping("/me/resume")
+    public ResponseEntity<Resource> downloadMyResume(@AuthenticationPrincipal UserDetails principal) {
+        ResumeDownload result = candidateService.getMyResume(principal.getUsername());
+        return switch (result.getStatus()) {
+            case FOUND -> ResponseEntity.ok()
+                    .contentType(MediaType.parseMediaType(result.getFile().getMetadata().getContentType()))
+                    .header(HttpHeaders.CONTENT_DISPOSITION,
+                            "inline; filename=\"" + result.getFile().getMetadata().getOriginalFilename() + "\"")
+                    .body(result.getFile().getResource());
+            case NOT_CANDIDATE -> ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+            case NO_RESUME -> ResponseEntity.notFound().build();
+        };
     }
 
     // Admin-only: lookup by User id, e.g. reviewing a pending candidate from

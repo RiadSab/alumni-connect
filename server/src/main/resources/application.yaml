@@ -9,9 +9,19 @@ spring:
     hibernate:
       ddl-auto: update
     show-sql: true
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 5MB
 
 jwt:
   secret: ${JWT_SECRET}
   expirationMs: 3600000
   issuer: alumni-connect
+
+# Local filesystem storage backend (LocalStorageService). Override STORAGE_DIR in prod, or swap
+# the StorageService implementation entirely (e.g. S3) without touching this beyond the path.
+storage:
+  local:
+    dir: ${STORAGE_DIR:./uploads}
 
