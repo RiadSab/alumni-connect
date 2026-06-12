@@ -2,14 +2,17 @@ package dev.sabti.alumni_connect.company.users;
 
 import dev.sabti.alumni_connect.auth.entities.User;
 import dev.sabti.alumni_connect.auth.repositories.UserRepository;
+import dev.sabti.alumni_connect.company.entities.CompanyRole;
 import dev.sabti.alumni_connect.company.entities.CompanyUserProfile;
 import dev.sabti.alumni_connect.company.repositories.CompanyUserProfileRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class CompanyUserService {
@@ -52,5 +55,47 @@ public class CompanyUserService {
 
         userRepository.save(user);
         return Optional.of(CompanyUserProfileDTO.from(user, companyUserProfileRepository.save(profile)));
+    }
+
+    // v1: a company's OWNER sets another member's role to MEMBER or RECRUITER, within their own
+    // company. The guards encode the rules agreed for v1 (single-owner model):
+    //   - only an OWNER may act                       -> FORBIDDEN
+    //   - granting OWNER is ownership transfer, not a  -> FORBIDDEN
+    //     role edit, and out of scope here
+    //   - an OWNER can't change their own role (would  -> FORBIDDEN
+    //     risk leaving the company with no owner)
+    //   - target must be a member of the actor's       -> NOT_FOUND
+    //     company (404-for-both, so other companies'
+    //     membership isn't probeable)
+    @Transactional
+    public ChangeMemberRoleResult changeMemberRole(String actorEmail, Long targetUserId, CompanyRole newRole) {
+        User actorUser = userRepository.findByEmail(actorEmail).orElse(null);
+        if (actorUser == null) return ChangeMemberRoleResult.forbidden();
+
+        CompanyUserProfile actor = companyUserProfileRepository.findByUser(actorUser).orElse(null);
+        if (actor == null || actor.getCompanyRole() != CompanyRole.OWNER) {
+            log.warn("Change member role denied: {} is not an OWNER", actorEmail);
+            return ChangeMemberRoleResult.forbidden();
+        }
+        if (newRole == CompanyRole.OWNER) {
+            log.warn("Change member role denied: {} attempted to grant OWNER (ownership transfer is separate)", actorEmail);
+            return ChangeMemberRoleResult.forbidden();
+        }
+        if (targetUserId.equals(actorUser.getId())) {
+            log.warn("Change member role denied: OWNER {} attempted to change their own role", actorEmail);
+            return ChangeMemberRoleResult.forbidden();
+        }
+
+        User targetUser = userRepository.findById(targetUserId).orElse(null);
+        if (targetUser == null) return ChangeMemberRoleResult.notFound();
+
+        CompanyUserProfile target = companyUserProfileRepository.findByUser(targetUser).orElse(null);
+        if (target == null || !target.getCompany().getId().equals(actor.getCompany().getId())) {
+            return ChangeMemberRoleResult.notFound();
+        }
+
+        target.setCompanyRole(newRole);
+        companyUserProfileRepository.save(target);
+        return ChangeMemberRoleResult.success(CompanyUserProfileDTO.from(targetUser, target));
     }
 }

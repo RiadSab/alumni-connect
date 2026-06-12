@@ -70,6 +70,9 @@ public class SecurityConfig {
                     // Company-user self-profile — same ordering reasoning as /api/candidates/me.
                     .requestMatchers(HttpMethod.GET, "/api/company-users/me").authenticated()
                     .requestMatchers(HttpMethod.PATCH, "/api/company-users/me").authenticated()
+                    // A company OWNER changing a member's role — only "authenticated" here; the
+                    // "OWNER of the same company" authority is checked in CompanyUserService.
+                    .requestMatchers(HttpMethod.PATCH, "/api/company-users/*/role").authenticated()
                     // Admin review of any company-user's profile by User id.
                     .requestMatchers(HttpMethod.GET, "/api/company-users/*").hasRole("ADMINISTRATOR")
                     // Public job-offer browsing — candidates search/apply before having an
