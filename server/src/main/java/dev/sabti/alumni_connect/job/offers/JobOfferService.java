@@ -1,8 +1,8 @@
 package dev.sabti.alumni_connect.job.offers;
 
-import dev.sabti.alumni_connect.auth.entities.CandidateProfile;
+import dev.sabti.alumni_connect.candidate.CandidateProfile;
 import dev.sabti.alumni_connect.auth.entities.User;
-import dev.sabti.alumni_connect.auth.repositories.CandidateProfileRepository;
+import dev.sabti.alumni_connect.candidate.CandidateProfileRepository;
 import dev.sabti.alumni_connect.auth.repositories.UserRepository;
 import dev.sabti.alumni_connect.company.entities.CompanyRole;
 import dev.sabti.alumni_connect.company.entities.CompanyStatus;

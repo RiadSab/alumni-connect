@@ -1,6 +1,5 @@
 package dev.sabti.alumni_connect.candidate;
 
-import dev.sabti.alumni_connect.auth.entities.CandidateProfile;
 import dev.sabti.alumni_connect.auth.entities.Fields;
 import dev.sabti.alumni_connect.auth.entities.User;
 import dev.sabti.alumni_connect.auth.entities.UserStatus;

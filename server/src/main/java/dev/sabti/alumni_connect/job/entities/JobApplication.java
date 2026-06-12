@@ -1,6 +1,6 @@
 package dev.sabti.alumni_connect.job.entities;
 
-import dev.sabti.alumni_connect.auth.entities.CandidateProfile;
+import dev.sabti.alumni_connect.candidate.CandidateProfile;
 import dev.sabti.alumni_connect.company.entities.CompanyUserProfile;
 import dev.sabti.alumni_connect.shared.BaseEntity;
 import jakarta.persistence.*;

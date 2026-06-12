@@ -1,8 +1,6 @@
 package dev.sabti.alumni_connect.candidate;
 
-import dev.sabti.alumni_connect.auth.entities.CandidateProfile;
 import dev.sabti.alumni_connect.auth.entities.User;
-import dev.sabti.alumni_connect.auth.repositories.CandidateProfileRepository;
 import dev.sabti.alumni_connect.auth.repositories.UserRepository;
 import dev.sabti.alumni_connect.storage.StoredFile;
 import dev.sabti.alumni_connect.storage.StoredFileDTO;

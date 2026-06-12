@@ -1,6 +1,6 @@
 package dev.sabti.alumni_connect.job.repositories;
 
-import dev.sabti.alumni_connect.auth.entities.CandidateProfile;
+import dev.sabti.alumni_connect.candidate.CandidateProfile;
 import dev.sabti.alumni_connect.job.entities.JobApplication;
 import dev.sabti.alumni_connect.job.entities.JobOffer;
 import org.springframework.data.domain.Page;

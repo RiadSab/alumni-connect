@@ -1,5 +1,7 @@
-package dev.sabti.alumni_connect.auth.entities;
+package dev.sabti.alumni_connect.candidate;
 
+import dev.sabti.alumni_connect.auth.entities.Fields;
+import dev.sabti.alumni_connect.auth.entities.User;
 import dev.sabti.alumni_connect.shared.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;

@@ -1,9 +1,9 @@
 package dev.sabti.alumni_connect.auth.register;
 
-import dev.sabti.alumni_connect.auth.entities.CandidateProfile;
+import dev.sabti.alumni_connect.candidate.CandidateProfile;
 import dev.sabti.alumni_connect.auth.entities.User;
 import dev.sabti.alumni_connect.auth.entities.UserType;
-import dev.sabti.alumni_connect.auth.repositories.CandidateProfileRepository;
+import dev.sabti.alumni_connect.candidate.CandidateProfileRepository;
 import dev.sabti.alumni_connect.auth.repositories.UserRepository;
 import dev.sabti.alumni_connect.company.entities.Company;
 import dev.sabti.alumni_connect.company.entities.CompanyRole;

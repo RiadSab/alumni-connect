@@ -1,6 +1,5 @@
-package dev.sabti.alumni_connect.auth.repositories;
+package dev.sabti.alumni_connect.candidate;
 
-import dev.sabti.alumni_connect.auth.entities.CandidateProfile;
 import dev.sabti.alumni_connect.auth.entities.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
