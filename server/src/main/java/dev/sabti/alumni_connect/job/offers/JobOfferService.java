@@ -42,20 +42,20 @@ public class JobOfferService {
     public Page<JobOfferDTO> getOpenJobOffers(JobOfferSearchCriteria criteria, Pageable pageable) {
         Specification<JobOffer> spec = JobOfferSpecs.isOpen();
         if (criteria != null) {
-            if (criteria.q() != null && !criteria.q().isBlank()) {
-                spec = spec.and(JobOfferSpecs.titleContains(criteria.q()));
+            if (criteria.getQ() != null && !criteria.getQ().isBlank()) {
+                spec = spec.and(JobOfferSpecs.titleContains(criteria.getQ()));
             }
-            if (criteria.city() != null) {
-                spec = spec.and(JobOfferSpecs.hasCity(criteria.city()));
+            if (criteria.getCity() != null) {
+                spec = spec.and(JobOfferSpecs.hasCity(criteria.getCity()));
             }
-            if (criteria.employmentType() != null) {
-                spec = spec.and(JobOfferSpecs.hasEmploymentType(criteria.employmentType()));
+            if (criteria.getEmploymentType() != null) {
+                spec = spec.and(JobOfferSpecs.hasEmploymentType(criteria.getEmploymentType()));
             }
-            if (criteria.isRemote() != null) {
-                spec = spec.and(JobOfferSpecs.isRemote(criteria.isRemote()));
+            if (criteria.getIsRemote() != null) {
+                spec = spec.and(JobOfferSpecs.isRemote(criteria.getIsRemote()));
             }
-            if (criteria.skills() != null && !criteria.skills().isEmpty()) {
-                spec = spec.and(JobOfferSpecs.hasAnySkill(criteria.skills()));
+            if (criteria.getSkills() != null && !criteria.getSkills().isEmpty()) {
+                spec = spec.and(JobOfferSpecs.hasAnySkill(criteria.getSkills()));
             }
         }
         return jobOfferRepository.findAll(spec, pageable).map(JobOfferDTO::from);

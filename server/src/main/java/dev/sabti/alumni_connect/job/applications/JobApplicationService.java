@@ -98,14 +98,14 @@ public class JobApplicationService {
 
         Specification<JobApplication> spec = JobApplicationSpecs.forOffer(offer);
         if (criteria != null) {
-            if (criteria.status() != null) {
-                spec = spec.and(JobApplicationSpecs.hasStatus(criteria.status()));
+            if (criteria.getStatus() != null) {
+                spec = spec.and(JobApplicationSpecs.hasStatus(criteria.getStatus()));
             }
-            if (criteria.reviewed() != null) {
-                spec = spec.and(JobApplicationSpecs.isReviewed(criteria.reviewed()));
+            if (criteria.getReviewed() != null) {
+                spec = spec.and(JobApplicationSpecs.isReviewed(criteria.getReviewed()));
             }
-            if (criteria.minRating() != null) {
-                spec = spec.and(JobApplicationSpecs.minRating(criteria.minRating()));
+            if (criteria.getMinRating() != null) {
+                spec = spec.and(JobApplicationSpecs.minRating(criteria.getMinRating()));
             }
         }
         return Optional.of(jobApplicationRepository.findAll(spec, pageable).map(JobApplicationDTO::from));

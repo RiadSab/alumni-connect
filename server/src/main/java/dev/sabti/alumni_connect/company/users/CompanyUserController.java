@@ -69,8 +69,8 @@ public class CompanyUserController {
                                                                   @PathVariable Long id,
                                                                   @RequestBody @Valid ChangeMemberRoleDTO dto) {
         ChangeMemberRoleResult result = companyUserService.changeMemberRole(principal.getUsername(), id, dto.getRole());
-        return switch (result.outcome()) {
-            case SUCCESS -> ResponseEntity.ok(result.profile());
+        return switch (result.getOutcome()) {
+            case SUCCESS -> ResponseEntity.ok(result.getProfile());
             case FORBIDDEN -> ResponseEntity.status(HttpStatus.FORBIDDEN).build();
             case NOT_FOUND -> ResponseEntity.notFound().build();
         };
