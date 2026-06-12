@@ -18,7 +18,7 @@ public class CompanyController {
     private final CompanyService companyService;
 
     @GetMapping
-    public ResponseEntity<Page<Company>> getActiveCompanies(@PageableDefault Pageable pageable) {
+    public ResponseEntity<Page<CompanyDTO>> getActiveCompanies(@PageableDefault Pageable pageable) {
         return ResponseEntity.ok(companyService.getActiveCompanies(pageable));
     }
 
