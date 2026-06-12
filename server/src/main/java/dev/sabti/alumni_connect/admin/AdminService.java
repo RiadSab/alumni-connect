@@ -2,6 +2,7 @@ package dev.sabti.alumni_connect.admin;
 
 import dev.sabti.alumni_connect.auth.entities.User;
 import dev.sabti.alumni_connect.auth.entities.UserStatus;
+import dev.sabti.alumni_connect.auth.entities.UserType;
 import dev.sabti.alumni_connect.auth.repositories.UserRepository;
 import dev.sabti.alumni_connect.company.entities.Company;
 import dev.sabti.alumni_connect.company.entities.CompanyStatus;
@@ -9,6 +10,7 @@ import dev.sabti.alumni_connect.company.repositories.CompanyRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,6 +22,21 @@ public class AdminService {
 
     public Page<User> getPendingUsers(Pageable pageable) {
         return userRepository.findByUserStatus(UserStatus.PENDING, pageable);
+    }
+
+    // Admin moderation browse: every user, optionally narrowed by status and/or type (no filter
+    // = everything). This is the "find an already-active scammer" path that makes the existing
+    // suspend action reachable — pending-users only surfaces accounts awaiting approval.
+    @Transactional(readOnly = true)
+    public Page<AdminUserDTO> getUsers(UserStatus status, UserType type, Pageable pageable) {
+        Specification<User> spec = (root, query, cb) -> cb.conjunction();
+        if (status != null) {
+            spec = spec.and(UserSpecs.hasStatus(status));
+        }
+        if (type != null) {
+            spec = spec.and(UserSpecs.hasType(type));
+        }
+        return userRepository.findAll(spec, pageable).map(AdminUserDTO::from);
     }
 
     public Page<Company> getPendingCompanies(Pageable pageable) {

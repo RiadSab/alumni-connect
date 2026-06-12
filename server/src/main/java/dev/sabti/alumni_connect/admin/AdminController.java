@@ -2,6 +2,7 @@ package dev.sabti.alumni_connect.admin;
 
 import dev.sabti.alumni_connect.auth.entities.User;
 import dev.sabti.alumni_connect.auth.entities.UserStatus;
+import dev.sabti.alumni_connect.auth.entities.UserType;
 import dev.sabti.alumni_connect.company.entities.Company;
 import dev.sabti.alumni_connect.company.entities.CompanyStatus;
 import dev.sabti.alumni_connect.shared.StatusChangeDTO;
@@ -22,6 +23,16 @@ public class AdminController {
     @GetMapping("/pending-users")
     public ResponseEntity<Page<User>> getPendingUsers(@PageableDefault Pageable pageable) {
         return ResponseEntity.ok(adminService.getPendingUsers(pageable));
+    }
+
+    // Moderation browse over every user, optionally filtered by status and/or type (no filter =
+    // all). Lets the admin find an already-active account (e.g. a scammer) to suspend — the
+    // suspend/profile endpoints already exist, this is the missing "find the target" step.
+    @GetMapping("/users")
+    public ResponseEntity<Page<AdminUserDTO>> getUsers(@RequestParam(required = false) UserStatus status,
+                                                       @RequestParam(required = false) UserType type,
+                                                       @PageableDefault Pageable pageable) {
+        return ResponseEntity.ok(adminService.getUsers(status, type, pageable));
     }
 
     @GetMapping("/pending-companies")
