@@ -1,6 +1,6 @@
 package dev.sabti.alumni_connect.company;
 
-import dev.sabti.alumni_connect.company.entities.Company;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;

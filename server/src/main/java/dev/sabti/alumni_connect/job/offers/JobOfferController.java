@@ -3,10 +3,13 @@ package dev.sabti.alumni_connect.job.offers;
 import dev.sabti.alumni_connect.job.applications.ApplyToJobOfferDTO;
 import dev.sabti.alumni_connect.job.applications.JobApplicationDTO;
 import dev.sabti.alumni_connect.job.applications.JobApplicationService;
+import dev.sabti.alumni_connect.job.entities.EmploymentType;
+import dev.sabti.alumni_connect.job.entities.JobCity;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,7 +21,10 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/job-offers")
@@ -27,9 +33,20 @@ public class JobOfferController {
     private final JobOfferService jobOfferService;
     private final JobApplicationService jobApplicationService;
 
+    // Public, optionally-filtered browse of OPEN offers. Every filter is optional — none
+    // supplied reproduces the previous unfiltered list. Default sort is newest-first; callers
+    // can override with ?sort=. Bad enum values for city/employmentType yield a 400 from
+    // Spring's parameter binding.
     @GetMapping
-    public ResponseEntity<Page<JobOfferDTO>> getOpenJobOffers(@PageableDefault Pageable pageable) {
-        return ResponseEntity.ok(jobOfferService.getOpenJobOffers(pageable));
+    public ResponseEntity<Page<JobOfferDTO>> getOpenJobOffers(
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) JobCity city,
+            @RequestParam(required = false) EmploymentType employmentType,
+            @RequestParam(required = false) Boolean isRemote,
+            @RequestParam(required = false) List<String> skills,
+            @PageableDefault(sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        JobOfferSearchCriteria criteria = new JobOfferSearchCriteria(q, city, employmentType, isRemote, skills);
+        return ResponseEntity.ok(jobOfferService.getOpenJobOffers(criteria, pageable));
     }
 
     @PostMapping

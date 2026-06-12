@@ -12,6 +12,7 @@ import dev.sabti.alumni_connect.job.repositories.JobOfferRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,12 +28,32 @@ public class JobOfferService {
     // Only OPEN offers are publicly browsable — DRAFT/CLOSED/EXPIRED must stay invisible
     // to candidates, the same "discoverable set is a filtered subset" reasoning as
     // CompanyService.getActiveCompanies (only ACTIVE companies are joinable/browsable).
+    // The OPEN constraint is the non-optional base spec; the caller's optional filters are
+    // ANDed onto it, so "no filters" yields exactly the previous unfiltered OPEN list.
     // @Transactional keeps the Hibernate session open while .from() resolves the lazy
     // company/postedBy.user associations, so the DTO mapping doesn't depend on
     // Open-Session-In-View.
     @Transactional(readOnly = true)
-    public Page<JobOfferDTO> getOpenJobOffers(Pageable pageable) {
-        return jobOfferRepository.findByStatus(JobStatus.OPEN, pageable).map(JobOfferDTO::from);
+    public Page<JobOfferDTO> getOpenJobOffers(JobOfferSearchCriteria criteria, Pageable pageable) {
+        Specification<JobOffer> spec = JobOfferSpecs.isOpen();
+        if (criteria != null) {
+            if (criteria.q() != null && !criteria.q().isBlank()) {
+                spec = spec.and(JobOfferSpecs.titleContains(criteria.q()));
+            }
+            if (criteria.city() != null) {
+                spec = spec.and(JobOfferSpecs.hasCity(criteria.city()));
+            }
+            if (criteria.employmentType() != null) {
+                spec = spec.and(JobOfferSpecs.hasEmploymentType(criteria.employmentType()));
+            }
+            if (criteria.isRemote() != null) {
+                spec = spec.and(JobOfferSpecs.isRemote(criteria.isRemote()));
+            }
+            if (criteria.skills() != null && !criteria.skills().isEmpty()) {
+                spec = spec.and(JobOfferSpecs.hasAnySkill(criteria.skills()));
+            }
+        }
+        return jobOfferRepository.findAll(spec, pageable).map(JobOfferDTO::from);
     }
 
     // Posting is restricted to a company's own OWNER/RECRUITER, and only while that
