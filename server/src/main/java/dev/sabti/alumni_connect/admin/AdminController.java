@@ -40,6 +40,14 @@ public class AdminController {
         return ResponseEntity.ok(adminService.getPendingCompanies(pageable));
     }
 
+    // Moderation browse over every company, optionally filtered by status (no filter = all) —
+    // the company counterpart to GET /users, surfacing already-active companies to suspend.
+    @GetMapping("/companies")
+    public ResponseEntity<Page<AdminCompanyDTO>> getCompanies(@RequestParam(required = false) CompanyStatus status,
+                                                              @PageableDefault Pageable pageable) {
+        return ResponseEntity.ok(adminService.getCompanies(status, pageable));
+    }
+
     @PostMapping("/users/{id}/approve")
     public ResponseEntity<?> approveUser(@PathVariable Long id, @RequestBody @Valid StatusChangeDTO dto) {
         return changeUserStatus(id, dto, UserStatus.ACTIVE, "approved");

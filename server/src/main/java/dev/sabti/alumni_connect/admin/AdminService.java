@@ -43,6 +43,17 @@ public class AdminService {
         return companyRepository.findByStatus(CompanyStatus.PENDING, pageable);
     }
 
+    // Admin moderation browse over companies, optionally narrowed by status (no filter = all).
+    // Only one optional filter, so a plain conditional rather than a Specification. Mirrors
+    // getUsers — the "find an already-active company to suspend" counterpart to pending-companies.
+    @Transactional(readOnly = true)
+    public Page<AdminCompanyDTO> getCompanies(CompanyStatus status, Pageable pageable) {
+        Page<Company> companies = (status == null)
+                ? companyRepository.findAll(pageable)
+                : companyRepository.findByStatus(status, pageable);
+        return companies.map(AdminCompanyDTO::from);
+    }
+
     // Single status-change path for every User regardless of role (CANDIDATE, COMPANY_USER,
     // ADMINISTRATOR) — composition means they're all the same entity, so one method covers them all.
     @Transactional
