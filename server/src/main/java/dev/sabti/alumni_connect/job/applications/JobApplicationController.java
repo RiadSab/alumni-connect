@@ -18,6 +18,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -85,6 +86,18 @@ public class JobApplicationController {
                 .contentType(MediaType.parseMediaType(metadata.getContentType()))
                 .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + metadata.getOriginalFilename() + "\"")
                 .body(download.getResource());
+    }
+
+    // A candidate withdraws their own application. A named action (POST /withdraw), like apply and
+    // the admin approve/reject actions — not the PATCH below, which is the company's review. The
+    // applicant-only check is in the service; "not yours"/"not found" both -> 404, so other
+    // applications aren't probeable. Returns the application with status WITHDRAWN.
+    @PostMapping("/{id}/withdraw")
+    public ResponseEntity<JobApplicationDTO> withdraw(@PathVariable Long id,
+                                                      @AuthenticationPrincipal UserDetails principal) {
+        return jobApplicationService.withdraw(principal.getUsername(), id)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     // PATCH (not a named action like /approve) because reviewing genuinely is a

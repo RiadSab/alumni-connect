@@ -8,6 +8,7 @@ import dev.sabti.alumni_connect.auth.repositories.UserRepository;
 import dev.sabti.alumni_connect.company.entities.CompanyRole;
 import dev.sabti.alumni_connect.company.entities.CompanyUserProfile;
 import dev.sabti.alumni_connect.company.repositories.CompanyUserProfileRepository;
+import dev.sabti.alumni_connect.job.entities.ApplicationStatus;
 import dev.sabti.alumni_connect.job.entities.JobApplication;
 import dev.sabti.alumni_connect.job.entities.JobOffer;
 import dev.sabti.alumni_connect.job.entities.JobStatus;
@@ -83,6 +84,42 @@ public class JobApplicationService {
 
         offer.setCurrentApplicationCount(offer.getCurrentApplicationCount() + 1);
         jobOfferRepository.save(offer);
+
+        return Optional.of(JobApplicationDTO.from(application));
+    }
+
+    // A candidate withdraws their own application. Applicant-only: "not found" and "not yours" both
+    // collapse to empty -> 404, so a candidate can't probe other people's applications. Soft, not a
+    // delete: the row is kept with status WITHDRAWN, so the company sees the withdrawal (rather than
+    // it vanishing mid-review) and the resume snapshot is preserved. The offer's application count is
+    // decremented to free a slot under its cap. Idempotent: withdrawing an already-withdrawn
+    // application returns it unchanged with no count change. (Re-applying to the same offer after
+    // withdrawing is still blocked by the duplicate guard in apply() — a deliberate v1 limit.)
+    @Transactional
+    public Optional<JobApplicationDTO> withdraw(String applicantEmail, Long applicationId) {
+        JobApplication application = jobApplicationRepository.findById(applicationId).orElse(null);
+        if (application == null) return Optional.empty();
+
+        User user = userRepository.findByEmail(applicantEmail).orElse(null);
+        if (user == null) return Optional.empty();
+
+        boolean isApplicant = candidateProfileRepository.findByUser(user)
+                .map(applicant -> applicant.getId().equals(application.getApplicant().getId()))
+                .orElse(false);
+        if (!isApplicant) return Optional.empty();
+
+        if (application.getApplicationStatus() == ApplicationStatus.WITHDRAWN) {
+            return Optional.of(JobApplicationDTO.from(application));  // idempotent: already withdrawn
+        }
+
+        application.setApplicationStatus(ApplicationStatus.WITHDRAWN);
+        jobApplicationRepository.save(application);
+
+        JobOffer offer = application.getJobOffer();
+        if (offer.getCurrentApplicationCount() != null && offer.getCurrentApplicationCount() > 0) {
+            offer.setCurrentApplicationCount(offer.getCurrentApplicationCount() - 1);
+            jobOfferRepository.save(offer);
+        }
 
         return Optional.of(JobApplicationDTO.from(application));
     }
