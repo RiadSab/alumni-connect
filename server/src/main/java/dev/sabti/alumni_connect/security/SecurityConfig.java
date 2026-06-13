@@ -50,6 +50,11 @@ public class SecurityConfig {
                     // "is an OWNER" authority is checked in CompanyService. Declared as PATCH so it
                     // is not covered by the GET-only public matcher above.
                     .requestMatchers(HttpMethod.PATCH, "/api/companies/me").authenticated()
+                    // A company OWNER uploading their company logo — authenticated; the "is an
+                    // OWNER" authority is checked in CompanyService. POST, so not covered by the
+                    // GET-only public matcher above. (The matching GET /{id}/logo download is
+                    // public, served by that same GET matcher.)
+                    .requestMatchers(HttpMethod.POST, "/api/companies/me/logo").authenticated()
                     // Applicant lists are private to the posting company's own OWNER/RECRUITER —
                     // must be declared BEFORE the broad public job-offers GET matcher below,
                     // since /api/job-offers/** would otherwise also match this sub-resource
