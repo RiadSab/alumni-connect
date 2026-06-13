@@ -38,8 +38,9 @@ public class JobApplicationService {
     private final StoredFileService storedFileService;
 
     // Applying requires: a real CandidateProfile behind the caller, an OPEN offer,
-    // no pre-existing application from this candidate to this offer, and — if the
-    // offer caps applications — room left under that cap. All collapse to one
+    // no active (non-withdrawn) application from this candidate to this offer — a
+    // withdrawn one doesn't block re-applying — and, if the offer caps applications,
+    // room left under that cap. All collapse to one
     // "can't apply" outcome, the same Optional "soft failure" pattern as
     // registerCompanyMember/postJobOffer (the controller maps empty -> 400).
     // A resume is optional: the applicant either uploads one specific to this offer, or reuses
@@ -57,7 +58,10 @@ public class JobApplicationService {
         JobOffer offer = jobOfferRepository.findById(jobOfferId).orElse(null);
         if (offer == null || offer.getStatus() != JobStatus.OPEN) return Optional.empty();
 
-        if (jobApplicationRepository.existsByJobOfferAndApplicant(offer, applicant)) return Optional.empty();
+        if (jobApplicationRepository.existsByJobOfferAndApplicantAndApplicationStatusNot(
+                offer, applicant, ApplicationStatus.WITHDRAWN)) {
+            return Optional.empty();  // already has an active application; a withdrawn one doesn't block re-applying
+        }
 
         if (offer.getMaxApplications() != null
                 && offer.getCurrentApplicationCount() >= offer.getMaxApplications()) {
@@ -93,8 +97,9 @@ public class JobApplicationService {
     // delete: the row is kept with status WITHDRAWN, so the company sees the withdrawal (rather than
     // it vanishing mid-review) and the resume snapshot is preserved. The offer's application count is
     // decremented to free a slot under its cap. Idempotent: withdrawing an already-withdrawn
-    // application returns it unchanged with no count change. (Re-applying to the same offer after
-    // withdrawing is still blocked by the duplicate guard in apply() — a deliberate v1 limit.)
+    // application returns it unchanged with no count change. After withdrawing, the candidate can
+    // apply to the same offer again (apply()'s guard ignores withdrawn rows): that creates a new
+    // application, leaving this withdrawn one as history.
     @Transactional
     public Optional<JobApplicationDTO> withdraw(String applicantEmail, Long applicationId) {
         JobApplication application = jobApplicationRepository.findById(applicationId).orElse(null);
