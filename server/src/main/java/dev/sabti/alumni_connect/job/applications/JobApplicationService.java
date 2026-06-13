@@ -183,14 +183,18 @@ public class JobApplicationService {
         return storedFileService.load(application.getResumeStorageId());
     }
 
-    // The applicant's full candidate profile, behind the same access gate as the resume download
-    // (the applicant, or the posting company's OWNER/RECRUITER). Lets a company reviewer see more
-    // than the name shown on the applications list. Empty -> 404 for any miss, so an application id
-    // you can't reach never leaks.
+    // The applicant's full candidate profile, for the posting company's OWNER/RECRUITER to review
+    // beyond the name shown on the applications list. Company-only (same gate as listing applicants),
+    // NOT the applicant-included gate the resume download uses: the resume is a per-application
+    // snapshot, but this just points at the live profile, which the applicant already reads via
+    // GET /api/candidates/me. Empty -> 404 for any miss, so an application id you can't reach never leaks.
     @Transactional(readOnly = true)
-    public Optional<CandidateProfileDTO> getApplicantProfile(String callerEmail, Long applicationId) {
+    public Optional<CandidateProfileDTO> getApplicantProfile(String reviewerEmail, Long applicationId) {
         JobApplication application = jobApplicationRepository.findById(applicationId).orElse(null);
-        if (application == null || !canAccessApplication(callerEmail, application)) return Optional.empty();
+        if (application == null) return Optional.empty();
+
+        Long postingCompanyId = application.getJobOffer().getCompany().getId();
+        if (resolveReviewerForCompany(reviewerEmail, postingCompanyId).isEmpty()) return Optional.empty();
 
         CandidateProfile applicant = application.getApplicant();
         return Optional.of(CandidateProfileDTO.from(applicant.getUser(), applicant));

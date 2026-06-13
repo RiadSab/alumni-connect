@@ -55,8 +55,9 @@ public class JobApplicationController {
 
     // The applicant's full candidate profile (skills, experience, contact info, links) — lets the
     // posting company's OWNER/RECRUITER review a candidate beyond the name shown on the applications
-    // list. Same access gate as GET /{id}, checked in the service; a miss (no such application, not
-    // yours) -> 404, so an id you can't reach never leaks.
+    // list. Company-only (the applicant reads their own profile via GET /api/candidates/me), checked
+    // in the service; a miss (no such application, or caller isn't the posting company) -> 404, so an
+    // id you can't reach never leaks.
     @GetMapping("/{id}/applicant")
     public ResponseEntity<CandidateProfileDTO> getApplicantProfile(@PathVariable Long id,
                                                                    @AuthenticationPrincipal UserDetails principal) {
