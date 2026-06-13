@@ -33,6 +33,7 @@ public class CandidateProfileDTO {
     private String githubUrl;
     private String portfolioUrl;
     private String bio;
+    private String profilePhotoId;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -57,6 +58,7 @@ public class CandidateProfileDTO {
         dto.githubUrl = profile.getGithubUrl();
         dto.portfolioUrl = profile.getPortfolioUrl();
         dto.bio = profile.getBio();
+        dto.profilePhotoId = profile.getProfilePhotoId();
         dto.createdAt = profile.getCreatedAt();
         dto.updatedAt = profile.getUpdatedAt();
         return dto;

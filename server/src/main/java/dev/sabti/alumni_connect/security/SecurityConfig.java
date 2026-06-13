@@ -68,6 +68,10 @@ public class SecurityConfig {
                     // checked in the service. Multi-segment paths, so not caught by /candidates/*.
                     .requestMatchers(HttpMethod.POST, "/api/candidates/me/resume").authenticated()
                     .requestMatchers(HttpMethod.GET, "/api/candidates/me/resume").authenticated()
+                    // Candidate's own profile photo upload/download — same reasoning as the resume
+                    // matchers above; "is a candidate" is checked in the service.
+                    .requestMatchers(HttpMethod.POST, "/api/candidates/me/photo").authenticated()
+                    .requestMatchers(HttpMethod.GET, "/api/candidates/me/photo").authenticated()
                     // Admin review of any candidate's profile by User id (e.g. from
                     // /api/admin/pending-users before approve/reject).
                     .requestMatchers(HttpMethod.GET, "/api/candidates/*").hasRole("ADMINISTRATOR")

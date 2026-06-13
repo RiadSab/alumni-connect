@@ -111,4 +111,48 @@ public class CandidateService {
                 .map(ResumeDownload::found)
                 .orElseGet(ResumeDownload::noResume);
     }
+
+    // Stores the uploaded profile photo and points the profile at it. Empty -> 403 if the caller
+    // isn't a candidate, same as the other /me operations. Image content-type validation happens in
+    // the controller before we get here. A candidate has at most one photo: uploading a new one
+    // replaces the reference and deletes the previous file so it doesn't orphan on disk.
+    // Mirrors uploadResume.
+    @Transactional
+    public Optional<StoredFileDTO> uploadPhoto(String email, MultipartFile file) {
+        User user = userRepository.findByEmail(email).orElse(null);
+        if (user == null) return Optional.empty();
+
+        CandidateProfile profile = candidateProfileRepository.findByUser(user).orElse(null);
+        if (profile == null) return Optional.empty();
+
+        String previousPhotoId = profile.getProfilePhotoId();
+        StoredFile stored = storedFileService.store(file);
+        profile.setProfilePhotoId(stored.getStorageId());
+        candidateProfileRepository.save(profile);
+
+        if (previousPhotoId != null) {
+            storedFileService.delete(previousPhotoId);
+        }
+        return Optional.of(StoredFileDTO.from(stored));
+    }
+
+    // The candidate's own profile photo bytes for download, as a three-outcome result so the
+    // controller can return 403 (not a candidate) vs 404 (candidate, no photo) — the same split as
+    // getMyResume. A set profilePhotoId whose file/metadata is somehow gone is treated as NO_PHOTO
+    // (404), not a 500.
+    @Transactional(readOnly = true)
+    public PhotoDownload getMyPhoto(String email) {
+        User user = userRepository.findByEmail(email).orElse(null);
+        if (user == null) return PhotoDownload.notCandidate();
+
+        CandidateProfile profile = candidateProfileRepository.findByUser(user).orElse(null);
+        if (profile == null) return PhotoDownload.notCandidate();
+
+        String photoId = profile.getProfilePhotoId();
+        if (photoId == null) return PhotoDownload.noPhoto();
+
+        return storedFileService.load(photoId)
+                .map(PhotoDownload::found)
+                .orElseGet(PhotoDownload::noPhoto);
+    }
 }

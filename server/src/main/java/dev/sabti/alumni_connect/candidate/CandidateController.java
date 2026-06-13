@@ -19,11 +19,18 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.Set;
+
 @RestController
 @RequestMapping("/api/candidates")
 @RequiredArgsConstructor
 public class CandidateController {
     private final CandidateService candidateService;
+
+    // Profile photos are limited to the common web image formats (a chosen avatar, not an arbitrary
+    // file). Same idea as the PDF-only guard on resume uploads.
+    private static final Set<String> ALLOWED_PHOTO_TYPES = Set.of(
+            MediaType.IMAGE_PNG_VALUE, MediaType.IMAGE_JPEG_VALUE, "image/webp");
 
     // Empty -> 403 if the caller isn't a candidate (no CandidateProfile). Must be
     // registered (Spring matches literal path segments before path variables) before
@@ -71,6 +78,40 @@ public class CandidateController {
                     .body(result.getFile().getResource());
             case NOT_CANDIDATE -> ResponseEntity.status(HttpStatus.FORBIDDEN).build();
             case NO_RESUME -> ResponseEntity.notFound().build();
+        };
+    }
+
+    // Upload (or replace) the caller's own profile photo. Multipart; the content-type guard keeps
+    // it to a known image format (a caller error -> 400, distinct from the 403 for "not a
+    // candidate"). Returns the stored file's metadata, including the storageId. Mirrors the resume
+    // upload above.
+    @PostMapping(value = "/me/photo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> uploadMyPhoto(@AuthenticationPrincipal UserDetails principal,
+                                           @RequestParam("file") MultipartFile file) {
+        if (file.isEmpty() || file.getContentType() == null
+                || !ALLOWED_PHOTO_TYPES.contains(file.getContentType().toLowerCase())) {
+            return ResponseEntity.badRequest().body("Photo must be a PNG, JPEG, or WEBP image");
+        }
+        return candidateService.uploadPhoto(principal.getUsername(), file)
+                .<ResponseEntity<?>>map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.status(HttpStatus.FORBIDDEN).build());
+    }
+
+    // Stream back the caller's own profile photo. 403 if they're not a candidate (consistent with
+    // the other /me endpoints), 404 if they are but haven't uploaded one. Content-Disposition inline
+    // so a browser can render it directly; the original filename is echoed. Mirrors the resume
+    // download above.
+    @GetMapping("/me/photo")
+    public ResponseEntity<Resource> downloadMyPhoto(@AuthenticationPrincipal UserDetails principal) {
+        PhotoDownload result = candidateService.getMyPhoto(principal.getUsername());
+        return switch (result.getStatus()) {
+            case FOUND -> ResponseEntity.ok()
+                    .contentType(MediaType.parseMediaType(result.getFile().getMetadata().getContentType()))
+                    .header(HttpHeaders.CONTENT_DISPOSITION,
+                            "inline; filename=\"" + result.getFile().getMetadata().getOriginalFilename() + "\"")
+                    .body(result.getFile().getResource());
+            case NOT_CANDIDATE -> ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+            case NO_PHOTO -> ResponseEntity.notFound().build();
         };
     }
 
