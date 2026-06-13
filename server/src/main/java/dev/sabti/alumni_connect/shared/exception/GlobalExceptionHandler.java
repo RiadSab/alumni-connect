@@ -94,6 +94,14 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.INTERNAL_SERVER_ERROR, "A storage error occurred.");
     }
 
+    // Domain errors we throw deliberately (any ApiException subclass — NotFound/Forbidden/Conflict/
+    // BadRequest). The status rides on the exception and the message is the caller-facing text, so
+    // one handler covers them all. These are expected outcomes, not bugs, so no logging.
+    @ExceptionHandler(ApiException.class)
+    ResponseEntity<ApiError> handleApiException(ApiException ex) {
+        return build(ex.getStatus(), ex.getMessage());
+    }
+
     // Catch-all for anything not matched above — an unexpected bug. Log the full detail; never leak
     // it in the body.
     @ExceptionHandler(Exception.class)
