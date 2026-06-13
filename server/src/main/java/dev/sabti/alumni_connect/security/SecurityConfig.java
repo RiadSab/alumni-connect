@@ -46,6 +46,10 @@ public class SecurityConfig {
                     // form, which runs before the registrant has an account. Scoped to GET only
                     // so future write endpoints on /api/companies/** stay behind authentication.
                     .requestMatchers(HttpMethod.GET, "/api/companies", "/api/companies/**").permitAll()
+                    // A company OWNER editing their own company profile — authenticated; the
+                    // "is an OWNER" authority is checked in CompanyService. Declared as PATCH so it
+                    // is not covered by the GET-only public matcher above.
+                    .requestMatchers(HttpMethod.PATCH, "/api/companies/me").authenticated()
                     // Applicant lists are private to the posting company's own OWNER/RECRUITER —
                     // must be declared BEFORE the broad public job-offers GET matcher below,
                     // since /api/job-offers/** would otherwise also match this sub-resource
