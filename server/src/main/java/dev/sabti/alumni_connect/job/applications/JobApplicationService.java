@@ -12,6 +12,7 @@ import dev.sabti.alumni_connect.job.entities.JobOffer;
 import dev.sabti.alumni_connect.job.entities.JobStatus;
 import dev.sabti.alumni_connect.job.repositories.JobApplicationRepository;
 import dev.sabti.alumni_connect.job.repositories.JobOfferRepository;
+import dev.sabti.alumni_connect.storage.FileDownload;
 import dev.sabti.alumni_connect.storage.StoredFileService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -163,23 +164,39 @@ public class JobApplicationService {
     @Transactional(readOnly = true)
     public Optional<JobApplicationDTO> getApplicationById(String callerEmail, Long applicationId) {
         JobApplication application = jobApplicationRepository.findById(applicationId).orElse(null);
-        if (application == null) return Optional.empty();
+        if (application == null || !canAccessApplication(callerEmail, application)) return Optional.empty();
 
+        return Optional.of(JobApplicationDTO.from(application));
+    }
+
+    // Streams the resume PDF attached to an application, behind the same access gate as
+    // getApplicationById (the applicant, or the posting company's OWNER/RECRUITER). Empty
+    // for every miss — application doesn't exist, caller can't reach it, or it carries no
+    // resume — all of which the controller maps to 404, so an inaccessible id never leaks.
+    @Transactional(readOnly = true)
+    public Optional<FileDownload> getApplicationResume(String callerEmail, Long applicationId) {
+        JobApplication application = jobApplicationRepository.findById(applicationId).orElse(null);
+        if (application == null || !canAccessApplication(callerEmail, application)) return Optional.empty();
+        if (application.getResumeStorageId() == null) return Optional.empty();
+
+        return storedFileService.load(application.getResumeStorageId());
+    }
+
+    // Shared read-access gate for a single application: the candidate who filed it, or an
+    // OWNER/RECRUITER of the company that posted its offer. Used wherever "not yours" must be
+    // indistinguishable from "doesn't exist" (both -> 404). Distinct from resolveReviewerForCompany,
+    // which is the company-only authority used by listing/reviewing.
+    private boolean canAccessApplication(String callerEmail, JobApplication application) {
         User user = userRepository.findByEmail(callerEmail).orElse(null);
-        if (user == null) return Optional.empty();
+        if (user == null) return false;
 
         boolean isApplicant = candidateProfileRepository.findByUser(user)
                 .map(applicant -> applicant.getId().equals(application.getApplicant().getId()))
                 .orElse(false);
+        if (isApplicant) return true;
 
-        if (!isApplicant) {
-            Long postingCompanyId = application.getJobOffer().getCompany().getId();
-            if (resolveReviewerForCompany(callerEmail, postingCompanyId).isEmpty()) {
-                return Optional.empty();
-            }
-        }
-
-        return Optional.of(JobApplicationDTO.from(application));
+        Long postingCompanyId = application.getJobOffer().getCompany().getId();
+        return resolveReviewerForCompany(callerEmail, postingCompanyId).isPresent();
     }
 
     // Shared authority check for both listing and reviewing: caller must be a real
