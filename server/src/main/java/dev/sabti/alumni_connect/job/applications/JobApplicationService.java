@@ -1,6 +1,7 @@
 package dev.sabti.alumni_connect.job.applications;
 
 import dev.sabti.alumni_connect.candidate.CandidateProfile;
+import dev.sabti.alumni_connect.candidate.CandidateProfileDTO;
 import dev.sabti.alumni_connect.auth.entities.User;
 import dev.sabti.alumni_connect.candidate.CandidateProfileRepository;
 import dev.sabti.alumni_connect.auth.repositories.UserRepository;
@@ -180,6 +181,19 @@ public class JobApplicationService {
         if (application.getResumeStorageId() == null) return Optional.empty();
 
         return storedFileService.load(application.getResumeStorageId());
+    }
+
+    // The applicant's full candidate profile, behind the same access gate as the resume download
+    // (the applicant, or the posting company's OWNER/RECRUITER). Lets a company reviewer see more
+    // than the name shown on the applications list. Empty -> 404 for any miss, so an application id
+    // you can't reach never leaks.
+    @Transactional(readOnly = true)
+    public Optional<CandidateProfileDTO> getApplicantProfile(String callerEmail, Long applicationId) {
+        JobApplication application = jobApplicationRepository.findById(applicationId).orElse(null);
+        if (application == null || !canAccessApplication(callerEmail, application)) return Optional.empty();
+
+        CandidateProfile applicant = application.getApplicant();
+        return Optional.of(CandidateProfileDTO.from(applicant.getUser(), applicant));
     }
 
     // Shared read-access gate for a single application: the candidate who filed it, or an

@@ -1,5 +1,6 @@
 package dev.sabti.alumni_connect.job.applications;
 
+import dev.sabti.alumni_connect.candidate.CandidateProfileDTO;
 import dev.sabti.alumni_connect.storage.FileDownload;
 import dev.sabti.alumni_connect.storage.StoredFile;
 import jakarta.validation.Valid;
@@ -48,6 +49,18 @@ public class JobApplicationController {
     public ResponseEntity<JobApplicationDTO> getApplicationById(@PathVariable Long id,
                                                                   @AuthenticationPrincipal UserDetails principal) {
         return jobApplicationService.getApplicationById(principal.getUsername(), id)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    // The applicant's full candidate profile (skills, experience, contact info, links) — lets the
+    // posting company's OWNER/RECRUITER review a candidate beyond the name shown on the applications
+    // list. Same access gate as GET /{id}, checked in the service; a miss (no such application, not
+    // yours) -> 404, so an id you can't reach never leaks.
+    @GetMapping("/{id}/applicant")
+    public ResponseEntity<CandidateProfileDTO> getApplicantProfile(@PathVariable Long id,
+                                                                   @AuthenticationPrincipal UserDetails principal) {
+        return jobApplicationService.getApplicantProfile(principal.getUsername(), id)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
