@@ -1,10 +1,12 @@
 package dev.sabti.alumni_connect.candidate;
 
+import dev.sabti.alumni_connect.shared.exception.BadRequestException;
+import dev.sabti.alumni_connect.storage.FileDownload;
+import dev.sabti.alumni_connect.storage.StoredFileDTO;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -32,96 +34,75 @@ public class CandidateController {
     private static final Set<String> ALLOWED_PHOTO_TYPES = Set.of(
             MediaType.IMAGE_PNG_VALUE, MediaType.IMAGE_JPEG_VALUE, "image/webp");
 
-    // Empty -> 403 if the caller isn't a candidate (no CandidateProfile). Must be
-    // registered (Spring matches literal path segments before path variables) before
-    // /{id} below, so "/me" isn't parsed as a user id.
+    // 403 if the caller isn't a candidate (no CandidateProfile) — thrown by the service. Must be
+    // registered (Spring matches literal path segments before path variables) before /{id} below,
+    // so "/me" isn't parsed as a user id.
     @GetMapping("/me")
-    public ResponseEntity<CandidateProfileDTO> getMyProfile(@AuthenticationPrincipal UserDetails principal) {
-        return candidateService.getMyProfile(principal.getUsername())
-                .map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.status(HttpStatus.FORBIDDEN).build());
+    public CandidateProfileDTO getMyProfile(@AuthenticationPrincipal UserDetails principal) {
+        return candidateService.getMyProfile(principal.getUsername());
     }
 
     @PatchMapping("/me")
-    public ResponseEntity<CandidateProfileDTO> updateMyProfile(@AuthenticationPrincipal UserDetails principal,
-                                                                 @RequestBody @Valid UpdateCandidateProfileDTO dto) {
-        return candidateService.updateMyProfile(principal.getUsername(), dto)
-                .map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.status(HttpStatus.FORBIDDEN).build());
+    public CandidateProfileDTO updateMyProfile(@AuthenticationPrincipal UserDetails principal,
+                                               @RequestBody @Valid UpdateCandidateProfileDTO dto) {
+        return candidateService.updateMyProfile(principal.getUsername(), dto);
     }
 
     // Upload (or replace) the caller's own CV. Multipart; the content-type guard keeps it to a
-    // non-empty PDF (a caller error -> 400, distinct from the 403 for "not a candidate"). Returns
-    // the stored file's metadata, including the storageId.
+    // non-empty PDF (400 BadRequestException, distinct from the 403 the service throws for "not a
+    // candidate"). Returns the stored file's metadata, including the storageId.
     @PostMapping(value = "/me/resume", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<?> uploadMyResume(@AuthenticationPrincipal UserDetails principal,
-                                            @RequestParam("file") MultipartFile file) {
+    public StoredFileDTO uploadMyResume(@AuthenticationPrincipal UserDetails principal,
+                                        @RequestParam("file") MultipartFile file) {
         if (file.isEmpty() || !MediaType.APPLICATION_PDF_VALUE.equalsIgnoreCase(file.getContentType())) {
-            return ResponseEntity.badRequest().body("Resume must be a non-empty PDF");
+            throw new BadRequestException("Resume must be a non-empty PDF");
         }
-        return candidateService.uploadResume(principal.getUsername(), file)
-                .<ResponseEntity<?>>map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.status(HttpStatus.FORBIDDEN).build());
+        return candidateService.uploadResume(principal.getUsername(), file);
     }
 
-    // Stream back the caller's own CV. 403 if they're not a candidate (consistent with the other
-    // /me endpoints), 404 if they are but haven't uploaded one. Content-Disposition inline so a
-    // browser can preview the PDF; the original filename is echoed.
+    // Stream back the caller's own CV. The service throws 403 (not a candidate) / 404 (no resume).
+    // Content-Disposition inline so a browser can preview the PDF; the original filename is echoed.
     @GetMapping("/me/resume")
     public ResponseEntity<Resource> downloadMyResume(@AuthenticationPrincipal UserDetails principal) {
-        ResumeDownload result = candidateService.getMyResume(principal.getUsername());
-        return switch (result.getStatus()) {
-            case FOUND -> ResponseEntity.ok()
-                    .contentType(MediaType.parseMediaType(result.getFile().getMetadata().getContentType()))
-                    .header(HttpHeaders.CONTENT_DISPOSITION,
-                            "inline; filename=\"" + result.getFile().getMetadata().getOriginalFilename() + "\"")
-                    .body(result.getFile().getResource());
-            case NOT_CANDIDATE -> ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-            case NO_RESUME -> ResponseEntity.notFound().build();
-        };
+        FileDownload file = candidateService.getMyResume(principal.getUsername());
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(file.getMetadata().getContentType()))
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "inline; filename=\"" + file.getMetadata().getOriginalFilename() + "\"")
+                .body(file.getResource());
     }
 
-    // Upload (or replace) the caller's own profile photo. Multipart; the content-type guard keeps
-    // it to a known image format (a caller error -> 400, distinct from the 403 for "not a
-    // candidate"). Returns the stored file's metadata, including the storageId. Mirrors the resume
-    // upload above.
+    // Upload (or replace) the caller's own profile photo. Multipart; the content-type guard keeps it
+    // to a known image format (400 BadRequestException, distinct from the 403 for "not a candidate").
+    // Returns the stored file's metadata. Mirrors the resume upload above.
     @PostMapping(value = "/me/photo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<?> uploadMyPhoto(@AuthenticationPrincipal UserDetails principal,
-                                           @RequestParam("file") MultipartFile file) {
+    public StoredFileDTO uploadMyPhoto(@AuthenticationPrincipal UserDetails principal,
+                                       @RequestParam("file") MultipartFile file) {
         if (file.isEmpty() || file.getContentType() == null
                 || !ALLOWED_PHOTO_TYPES.contains(file.getContentType().toLowerCase())) {
-            return ResponseEntity.badRequest().body("Photo must be a PNG, JPEG, or WEBP image");
+            throw new BadRequestException("Photo must be a PNG, JPEG, or WEBP image");
         }
-        return candidateService.uploadPhoto(principal.getUsername(), file)
-                .<ResponseEntity<?>>map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.status(HttpStatus.FORBIDDEN).build());
+        return candidateService.uploadPhoto(principal.getUsername(), file);
     }
 
-    // Stream back the caller's own profile photo. 403 if they're not a candidate (consistent with
-    // the other /me endpoints), 404 if they are but haven't uploaded one. Content-Disposition inline
-    // so a browser can render it directly; the original filename is echoed. Mirrors the resume
-    // download above.
+    // Stream back the caller's own profile photo. The service throws 403 (not a candidate) / 404 (no
+    // photo). Content-Disposition inline so a browser can render it. Mirrors the resume download.
     @GetMapping("/me/photo")
     public ResponseEntity<Resource> downloadMyPhoto(@AuthenticationPrincipal UserDetails principal) {
-        PhotoDownload result = candidateService.getMyPhoto(principal.getUsername());
-        return switch (result.getStatus()) {
-            case FOUND -> ResponseEntity.ok()
-                    .contentType(MediaType.parseMediaType(result.getFile().getMetadata().getContentType()))
-                    .header(HttpHeaders.CONTENT_DISPOSITION,
-                            "inline; filename=\"" + result.getFile().getMetadata().getOriginalFilename() + "\"")
-                    .body(result.getFile().getResource());
-            case NOT_CANDIDATE -> ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-            case NO_PHOTO -> ResponseEntity.notFound().build();
-        };
+        FileDownload file = candidateService.getMyPhoto(principal.getUsername());
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(file.getMetadata().getContentType()))
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "inline; filename=\"" + file.getMetadata().getOriginalFilename() + "\"")
+                .body(file.getResource());
     }
 
     // Admin-only: lookup by User id, e.g. reviewing a pending candidate from
-    // /api/admin/pending-users before approve/reject. Restricted to ADMINISTRATOR
-    // in SecurityConfig (declared after /me so "/me" isn't shadowed by this matcher).
+    // /api/admin/pending-users before approve/reject. Restricted to ADMINISTRATOR in SecurityConfig
+    // (declared after /me so "/me" isn't shadowed by this matcher). The service throws 404 if the id
+    // doesn't exist or isn't a candidate.
     @GetMapping("/{id}")
-    public ResponseEntity<CandidateProfileDTO> getProfileById(@PathVariable Long id) {
-        return candidateService.getProfileById(id)
-                .map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
+    public CandidateProfileDTO getProfileById(@PathVariable Long id) {
+        return candidateService.getProfileById(id);
     }
 }

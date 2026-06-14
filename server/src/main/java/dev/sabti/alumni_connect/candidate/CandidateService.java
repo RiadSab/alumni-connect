@@ -2,6 +2,9 @@ package dev.sabti.alumni_connect.candidate;
 
 import dev.sabti.alumni_connect.auth.entities.User;
 import dev.sabti.alumni_connect.auth.repositories.UserRepository;
+import dev.sabti.alumni_connect.shared.exception.ForbiddenException;
+import dev.sabti.alumni_connect.shared.exception.NotFoundException;
+import dev.sabti.alumni_connect.storage.FileDownload;
 import dev.sabti.alumni_connect.storage.StoredFile;
 import dev.sabti.alumni_connect.storage.StoredFileDTO;
 import dev.sabti.alumni_connect.storage.StoredFileService;
@@ -10,8 +13,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.Optional;
-
 @Service
 @RequiredArgsConstructor
 public class CandidateService {
@@ -19,33 +20,33 @@ public class CandidateService {
     private final CandidateProfileRepository candidateProfileRepository;
     private final StoredFileService storedFileService;
 
-    // Empty -> 403 if the caller has no CandidateProfile (e.g. a company-user hitting
-    // this endpoint), same "soft failure" pattern as JobApplicationService.getMyApplications.
+    // ForbiddenException (403) if the caller isn't a candidate (no CandidateProfile) — e.g. a
+    // company-user hitting this endpoint. Same boundary as before, now thrown rather than an
+    // Optional.empty mapped in the controller.
     @Transactional(readOnly = true)
-    public Optional<CandidateProfileDTO> getMyProfile(String email) {
-        return userRepository.findByEmail(email)
-                .flatMap(user -> candidateProfileRepository.findByUser(user)
-                        .map(profile -> CandidateProfileDTO.from(user, profile)));
+    public CandidateProfileDTO getMyProfile(String email) {
+        User user = requireUser(email);
+        CandidateProfile profile = requireCandidate(user);
+        return CandidateProfileDTO.from(user, profile);
     }
 
     // Admin-only lookup by User id (e.g. reviewing a pending candidate from
-    // /api/admin/pending-users). Empty -> 404 if the id doesn't exist or isn't a candidate.
+    // /api/admin/pending-users). NotFoundException (404) if the id doesn't exist or isn't a candidate.
     @Transactional(readOnly = true)
-    public Optional<CandidateProfileDTO> getProfileById(Long userId) {
-        return userRepository.findById(userId)
-                .flatMap(user -> candidateProfileRepository.findByUser(user)
-                        .map(profile -> CandidateProfileDTO.from(user, profile)));
+    public CandidateProfileDTO getProfileById(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException("Candidate not found"));
+        CandidateProfile profile = candidateProfileRepository.findByUser(user)
+                .orElseThrow(() -> new NotFoundException("Candidate not found"));
+        return CandidateProfileDTO.from(user, profile);
     }
 
     // Partial update across both User (name/phone) and CandidateProfile (everything else).
     // Fields are all nullable: null means "leave unchanged".
     @Transactional
-    public Optional<CandidateProfileDTO> updateMyProfile(String email, UpdateCandidateProfileDTO dto) {
-        User user = userRepository.findByEmail(email).orElse(null);
-        if (user == null) return Optional.empty();
-
-        CandidateProfile profile = candidateProfileRepository.findByUser(user).orElse(null);
-        if (profile == null) return Optional.empty();
+    public CandidateProfileDTO updateMyProfile(String email, UpdateCandidateProfileDTO dto) {
+        User user = requireUser(email);
+        CandidateProfile profile = requireCandidate(user);
 
         if (dto.getFirstName() != null) user.setFirstName(dto.getFirstName());
         if (dto.getLastName() != null) user.setLastName(dto.getLastName());
@@ -66,20 +67,17 @@ public class CandidateService {
         if (dto.getBio() != null) profile.setBio(dto.getBio());
 
         userRepository.save(user);
-        return Optional.of(CandidateProfileDTO.from(user, candidateProfileRepository.save(profile)));
+        return CandidateProfileDTO.from(user, candidateProfileRepository.save(profile));
     }
 
-    // Stores the uploaded CV and points the profile at it. Empty -> 403 if the caller isn't a
-    // candidate, same as the other /me operations. Content-type/size validation happens in the
-    // controller (PDF only) before we get here. A candidate has at most one resume: uploading a
-    // new one replaces the reference and deletes the previous file so it doesn't orphan on disk.
+    // Stores the uploaded CV and points the profile at it. ForbiddenException if the caller isn't a
+    // candidate. Content-type/size validation happens in the controller (PDF only) before we get
+    // here. A candidate has at most one resume: uploading a new one replaces the reference and
+    // deletes the previous file so it doesn't orphan on disk.
     @Transactional
-    public Optional<StoredFileDTO> uploadResume(String email, MultipartFile file) {
-        User user = userRepository.findByEmail(email).orElse(null);
-        if (user == null) return Optional.empty();
-
-        CandidateProfile profile = candidateProfileRepository.findByUser(user).orElse(null);
-        if (profile == null) return Optional.empty();
+    public StoredFileDTO uploadResume(String email, MultipartFile file) {
+        User user = requireUser(email);
+        CandidateProfile profile = requireCandidate(user);
 
         String previousResumeId = profile.getResumeId();
         StoredFile stored = storedFileService.store(file);
@@ -89,41 +87,31 @@ public class CandidateService {
         if (previousResumeId != null) {
             storedFileService.delete(previousResumeId);
         }
-        return Optional.of(StoredFileDTO.from(stored));
+        return StoredFileDTO.from(stored);
     }
 
-    // The candidate's own CV bytes for download, as a three-outcome result so the controller can
-    // return 403 (not a candidate, consistent with getMyProfile) vs 404 (candidate, no resume) —
-    // a distinction a single Optional can't carry. A set resumeId whose file/metadata is somehow
-    // gone is treated as NO_RESUME (404), not a 500.
+    // The candidate's own CV bytes for download. ForbiddenException (403) if the caller isn't a
+    // candidate (consistent with the other /me endpoints); NotFoundException (404) if they are but
+    // have no resume. A set resumeId whose file/metadata is somehow gone is treated as 404, not a 500.
     @Transactional(readOnly = true)
-    public ResumeDownload getMyResume(String email) {
-        User user = userRepository.findByEmail(email).orElse(null);
-        if (user == null) return ResumeDownload.notCandidate();
-
-        CandidateProfile profile = candidateProfileRepository.findByUser(user).orElse(null);
-        if (profile == null) return ResumeDownload.notCandidate();
+    public FileDownload getMyResume(String email) {
+        User user = requireUser(email);
+        CandidateProfile profile = requireCandidate(user);
 
         String resumeId = profile.getResumeId();
-        if (resumeId == null) return ResumeDownload.noResume();
+        if (resumeId == null) throw new NotFoundException("No resume on file");
 
         return storedFileService.load(resumeId)
-                .map(ResumeDownload::found)
-                .orElseGet(ResumeDownload::noResume);
+                .orElseThrow(() -> new NotFoundException("No resume on file"));
     }
 
-    // Stores the uploaded profile photo and points the profile at it. Empty -> 403 if the caller
-    // isn't a candidate, same as the other /me operations. Image content-type validation happens in
-    // the controller before we get here. A candidate has at most one photo: uploading a new one
-    // replaces the reference and deletes the previous file so it doesn't orphan on disk.
-    // Mirrors uploadResume.
+    // Stores the uploaded profile photo and points the profile at it. ForbiddenException if the
+    // caller isn't a candidate. Image content-type validation happens in the controller. A candidate
+    // has at most one photo: a new upload replaces the reference and deletes the previous file.
     @Transactional
-    public Optional<StoredFileDTO> uploadPhoto(String email, MultipartFile file) {
-        User user = userRepository.findByEmail(email).orElse(null);
-        if (user == null) return Optional.empty();
-
-        CandidateProfile profile = candidateProfileRepository.findByUser(user).orElse(null);
-        if (profile == null) return Optional.empty();
+    public StoredFileDTO uploadPhoto(String email, MultipartFile file) {
+        User user = requireUser(email);
+        CandidateProfile profile = requireCandidate(user);
 
         String previousPhotoId = profile.getProfilePhotoId();
         StoredFile stored = storedFileService.store(file);
@@ -133,26 +121,35 @@ public class CandidateService {
         if (previousPhotoId != null) {
             storedFileService.delete(previousPhotoId);
         }
-        return Optional.of(StoredFileDTO.from(stored));
+        return StoredFileDTO.from(stored);
     }
 
-    // The candidate's own profile photo bytes for download, as a three-outcome result so the
-    // controller can return 403 (not a candidate) vs 404 (candidate, no photo) — the same split as
-    // getMyResume. A set profilePhotoId whose file/metadata is somehow gone is treated as NO_PHOTO
-    // (404), not a 500.
+    // The candidate's own profile photo bytes for download. ForbiddenException (403) if not a
+    // candidate, NotFoundException (404) if they are but have no photo. A set profilePhotoId whose
+    // file/metadata is gone is treated as 404, not a 500.
     @Transactional(readOnly = true)
-    public PhotoDownload getMyPhoto(String email) {
-        User user = userRepository.findByEmail(email).orElse(null);
-        if (user == null) return PhotoDownload.notCandidate();
-
-        CandidateProfile profile = candidateProfileRepository.findByUser(user).orElse(null);
-        if (profile == null) return PhotoDownload.notCandidate();
+    public FileDownload getMyPhoto(String email) {
+        User user = requireUser(email);
+        CandidateProfile profile = requireCandidate(user);
 
         String photoId = profile.getProfilePhotoId();
-        if (photoId == null) return PhotoDownload.noPhoto();
+        if (photoId == null) throw new NotFoundException("No profile photo on file");
 
         return storedFileService.load(photoId)
-                .map(PhotoDownload::found)
-                .orElseGet(PhotoDownload::noPhoto);
+                .orElseThrow(() -> new NotFoundException("No profile photo on file"));
+    }
+
+    // A candidate operation requires a real user behind the email and a CandidateProfile behind that
+    // user; either missing -> 403, since the endpoint doesn't apply to the caller. (The user is
+    // always present for an authenticated principal; the reachable case is "authenticated, but not a
+    // candidate".)
+    private User requireUser(String email) {
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new ForbiddenException("Not a candidate"));
+    }
+
+    private CandidateProfile requireCandidate(User user) {
+        return candidateProfileRepository.findByUser(user)
+                .orElseThrow(() -> new ForbiddenException("Not a candidate"));
     }
 }
