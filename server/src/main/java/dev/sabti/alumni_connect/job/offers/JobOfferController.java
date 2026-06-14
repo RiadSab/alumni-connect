@@ -54,24 +54,24 @@ public class JobOfferController {
         return ResponseEntity.ok(jobOfferService.getOpenJobOffers(criteria, pageable));
     }
 
+    // The service throws 403 if the caller isn't a company OWNER/RECRUITER, or if their company
+    // isn't ACTIVE.
     @PostMapping
     public ResponseEntity<JobOfferDTO> postJobOffer(@AuthenticationPrincipal UserDetails principal,
                                                      @RequestBody @Valid CreateJobOfferDTO dto) {
-        return jobOfferService.postJobOffer(principal.getUsername(), dto)
-                .map(offer -> ResponseEntity.status(HttpStatus.CREATED).body(offer))
-                .orElseGet(() -> ResponseEntity.status(HttpStatus.FORBIDDEN).build());
+        JobOfferDTO offer = jobOfferService.postJobOffer(principal.getUsername(), dto);
+        return ResponseEntity.status(HttpStatus.CREATED).body(offer);
     }
 
     // All of the caller's own company's offers, any status — the discovery entry
     // point for the same company-wide OWNER/RECRUITER authority already enforced on
     // edit/review. Must be registered (and matched in SecurityConfig) before
-    // /{id} below, since "/me" would otherwise be parsed as an offer id.
+    // /{id} below, since "/me" would otherwise be parsed as an offer id. The service throws 403 if
+    // the caller isn't a company OWNER/RECRUITER.
     @GetMapping("/me")
-    public ResponseEntity<Page<JobOfferDTO>> getMyCompanyJobOffers(@AuthenticationPrincipal UserDetails principal,
-                                                                    @PageableDefault Pageable pageable) {
-        return jobOfferService.getMyCompanyJobOffers(principal.getUsername(), pageable)
-                .map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.status(HttpStatus.FORBIDDEN).build());
+    public Page<JobOfferDTO> getMyCompanyJobOffers(@AuthenticationPrincipal UserDetails principal,
+                                                   @PageableDefault Pageable pageable) {
+        return jobOfferService.getMyCompanyJobOffers(principal.getUsername(), pageable);
     }
 
     // "Recommended for you" — OPEN offers ranked by skill overlap with the candidate's
@@ -84,29 +84,24 @@ public class JobOfferController {
         return ResponseEntity.ok(jobOfferService.getRecommendedOffers(principal.getUsername(), pageable));
     }
 
-    // OPEN offers are publicly visible (permitAll in SecurityConfig), so principal
-    // may be null here — non-OPEN offers fall back to the posting company's own
-    // OWNER/RECRUITER, checked in the service. Both "not found" and "not visible to
-    // you" return 404, so draft postings don't leak their existence.
+    // OPEN offers are publicly visible (permitAll in SecurityConfig), so principal may be null here —
+    // non-OPEN offers fall back to the posting company's own OWNER/RECRUITER, checked in the service.
+    // Both "not found" and "not visible to you" throw 404, so draft postings don't leak their existence.
     @GetMapping("/{id}")
-    public ResponseEntity<JobOfferDTO> getJobOfferById(@PathVariable Long id,
-                                                        @AuthenticationPrincipal UserDetails principal) {
+    public JobOfferDTO getJobOfferById(@PathVariable Long id,
+                                       @AuthenticationPrincipal UserDetails principal) {
         String email = principal != null ? principal.getUsername() : null;
-        return jobOfferService.getJobOfferById(email, id)
-                .map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
+        return jobOfferService.getJobOfferById(email, id);
     }
 
-    // Partial update; status is one of the editable fields, so closing/reopening an
-    // offer is just PATCH {"status": "CLOSED"} — no separate delete endpoint.
-    // Authority (posting company's OWNER/RECRUITER) is checked in the service.
+    // Partial update; status is one of the editable fields, so closing/reopening an offer is just
+    // PATCH {"status": "CLOSED"} — no separate delete endpoint. The service throws 404 for a missing
+    // offer or one that isn't the caller's company's (404-for-both, so it isn't probeable).
     @PatchMapping("/{id}")
-    public ResponseEntity<JobOfferDTO> updateJobOffer(@PathVariable Long id,
-                                                       @AuthenticationPrincipal UserDetails principal,
-                                                       @RequestBody @Valid UpdateJobOfferDTO dto) {
-        return jobOfferService.updateJobOffer(principal.getUsername(), id, dto)
-                .map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.status(HttpStatus.FORBIDDEN).build());
+    public JobOfferDTO updateJobOffer(@PathVariable Long id,
+                                      @AuthenticationPrincipal UserDetails principal,
+                                      @RequestBody @Valid UpdateJobOfferDTO dto) {
+        return jobOfferService.updateJobOffer(principal.getUsername(), id, dto);
     }
 
     // Applicant lists are private to the posting company's own OWNER/RECRUITER —

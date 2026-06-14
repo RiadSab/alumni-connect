@@ -11,6 +11,8 @@ import dev.sabti.alumni_connect.company.repositories.CompanyUserProfileRepositor
 import dev.sabti.alumni_connect.job.entities.JobOffer;
 import dev.sabti.alumni_connect.job.entities.JobStatus;
 import dev.sabti.alumni_connect.job.repositories.JobOfferRepository;
+import dev.sabti.alumni_connect.shared.exception.ForbiddenException;
+import dev.sabti.alumni_connect.shared.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -90,20 +92,21 @@ public class JobOfferService {
         return jobOfferRepository.findOpenOffersMatchingSkills(normalized, pageable).map(JobOfferDTO::from);
     }
 
-    // Posting is restricted to a company's own OWNER/RECRUITER, and only while that
-    // company is ACTIVE — the same authority-boundary reasoning that shaped the
-    // join-flow (registerCompanyMember). Modeled as Optional, the same "soft failure"
-    // pattern, since @Valid can't express "is this caller allowed to act for this company".
+    // Posting is restricted to a company's own OWNER/RECRUITER, and only while that company is ACTIVE
+    // — the same authority-boundary reasoning that shaped the join-flow (registerCompanyMember). The
+    // two failures are now separate 403s with their own message: "not a poster role" vs "company not
+    // active" (previously both collapsed to one empty 403).
     @Transactional
-    public Optional<JobOfferDTO> postJobOffer(String posterEmail, CreateJobOfferDTO dto) {
-        User user = userRepository.findByEmail(posterEmail).orElse(null);
-        if (user == null) return Optional.empty();
-
-        CompanyUserProfile profile = companyUserProfileRepository.findByUser(user).orElse(null);
-        if (profile == null
-                || (profile.getCompanyRole() != CompanyRole.OWNER && profile.getCompanyRole() != CompanyRole.RECRUITER)
-                || profile.getCompany().getStatus() != CompanyStatus.ACTIVE) {
-            return Optional.empty();
+    public JobOfferDTO postJobOffer(String posterEmail, CreateJobOfferDTO dto) {
+        User user = userRepository.findByEmail(posterEmail)
+                .orElseThrow(() -> new ForbiddenException("Only a company owner or recruiter can post job offers"));
+        CompanyUserProfile profile = companyUserProfileRepository.findByUser(user)
+                .orElseThrow(() -> new ForbiddenException("Only a company owner or recruiter can post job offers"));
+        if (profile.getCompanyRole() != CompanyRole.OWNER && profile.getCompanyRole() != CompanyRole.RECRUITER) {
+            throw new ForbiddenException("Only a company owner or recruiter can post job offers");
+        }
+        if (profile.getCompany().getStatus() != CompanyStatus.ACTIVE) {
+            throw new ForbiddenException("Your company is not active and cannot post job offers");
         }
 
         JobOffer offer = new JobOffer();
@@ -124,41 +127,41 @@ public class JobOfferService {
         offer.setMaxApplications(dto.getMaxApplications());
         offer.setContactEmail(dto.getContactEmail());
 
-        return Optional.of(JobOfferDTO.from(jobOfferRepository.save(offer)));
+        return JobOfferDTO.from(jobOfferRepository.save(offer));
     }
 
     // OPEN offers are publicly visible (same as getOpenJobOffers). Anything else
-    // (DRAFT/CLOSED/EXPIRED) is only visible to the posting company's own
-    // OWNER/RECRUITER — otherwise the controller maps to 404, deliberately not
-    // distinguishing "doesn't exist" from "exists but not yours to see", so a
+    // (DRAFT/CLOSED/EXPIRED) is only visible to the posting company's own OWNER/RECRUITER — otherwise
+    // 404, deliberately not distinguishing "doesn't exist" from "exists but not yours to see", so a
     // draft posting's existence isn't leaked to outsiders.
     @Transactional(readOnly = true)
-    public Optional<JobOfferDTO> getJobOfferById(String callerEmail, Long id) {
-        JobOffer offer = jobOfferRepository.findById(id).orElse(null);
-        if (offer == null) return Optional.empty();
+    public JobOfferDTO getJobOfferById(String callerEmail, Long id) {
+        JobOffer offer = jobOfferRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Job offer not found"));
 
         if (offer.getStatus() == JobStatus.OPEN) {
-            return Optional.of(JobOfferDTO.from(offer));
+            return JobOfferDTO.from(offer);
         }
 
         if (callerEmail == null || resolvePosterForCompany(callerEmail, offer.getCompany().getId()).isEmpty()) {
-            return Optional.empty();
+            throw new NotFoundException("Job offer not found");
         }
 
-        return Optional.of(JobOfferDTO.from(offer));
+        return JobOfferDTO.from(offer);
     }
 
-    // Editing (including closing/reopening via status) is restricted to the posting
-    // company's own OWNER/RECRUITER — the old PUT /update had no such check, letting
-    // any COMPANYUSER edit any company's offer. Fields are all nullable: null means
-    // "leave unchanged", same pattern as ReviewApplicationDTO.
+    // Editing (including closing/reopening via status) is restricted to the posting company's own
+    // OWNER/RECRUITER. 404 for both "no such offer" and "not your company's offer" — same
+    // 404-for-both, don't-leak-existence reasoning as getJobOfferById above (the old code returned an
+    // empty 403 for both; 404 is the consistent choice). Fields are all nullable: null means "leave
+    // unchanged", same pattern as ReviewApplicationDTO.
     @Transactional
-    public Optional<JobOfferDTO> updateJobOffer(String callerEmail, Long id, UpdateJobOfferDTO dto) {
-        JobOffer offer = jobOfferRepository.findById(id).orElse(null);
-        if (offer == null) return Optional.empty();
+    public JobOfferDTO updateJobOffer(String callerEmail, Long id, UpdateJobOfferDTO dto) {
+        JobOffer offer = jobOfferRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Job offer not found"));
 
         if (resolvePosterForCompany(callerEmail, offer.getCompany().getId()).isEmpty()) {
-            return Optional.empty();
+            throw new NotFoundException("Job offer not found");
         }
 
         if (dto.getTitle() != null) offer.setTitle(dto.getTitle());
@@ -177,23 +180,22 @@ public class JobOfferService {
         if (dto.getMaxApplications() != null) offer.setMaxApplications(dto.getMaxApplications());
         if (dto.getContactEmail() != null) offer.setContactEmail(dto.getContactEmail());
 
-        return Optional.of(JobOfferDTO.from(jobOfferRepository.save(offer)));
+        return JobOfferDTO.from(jobOfferRepository.save(offer));
     }
 
-    // All offers belonging to the caller's own company (any status), regardless of
-    // who posted them — matches the company-wide authority already enforced by
-    // resolvePosterForCompany (an OWNER/RECRUITER can edit/review any of their
-    // company's offers, not just ones they personally posted), so this listing is
-    // the discovery entry point for that same authority.
+    // All offers belonging to the caller's own company (any status), regardless of who posted them —
+    // matches the company-wide authority already enforced by resolvePosterForCompany (an
+    // OWNER/RECRUITER can edit/review any of their company's offers, not just ones they personally
+    // posted), so this listing is the discovery entry point for that same authority. 403 if the
+    // caller isn't a company OWNER/RECRUITER.
     @Transactional(readOnly = true)
-    public Optional<Page<JobOfferDTO>> getMyCompanyJobOffers(String callerEmail, Pageable pageable) {
+    public Page<JobOfferDTO> getMyCompanyJobOffers(String callerEmail, Pageable pageable) {
         CompanyUserProfile profile = userRepository.findByEmail(callerEmail)
                 .flatMap(companyUserProfileRepository::findByUser)
                 .filter(p -> p.getCompanyRole() == CompanyRole.OWNER || p.getCompanyRole() == CompanyRole.RECRUITER)
-                .orElse(null);
-        if (profile == null) return Optional.empty();
+                .orElseThrow(() -> new ForbiddenException("Only a company owner or recruiter can do this"));
 
-        return Optional.of(jobOfferRepository.findByCompany(profile.getCompany(), pageable).map(JobOfferDTO::from));
+        return jobOfferRepository.findByCompany(profile.getCompany(), pageable).map(JobOfferDTO::from);
     }
 
     // Duplicated from JobApplicationService.resolveReviewerForCompany on purpose —
