@@ -14,6 +14,10 @@ import dev.sabti.alumni_connect.job.entities.JobOffer;
 import dev.sabti.alumni_connect.job.entities.JobStatus;
 import dev.sabti.alumni_connect.job.repositories.JobApplicationRepository;
 import dev.sabti.alumni_connect.job.repositories.JobOfferRepository;
+import dev.sabti.alumni_connect.shared.exception.BadRequestException;
+import dev.sabti.alumni_connect.shared.exception.ConflictException;
+import dev.sabti.alumni_connect.shared.exception.ForbiddenException;
+import dev.sabti.alumni_connect.shared.exception.NotFoundException;
 import dev.sabti.alumni_connect.storage.FileDownload;
 import dev.sabti.alumni_connect.storage.StoredFileService;
 import lombok.RequiredArgsConstructor;
@@ -37,35 +41,35 @@ public class JobApplicationService {
     private final CompanyUserProfileRepository companyUserProfileRepository;
     private final StoredFileService storedFileService;
 
-    // Applying requires: a real CandidateProfile behind the caller, an OPEN offer,
-    // no active (non-withdrawn) application from this candidate to this offer — a
-    // withdrawn one doesn't block re-applying — and, if the offer caps applications,
-    // room left under that cap. All collapse to one
-    // "can't apply" outcome, the same Optional "soft failure" pattern as
-    // registerCompanyMember/postJobOffer (the controller maps empty -> 400).
+    // Applying requires: a real CandidateProfile behind the caller, an OPEN offer, no active
+    // (non-withdrawn) application from this candidate to this offer — a withdrawn one doesn't block
+    // re-applying — and, if the offer caps applications, room left under that cap. Each failure now
+    // throws its own exception with a caller-facing reason (previously all collapsed to one empty
+    // 400): not a candidate -> 403, no such offer -> 404, offer not open / already applied / cap
+    // reached -> 409, asked to reuse a profile resume that doesn't exist -> 400.
     // A resume is optional: the applicant either uploads one specific to this offer, or reuses
     // their profile resume (which gets copied — see below). All the "can't apply" checks run
     // before any file work, so we never store a resume for an application that won't be created.
     @Transactional
-    public Optional<JobApplicationDTO> apply(String applicantEmail, Long jobOfferId, ApplyToJobOfferDTO dto,
-                                             MultipartFile resume, Boolean useProfileResume) {
-        User user = userRepository.findByEmail(applicantEmail).orElse(null);
-        if (user == null) return Optional.empty();
+    public JobApplicationDTO apply(String applicantEmail, Long jobOfferId, ApplyToJobOfferDTO dto,
+                                   MultipartFile resume, Boolean useProfileResume) {
+        CandidateProfile applicant = requireCandidate(applicantEmail, "Only candidates can apply");
 
-        CandidateProfile applicant = candidateProfileRepository.findByUser(user).orElse(null);
-        if (applicant == null) return Optional.empty();
-
-        JobOffer offer = jobOfferRepository.findById(jobOfferId).orElse(null);
-        if (offer == null || offer.getStatus() != JobStatus.OPEN) return Optional.empty();
+        JobOffer offer = jobOfferRepository.findById(jobOfferId)
+                .orElseThrow(() -> new NotFoundException("Job offer not found"));
+        if (offer.getStatus() != JobStatus.OPEN) {
+            throw new ConflictException("This offer is no longer open");
+        }
 
         if (jobApplicationRepository.existsByJobOfferAndApplicantAndApplicationStatusNot(
                 offer, applicant, ApplicationStatus.WITHDRAWN)) {
-            return Optional.empty();  // already has an active application; a withdrawn one doesn't block re-applying
+            // already has an active application; a withdrawn one doesn't block re-applying
+            throw new ConflictException("You have already applied to this offer");
         }
 
         if (offer.getMaxApplications() != null
                 && offer.getCurrentApplicationCount() >= offer.getMaxApplications()) {
-            return Optional.empty();
+            throw new ConflictException("This offer is no longer accepting applications");
         }
 
         // An uploaded offer-specific resume wins over the profile one if both are sent (it's the
@@ -75,7 +79,9 @@ public class JobApplicationService {
         if (resume != null && !resume.isEmpty()) {
             resumeStorageId = storedFileService.store(resume).getStorageId();
         } else if (Boolean.TRUE.equals(useProfileResume)) {
-            if (applicant.getResumeId() == null) return Optional.empty();  // asked to reuse, but none on file
+            if (applicant.getResumeId() == null) {
+                throw new BadRequestException("No profile resume to reuse");
+            }
             resumeStorageId = storedFileService.copy(applicant.getResumeId()).getStorageId();
         }
 
@@ -89,7 +95,7 @@ public class JobApplicationService {
         offer.setCurrentApplicationCount(offer.getCurrentApplicationCount() + 1);
         jobOfferRepository.save(offer);
 
-        return Optional.of(JobApplicationDTO.from(application));
+        return JobApplicationDTO.from(application);
     }
 
     // A candidate withdraws their own application. Applicant-only: "not found" and "not yours" both
@@ -101,20 +107,16 @@ public class JobApplicationService {
     // apply to the same offer again (apply()'s guard ignores withdrawn rows): that creates a new
     // application, leaving this withdrawn one as history.
     @Transactional
-    public Optional<JobApplicationDTO> withdraw(String applicantEmail, Long applicationId) {
-        JobApplication application = jobApplicationRepository.findById(applicationId).orElse(null);
-        if (application == null) return Optional.empty();
+    public JobApplicationDTO withdraw(String applicantEmail, Long applicationId) {
+        JobApplication application = jobApplicationRepository.findById(applicationId)
+                .orElseThrow(() -> new NotFoundException("Application not found"));
 
-        User user = userRepository.findByEmail(applicantEmail).orElse(null);
-        if (user == null) return Optional.empty();
-
-        boolean isApplicant = candidateProfileRepository.findByUser(user)
-                .map(applicant -> applicant.getId().equals(application.getApplicant().getId()))
-                .orElse(false);
-        if (!isApplicant) return Optional.empty();
+        if (!isApplicant(applicantEmail, application)) {
+            throw new NotFoundException("Application not found");  // not yours -> 404, not probeable
+        }
 
         if (application.getApplicationStatus() == ApplicationStatus.WITHDRAWN) {
-            return Optional.of(JobApplicationDTO.from(application));  // idempotent: already withdrawn
+            return JobApplicationDTO.from(application);  // idempotent: already withdrawn
         }
 
         application.setApplicationStatus(ApplicationStatus.WITHDRAWN);
@@ -126,22 +128,16 @@ public class JobApplicationService {
             jobOfferRepository.save(offer);
         }
 
-        return Optional.of(JobApplicationDTO.from(application));
+        return JobApplicationDTO.from(application);
     }
 
-    // The candidate's own application history, any status. Empty -> 403 if the
-    // caller has no CandidateProfile (this endpoint doesn't apply to them) — old
-    // code instead used messy instanceof-principal checks and silently returned an
-    // empty page for non-candidates.
+    // The candidate's own application history, any status. ForbiddenException (403) if the caller has
+    // no CandidateProfile (this endpoint doesn't apply to them) — old code instead used messy
+    // instanceof-principal checks and silently returned an empty page for non-candidates.
     @Transactional(readOnly = true)
-    public Optional<Page<JobApplicationDTO>> getMyApplications(String applicantEmail, Pageable pageable) {
-        User user = userRepository.findByEmail(applicantEmail).orElse(null);
-        if (user == null) return Optional.empty();
-
-        CandidateProfile applicant = candidateProfileRepository.findByUser(user).orElse(null);
-        if (applicant == null) return Optional.empty();
-
-        return Optional.of(jobApplicationRepository.findByApplicant(applicant, pageable).map(JobApplicationDTO::from));
+    public Page<JobApplicationDTO> getMyApplications(String applicantEmail, Pageable pageable) {
+        CandidateProfile applicant = requireCandidate(applicantEmail, "Not a candidate");
+        return jobApplicationRepository.findByApplicant(applicant, pageable).map(JobApplicationDTO::from);
     }
 
     // Listing applicants is restricted to the OWNER/RECRUITER of the company that
@@ -150,13 +146,13 @@ public class JobApplicationService {
     // offer's applicants: forOffer(...) is the non-optional base, ANDed with whatever the
     // caller supplied. The authority check runs first, so filters never run for an outsider.
     @Transactional(readOnly = true)
-    public Optional<Page<JobApplicationDTO>> getApplicationsForOffer(String reviewerEmail, Long jobOfferId,
-                                                                     JobApplicationSearchCriteria criteria, Pageable pageable) {
-        JobOffer offer = jobOfferRepository.findById(jobOfferId).orElse(null);
-        if (offer == null) return Optional.empty();
+    public Page<JobApplicationDTO> getApplicationsForOffer(String reviewerEmail, Long jobOfferId,
+                                                           JobApplicationSearchCriteria criteria, Pageable pageable) {
+        JobOffer offer = jobOfferRepository.findById(jobOfferId)
+                .orElseThrow(() -> new NotFoundException("Job offer not found"));
 
         if (resolveReviewerForCompany(reviewerEmail, offer.getCompany().getId()).isEmpty()) {
-            return Optional.empty();
+            throw new NotFoundException("Job offer not found");  // not your offer -> 404, not probeable
         }
 
         Specification<JobApplication> spec = JobApplicationSpecs.forOffer(offer);
@@ -171,7 +167,7 @@ public class JobApplicationService {
                 spec = spec.and(JobApplicationSpecs.minRating(criteria.getMinRating()));
             }
         }
-        return Optional.of(jobApplicationRepository.findAll(spec, pageable).map(JobApplicationDTO::from));
+        return jobApplicationRepository.findAll(spec, pageable).map(JobApplicationDTO::from);
     }
 
     // Reviewing requires the caller to be an OWNER/RECRUITER of the SAME company that
@@ -180,13 +176,13 @@ public class JobApplicationService {
     // Fields in the DTO are all nullable: null means "leave unchanged", letting the caller
     // update just a status, just a note, etc. reviewedAt/reviewedBy are set server-side.
     @Transactional
-    public Optional<JobApplicationDTO> review(String reviewerEmail, Long applicationId, ReviewApplicationDTO dto) {
-        JobApplication application = jobApplicationRepository.findById(applicationId).orElse(null);
-        if (application == null) return Optional.empty();
+    public JobApplicationDTO review(String reviewerEmail, Long applicationId, ReviewApplicationDTO dto) {
+        JobApplication application = jobApplicationRepository.findById(applicationId)
+                .orElseThrow(() -> new NotFoundException("Application not found"));
 
         Long postingCompanyId = application.getJobOffer().getCompany().getId();
-        CompanyUserProfile reviewer = resolveReviewerForCompany(reviewerEmail, postingCompanyId).orElse(null);
-        if (reviewer == null) return Optional.empty();
+        CompanyUserProfile reviewer = resolveReviewerForCompany(reviewerEmail, postingCompanyId)
+                .orElseThrow(() -> new NotFoundException("Application not found"));  // not your company -> 404
 
         if (dto.getApplicationStatus() != null) application.setApplicationStatus(dto.getApplicationStatus());
         if (dto.getCompanyUserNote() != null) application.setCompanyUserNote(dto.getCompanyUserNote());
@@ -196,7 +192,7 @@ public class JobApplicationService {
         application.setReviewedAt(LocalDateTime.now());
         application.setReviewedBy(reviewer);
 
-        return Optional.of(JobApplicationDTO.from(jobApplicationRepository.save(application)));
+        return JobApplicationDTO.from(jobApplicationRepository.save(application));
     }
 
     // Visible only to the applicant themselves or the posting company's own
@@ -205,24 +201,30 @@ public class JobApplicationService {
     // and "exists but not yours" both return empty -> 404, so the controller never
     // confirms whether an application id you can't access exists.
     @Transactional(readOnly = true)
-    public Optional<JobApplicationDTO> getApplicationById(String callerEmail, Long applicationId) {
-        JobApplication application = jobApplicationRepository.findById(applicationId).orElse(null);
-        if (application == null || !canAccessApplication(callerEmail, application)) return Optional.empty();
-
-        return Optional.of(JobApplicationDTO.from(application));
+    public JobApplicationDTO getApplicationById(String callerEmail, Long applicationId) {
+        JobApplication application = jobApplicationRepository.findById(applicationId)
+                .orElseThrow(() -> new NotFoundException("Application not found"));
+        if (!canAccessApplication(callerEmail, application)) {
+            throw new NotFoundException("Application not found");  // not yours -> 404, not probeable
+        }
+        return JobApplicationDTO.from(application);
     }
 
     // Streams the resume PDF attached to an application, behind the same access gate as
-    // getApplicationById (the applicant, or the posting company's OWNER/RECRUITER). Empty
-    // for every miss — application doesn't exist, caller can't reach it, or it carries no
-    // resume — all of which the controller maps to 404, so an inaccessible id never leaks.
+    // getApplicationById (the applicant, or the posting company's OWNER/RECRUITER). 404 for every
+    // miss — application doesn't exist, caller can't reach it, or it carries no resume — all sharing
+    // one message so an inaccessible id never leaks (a distinct "no resume" message would confirm the
+    // application exists).
     @Transactional(readOnly = true)
-    public Optional<FileDownload> getApplicationResume(String callerEmail, Long applicationId) {
-        JobApplication application = jobApplicationRepository.findById(applicationId).orElse(null);
-        if (application == null || !canAccessApplication(callerEmail, application)) return Optional.empty();
-        if (application.getResumeStorageId() == null) return Optional.empty();
+    public FileDownload getApplicationResume(String callerEmail, Long applicationId) {
+        JobApplication application = jobApplicationRepository.findById(applicationId)
+                .orElseThrow(() -> new NotFoundException("Application resume not found"));
+        if (!canAccessApplication(callerEmail, application) || application.getResumeStorageId() == null) {
+            throw new NotFoundException("Application resume not found");
+        }
 
-        return storedFileService.load(application.getResumeStorageId());
+        return storedFileService.load(application.getResumeStorageId())
+                .orElseThrow(() -> new NotFoundException("Application resume not found"));
     }
 
     // The applicant's full candidate profile, for the posting company's OWNER/RECRUITER to review
@@ -231,15 +233,36 @@ public class JobApplicationService {
     // snapshot, but this just points at the live profile, which the applicant already reads via
     // GET /api/candidates/me. Empty -> 404 for any miss, so an application id you can't reach never leaks.
     @Transactional(readOnly = true)
-    public Optional<CandidateProfileDTO> getApplicantProfile(String reviewerEmail, Long applicationId) {
-        JobApplication application = jobApplicationRepository.findById(applicationId).orElse(null);
-        if (application == null) return Optional.empty();
+    public CandidateProfileDTO getApplicantProfile(String reviewerEmail, Long applicationId) {
+        JobApplication application = jobApplicationRepository.findById(applicationId)
+                .orElseThrow(() -> new NotFoundException("Application not found"));
 
         Long postingCompanyId = application.getJobOffer().getCompany().getId();
-        if (resolveReviewerForCompany(reviewerEmail, postingCompanyId).isEmpty()) return Optional.empty();
+        if (resolveReviewerForCompany(reviewerEmail, postingCompanyId).isEmpty()) {
+            throw new NotFoundException("Application not found");  // not your company -> 404, not probeable
+        }
 
         CandidateProfile applicant = application.getApplicant();
-        return Optional.of(CandidateProfileDTO.from(applicant.getUser(), applicant));
+        return CandidateProfileDTO.from(applicant.getUser(), applicant);
+    }
+
+    // A candidate operation requires a real user behind the email and a CandidateProfile behind that
+    // user; either missing -> 403 with the given message, since the endpoint doesn't apply to the
+    // caller (e.g. a company user trying to apply or list their applications).
+    private CandidateProfile requireCandidate(String email, String denyMessage) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ForbiddenException(denyMessage));
+        return candidateProfileRepository.findByUser(user)
+                .orElseThrow(() -> new ForbiddenException(denyMessage));
+    }
+
+    // True only if the caller is the candidate who filed this application. Used by withdraw, where
+    // "not the applicant" is reported as 404 (not 403) so other people's applications aren't probeable.
+    private boolean isApplicant(String callerEmail, JobApplication application) {
+        return userRepository.findByEmail(callerEmail)
+                .flatMap(candidateProfileRepository::findByUser)
+                .map(applicant -> applicant.getId().equals(application.getApplicant().getId()))
+                .orElse(false);
     }
 
     // Shared read-access gate for a single application: the candidate who filed it, or an
@@ -247,13 +270,7 @@ public class JobApplicationService {
     // indistinguishable from "doesn't exist" (both -> 404). Distinct from resolveReviewerForCompany,
     // which is the company-only authority used by listing/reviewing.
     private boolean canAccessApplication(String callerEmail, JobApplication application) {
-        User user = userRepository.findByEmail(callerEmail).orElse(null);
-        if (user == null) return false;
-
-        boolean isApplicant = candidateProfileRepository.findByUser(user)
-                .map(applicant -> applicant.getId().equals(application.getApplicant().getId()))
-                .orElse(false);
-        if (isApplicant) return true;
+        if (isApplicant(callerEmail, application)) return true;
 
         Long postingCompanyId = application.getJobOffer().getCompany().getId();
         return resolveReviewerForCompany(callerEmail, postingCompanyId).isPresent();

@@ -7,6 +7,7 @@ import dev.sabti.alumni_connect.job.applications.JobApplicationSearchCriteria;
 import dev.sabti.alumni_connect.job.entities.ApplicationStatus;
 import dev.sabti.alumni_connect.job.entities.EmploymentType;
 import dev.sabti.alumni_connect.job.entities.JobCity;
+import dev.sabti.alumni_connect.shared.exception.BadRequestException;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -105,31 +106,31 @@ public class JobOfferController {
     }
 
     // Applicant lists are private to the posting company's own OWNER/RECRUITER —
-    // authority is checked in JobApplicationService (Optional empty -> 403), the
-    // same "soft failure" pattern as postJobOffer/apply. Note this sub-resource
+    // authority is checked in JobApplicationService, which throws 404 if the offer doesn't exist or
+    // isn't the caller's company's (404-for-both, not probeable). Note this sub-resource
     // must stay locked down in SecurityConfig despite the broad public GET on
     // /api/job-offers/**.
     // Optional triage filters (status / reviewed / minRating) let the company narrow a busy
     // offer's applicants; sort via ?sort= (default newest-first). None supplied reproduces the
     // previous unfiltered list. Authority/ordering unchanged from above.
     @GetMapping("/{id}/applications")
-    public ResponseEntity<Page<JobApplicationDTO>> getApplicationsForOffer(@PathVariable Long id,
-                                                                            @AuthenticationPrincipal UserDetails principal,
-                                                                            @RequestParam(required = false) ApplicationStatus status,
-                                                                            @RequestParam(required = false) Boolean reviewed,
-                                                                            @RequestParam(required = false) Integer minRating,
-                                                                            @PageableDefault(sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+    public Page<JobApplicationDTO> getApplicationsForOffer(@PathVariable Long id,
+                                                           @AuthenticationPrincipal UserDetails principal,
+                                                           @RequestParam(required = false) ApplicationStatus status,
+                                                           @RequestParam(required = false) Boolean reviewed,
+                                                           @RequestParam(required = false) Integer minRating,
+                                                           @PageableDefault(sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         JobApplicationSearchCriteria criteria = new JobApplicationSearchCriteria(status, reviewed, minRating);
-        return jobApplicationService.getApplicationsForOffer(principal.getUsername(), id, criteria, pageable)
-                .map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.status(HttpStatus.FORBIDDEN).build());
+        return jobApplicationService.getApplicationsForOffer(principal.getUsername(), id, criteria, pageable);
     }
 
     // Named business action (apply), not a generic sub-resource POST — mirrors the
     // /approve, /reject pattern in AdminController (security/auditability rationale).
     // Multipart so the applicant can attach a resume: an offer-specific PDF upload (`resume`),
     // or `useProfileResume=true` to reuse their profile CV (copied onto the application). Both
-    // optional; if both are sent the upload wins. A non-PDF upload is rejected here as 400.
+    // optional; if both are sent the upload wins. A non-PDF upload is rejected here as 400; the
+    // service throws the other reasons (403 not a candidate, 404 no such offer, 409 not open /
+    // already applied / cap reached, 400 no profile resume to reuse).
     @PostMapping(value = "/{id}/apply", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<JobApplicationDTO> apply(@PathVariable Long id,
                                                     @AuthenticationPrincipal UserDetails principal,
@@ -138,10 +139,9 @@ public class JobOfferController {
                                                     @RequestParam(required = false) Boolean useProfileResume) {
         if (resume != null && !resume.isEmpty()
                 && !MediaType.APPLICATION_PDF_VALUE.equalsIgnoreCase(resume.getContentType())) {
-            return ResponseEntity.badRequest().build();
+            throw new BadRequestException("Resume must be a PDF");
         }
-        return jobApplicationService.apply(principal.getUsername(), id, dto, resume, useProfileResume)
-                .map(application -> ResponseEntity.status(HttpStatus.CREATED).body(application))
-                .orElseGet(() -> ResponseEntity.badRequest().build());
+        JobApplicationDTO application = jobApplicationService.apply(principal.getUsername(), id, dto, resume, useProfileResume);
+        return ResponseEntity.status(HttpStatus.CREATED).body(application);
     }
 }
