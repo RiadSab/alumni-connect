@@ -30,6 +30,8 @@ public class RestAuthenticationEntryPoint implements AuthenticationEntryPoint {
             message = "Your session has expired, please log in again";
         } else if ("INVALID_TOKEN".equals(code)) {
             message = "Invalid authentication token";
+        } else if ("ACCOUNT_DISABLED".equals(code)) {
+            message = "Your account is no longer active, please contact support";
         } else {
             code = "AUTH_REQUIRED";
             message = "Authentication is required to access this resource";
