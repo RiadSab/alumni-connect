@@ -13,6 +13,8 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.servlet.NoHandlerFoundException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -75,6 +77,15 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MaxUploadSizeExceededException.class)
     ResponseEntity<ApiError> handleMaxUpload(MaxUploadSizeExceededException ex) {
         return build(HttpStatus.PAYLOAD_TOO_LARGE, "The uploaded file is too large.");
+    }
+
+    // No controller (or static resource) maps to the requested URL — an authenticated caller hitting
+    // a path that doesn't exist. Return a real 404 instead of letting it fall through to the generic
+    // error dispatch. (An unauthenticated caller hitting an unknown path is stopped earlier by the
+    // security entry point with a 401, by design — anonymous callers aren't told which routes exist.)
+    @ExceptionHandler({NoHandlerFoundException.class, NoResourceFoundException.class})
+    ResponseEntity<ApiError> handleNotFound(Exception ex) {
+        return build(HttpStatus.NOT_FOUND, "The requested resource was not found.");
     }
 
     // A database constraint was violated — a unique collision (e.g. duplicate email) or a check

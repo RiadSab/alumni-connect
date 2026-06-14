@@ -27,6 +27,8 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
     private final JwtRequestFilter jwtRequestFilter;
     private final MyUserDetailsService myUserDetailsService;
+    private final RestAuthenticationEntryPoint restAuthenticationEntryPoint;
+    private final RestAccessDeniedHandler restAccessDeniedHandler;
 
     @Bean  // define a bean to be managed by spring container
     // spring search for a bean of type SecurityFilterChain, if found it uses it to configure security for HTTP requests
@@ -36,7 +38,18 @@ public class SecurityConfig {
         .csrf(csrf -> csrf.disable())
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // set session management to stateless, no HTTP session is created or used by spring security
+                // Filter-chain auth failures now return the same ApiError JSON as everything else:
+                // 401 (no/expired/invalid token) via the entry point, 403 (authenticated but wrong
+                // role) via the access-denied handler. Without these, Spring Security writes an empty
+                // body, which is what left the apply-as-company-user case a bodyless 403.
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint(restAuthenticationEntryPoint)
+                        .accessDeniedHandler(restAccessDeniedHandler))
                 .authorizeHttpRequests(auth -> auth
+                    // The error dispatch must be reachable without authentication. If an unhandled
+                    // exception ever forwards to /error, that forward carries no JWT — leaving /error
+                    // behind authenticated() would re-mask the real error as a 401/403.
+                    .requestMatchers("/error").permitAll()
                     // A logged-in user changing their own password — must be declared BEFORE the
                     // broad /api/auth/** permitAll below, which otherwise (first match wins) would
                     // make this public. Everything else under /api/auth (login, register) is public.

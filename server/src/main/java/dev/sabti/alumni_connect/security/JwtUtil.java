@@ -92,16 +92,22 @@ public class JwtUtil {
         }
     }
 
-    public boolean validateToken(String token){
-        try{
+    // The outcome of parsing a presented token. EXPIRED is kept distinct from INVALID so the caller
+    // can react differently (a future refresh-token flow refreshes on EXPIRED, re-logs-in on INVALID);
+    // the security entry point maps these onto the TOKEN_EXPIRED / INVALID_TOKEN ApiError codes.
+    public enum TokenStatus { VALID, EXPIRED, INVALID }
+
+    public TokenStatus checkToken(String token) {
+        try {
             Jwts.parserBuilder()
                     .setSigningKey(key)
                     .requireIssuer(jwtIssuer)
                     .build()
                     .parseClaimsJws(token); // If parsing is successful, the token is valid
-            return true;
+            return TokenStatus.VALID;
         } catch (ExpiredJwtException e) {
-            logger.error("Expired JWT token in validateToken: {}", e.getMessage());
+            logger.error("Expired JWT token in checkToken: {}", e.getMessage());
+            return TokenStatus.EXPIRED;
         } catch (UnsupportedJwtException e) {
             logger.error("Unsupported JWT token : {}", e.getMessage());
         } catch (MalformedJwtException e) {
@@ -111,6 +117,10 @@ public class JwtUtil {
         } catch (IllegalArgumentException e) {
             logger.error("JWT claims string is empty: {}", e.getMessage());
         }
-        return false; // If any exception occurs, the token is invalid
+        return TokenStatus.INVALID; // any non-expiry parse failure (malformed, bad signature, etc.)
+    }
+
+    public boolean validateToken(String token){
+        return checkToken(token) == TokenStatus.VALID;
     }
 }
