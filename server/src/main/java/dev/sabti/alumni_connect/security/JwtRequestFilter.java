@@ -51,9 +51,6 @@ public class JwtRequestFilter extends OncePerRequestFilter {
         // TODO cache userDetails to avoid a DB hit on every request
         UserDetails userDetails = myUserDetailsService.loadUserByUsername(email);
 
-        // Status (suspended/disabled) is only checked at login. The JWT path bypasses the login
-        // flow, so a token minted while ACTIVE would otherwise keep working after the account is
-        // suspended. Re-check the live status here and refuse to authenticate if it's not OK.
         if (!userDetails.isEnabled() || !userDetails.isAccountNonLocked()) {
             request.setAttribute(JWT_ERROR_ATTRIBUTE, "ACCOUNT_DISABLED");
             return;
