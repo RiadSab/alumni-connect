@@ -1,8 +1,9 @@
 package dev.sabti.alumni_connect.company;
 
 
+import dev.sabti.alumni_connect.shared.exception.BadRequestException;
 import dev.sabti.alumni_connect.storage.FileDownload;
-import dev.sabti.alumni_connect.storage.StoredFile;
+import dev.sabti.alumni_connect.storage.StoredFileDTO;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.Resource;
@@ -10,7 +11,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -25,7 +25,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.Optional;
 import java.util.Set;
 
 @RestController
@@ -45,59 +44,48 @@ public class CompanyController {
 
     // Public single-company profile — the company page a candidate reaches by clicking the
     // company on a job offer (JobOfferDTO only carries companyId + companyName). Permitted in
-    // SecurityConfig by the GET /api/companies/** matcher. Empty -> 404 (no such id, or the
+    // SecurityConfig by the GET /api/companies/** matcher. The service throws 404 (no such id, or the
     // company isn't publicly visible — indistinguishable on purpose).
     @GetMapping("/{id}")
-    public ResponseEntity<CompanyDTO> getCompanyById(@PathVariable Long id) {
-        return companyService.getVisibleCompanyById(id)
-                .map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
+    public CompanyDTO getCompanyById(@PathVariable Long id) {
+        return companyService.getVisibleCompanyById(id);
     }
 
     // A company OWNER edits their own company profile. Scoped to the caller's own company (resolved
     // from their CompanyUserProfile in the service), so no path id. OWNER-only authority is checked
-    // in the service; Optional empty -> 403, the same soft-failure pattern as the role-change
-    // endpoint. (PATCH, so it isn't caught by the public GET /api/companies/** matcher.)
+    // in the service, which throws 403 for a non-owner. (PATCH, so it isn't caught by the public
+    // GET /api/companies/** matcher.)
     @PatchMapping("/me")
-    public ResponseEntity<CompanyDTO> updateMyCompany(@AuthenticationPrincipal UserDetails principal,
-                                                      @RequestBody @Valid UpdateCompanyDTO dto) {
-        return companyService.updateMyCompany(principal.getUsername(), dto)
-                .map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.status(HttpStatus.FORBIDDEN).build());
+    public CompanyDTO updateMyCompany(@AuthenticationPrincipal UserDetails principal,
+                                      @RequestBody @Valid UpdateCompanyDTO dto) {
+        return companyService.updateMyCompany(principal.getUsername(), dto);
     }
 
     // Upload (or replace) the caller's own company logo. Multipart; the content-type guard keeps it
-    // to a known image format (a caller error -> 400, distinct from the 403 for "not an OWNER").
-    // OWNER-only authority is checked in the service. Returns the stored file's metadata, including
-    // the storageId (which also lands on CompanyDTO.logoId).
+    // to a known image format (400 BadRequestException, distinct from the 403 the service throws for
+    // "not an OWNER"). Returns the stored file's metadata, including the storageId (which also lands
+    // on CompanyDTO.logoId).
     @PostMapping(value = "/me/logo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<?> uploadMyCompanyLogo(@AuthenticationPrincipal UserDetails principal,
-                                                 @RequestParam("file") MultipartFile file) {
+    public StoredFileDTO uploadMyCompanyLogo(@AuthenticationPrincipal UserDetails principal,
+                                             @RequestParam("file") MultipartFile file) {
         if (file.isEmpty() || file.getContentType() == null
                 || !ALLOWED_LOGO_TYPES.contains(file.getContentType().toLowerCase())) {
-            return ResponseEntity.badRequest().body("Logo must be a PNG, JPEG, or WEBP image");
+            throw new BadRequestException("Logo must be a PNG, JPEG, or WEBP image");
         }
-        return companyService.uploadLogo(principal.getUsername(), file)
-                .<ResponseEntity<?>>map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.status(HttpStatus.FORBIDDEN).build());
+        return companyService.uploadLogo(principal.getUsername(), file);
     }
 
     // Public logo image for a company, fetched via the logoId on CompanyDTO. Public (the company
-    // profile itself is public), but only for publicly visible companies — checked in the service.
-    // Content-Disposition inline so a browser can render it directly. A miss (no such company, not
-    // publicly visible, or no logo) -> 404.
+    // profile itself is public), but only for publicly visible companies — checked in the service,
+    // which throws 404 on any miss (no such company, not publicly visible, or no logo).
+    // Content-Disposition inline so a browser can render it directly.
     @GetMapping("/{id}/logo")
     public ResponseEntity<Resource> getCompanyLogo(@PathVariable Long id) {
-        Optional<FileDownload> result = companyService.getVisibleCompanyLogo(id);
-        if (result.isEmpty()) {
-            return ResponseEntity.notFound().build();
-        }
-
-        FileDownload download = result.get();
-        StoredFile metadata = download.getMetadata();
+        FileDownload file = companyService.getVisibleCompanyLogo(id);
         return ResponseEntity.ok()
-                .contentType(MediaType.parseMediaType(metadata.getContentType()))
-                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + metadata.getOriginalFilename() + "\"")
-                .body(download.getResource());
+                .contentType(MediaType.parseMediaType(file.getMetadata().getContentType()))
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "inline; filename=\"" + file.getMetadata().getOriginalFilename() + "\"")
+                .body(file.getResource());
     }
 }

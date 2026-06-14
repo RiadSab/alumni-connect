@@ -8,6 +8,8 @@ import dev.sabti.alumni_connect.company.entities.CompanyStatus;
 import dev.sabti.alumni_connect.company.entities.CompanyUserProfile;
 import dev.sabti.alumni_connect.company.repositories.CompanyRepository;
 import dev.sabti.alumni_connect.company.repositories.CompanyUserProfileRepository;
+import dev.sabti.alumni_connect.shared.exception.ForbiddenException;
+import dev.sabti.alumni_connect.shared.exception.NotFoundException;
 import dev.sabti.alumni_connect.storage.FileDownload;
 import dev.sabti.alumni_connect.storage.StoredFile;
 import dev.sabti.alumni_connect.storage.StoredFileDTO;
@@ -20,7 +22,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.EnumSet;
-import java.util.Optional;
 import java.util.Set;
 
 @Service
@@ -45,31 +46,25 @@ public class CompanyService {
     }
 
     // Public single-company profile (the company page reached from a job offer / directory).
-    // Empty -> 404 for both "no such id" and "exists but not publicly visible" — same
-    // 404-for-both reasoning as the private read endpoints: a caller must not be able to tell a
-    // suspended/rejected company apart from one that never existed.
+    // NotFoundException (404) for both "no such id" and "exists but not publicly visible" — a caller
+    // must not be able to tell a suspended/rejected company apart from one that never existed.
     @Transactional(readOnly = true)
-    public Optional<CompanyDTO> getVisibleCompanyById(Long id) {
-        return companyRepository.findById(id)
-                .filter(company -> PUBLICLY_VISIBLE.contains(company.getStatus()))
-                .map(CompanyDTO::from);
+    public CompanyDTO getVisibleCompanyById(Long id) {
+        Company company = companyRepository.findById(id)
+                .filter(c -> PUBLICLY_VISIBLE.contains(c.getStatus()))
+                .orElseThrow(() -> new NotFoundException("Company not found"));
+        return CompanyDTO.from(company);
     }
 
     // A company OWNER edits their own company's public profile — until now a company was write-once
     // (create at registration, then frozen), unlike candidates who already have PATCH /me. Scoped to
     // the caller's own company (resolved from their CompanyUserProfile), so there's no path id to
-    // reconcile. OWNER-only: a RECRUITER manages offers/applications, not the company's identity.
-    // Empty -> 403 if the caller isn't an OWNER (same soft-failure pattern as changeMemberRole).
-    // Fields are all nullable: null means "leave unchanged".
+    // reconcile. OWNER-only: a RECRUITER manages offers/applications, not the company's identity, so
+    // a non-owner gets 403. Fields are all nullable: null means "leave unchanged".
     @Transactional
-    public Optional<CompanyDTO> updateMyCompany(String ownerEmail, UpdateCompanyDTO dto) {
-        User user = userRepository.findByEmail(ownerEmail).orElse(null);
-        if (user == null) return Optional.empty();
+    public CompanyDTO updateMyCompany(String ownerEmail, UpdateCompanyDTO dto) {
+        Company company = requireOwner(ownerEmail).getCompany();
 
-        CompanyUserProfile actor = companyUserProfileRepository.findByUser(user).orElse(null);
-        if (actor == null || actor.getCompanyRole() != CompanyRole.OWNER) return Optional.empty();
-
-        Company company = actor.getCompany();
         if (dto.getName() != null) company.setName(dto.getName());
         if (dto.getPhone() != null) company.setPhone(dto.getPhone());
         if (dto.getField() != null) company.setField(dto.getField());
@@ -78,22 +73,17 @@ public class CompanyService {
         if (dto.getAddress() != null) company.setAddress(dto.getAddress());
         if (dto.getSize() != null) company.setSize(dto.getSize());
 
-        return Optional.of(CompanyDTO.from(companyRepository.save(company)));
+        return CompanyDTO.from(companyRepository.save(company));
     }
 
-    // Upload (or replace) the caller's own company logo. OWNER-only, same authority as editing the
-    // profile (the logo is part of the company's public identity). Image content-type validation
-    // happens in the controller. A company has at most one logo: a new upload replaces the reference
-    // and deletes the previous file so it doesn't orphan on disk. Mirrors CandidateService.uploadPhoto.
+    // Upload (or replace) the caller's own company logo. OWNER-only (403 otherwise), same authority
+    // as editing the profile (the logo is part of the company's public identity). Image content-type
+    // validation happens in the controller. A company has at most one logo: a new upload replaces the
+    // reference and deletes the previous file so it doesn't orphan on disk.
     @Transactional
-    public Optional<StoredFileDTO> uploadLogo(String ownerEmail, MultipartFile file) {
-        User user = userRepository.findByEmail(ownerEmail).orElse(null);
-        if (user == null) return Optional.empty();
+    public StoredFileDTO uploadLogo(String ownerEmail, MultipartFile file) {
+        Company company = requireOwner(ownerEmail).getCompany();
 
-        CompanyUserProfile actor = companyUserProfileRepository.findByUser(user).orElse(null);
-        if (actor == null || actor.getCompanyRole() != CompanyRole.OWNER) return Optional.empty();
-
-        Company company = actor.getCompany();
         String previousLogoId = company.getLogoId();
         StoredFile stored = storedFileService.store(file);
         company.setLogoId(stored.getStorageId());
@@ -102,20 +92,36 @@ public class CompanyService {
         if (previousLogoId != null) {
             storedFileService.delete(previousLogoId);
         }
-        return Optional.of(StoredFileDTO.from(stored));
+        return StoredFileDTO.from(stored);
     }
 
-    // The company logo bytes, served publicly (the company profile is public). Only publicly
-    // visible companies (ACTIVE/PARTNER) qualify, same filter as getVisibleCompanyById. Empty -> 404
-    // for every miss — no such company, not publicly visible, or no logo set — so a hidden company
-    // can't be probed via its logo.
+    // The company logo bytes, served publicly (the company profile is public). Only publicly visible
+    // companies (ACTIVE/PARTNER) qualify, same filter as getVisibleCompanyById. NotFoundException
+    // (404) for every miss — no such company, not publicly visible, or no logo set — so a hidden
+    // company can't be probed via its logo.
     @Transactional(readOnly = true)
-    public Optional<FileDownload> getVisibleCompanyLogo(Long id) {
+    public FileDownload getVisibleCompanyLogo(Long id) {
         Company company = companyRepository.findById(id)
                 .filter(c -> PUBLICLY_VISIBLE.contains(c.getStatus()))
-                .orElse(null);
-        if (company == null || company.getLogoId() == null) return Optional.empty();
+                .orElseThrow(() -> new NotFoundException("Company logo not found"));
+        if (company.getLogoId() == null) throw new NotFoundException("Company logo not found");
 
-        return storedFileService.load(company.getLogoId());
+        return storedFileService.load(company.getLogoId())
+                .orElseThrow(() -> new NotFoundException("Company logo not found"));
+    }
+
+    // The endpoints above that mutate a company require the caller to be that company's OWNER. A user
+    // missing entirely, with no CompanyUserProfile, or not an OWNER -> 403, since the operation
+    // doesn't apply to them. (The user is always present for an authenticated principal; the reachable
+    // cases are "authenticated but not a company user" and "a company user who isn't the owner".)
+    private CompanyUserProfile requireOwner(String ownerEmail) {
+        User user = userRepository.findByEmail(ownerEmail)
+                .orElseThrow(() -> new ForbiddenException("Only the company owner can do this"));
+        CompanyUserProfile actor = companyUserProfileRepository.findByUser(user)
+                .orElseThrow(() -> new ForbiddenException("Only the company owner can do this"));
+        if (actor.getCompanyRole() != CompanyRole.OWNER) {
+            throw new ForbiddenException("Only the company owner can do this");
+        }
+        return actor;
     }
 }
