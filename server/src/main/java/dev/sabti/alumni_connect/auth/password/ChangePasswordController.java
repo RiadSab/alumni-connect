@@ -2,7 +2,6 @@ package dev.sabti.alumni_connect.auth.password;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -19,13 +18,13 @@ public class ChangePasswordController {
 
     // Authenticated (the principal is the user changing their own password) — gated in
     // SecurityConfig with an authenticated matcher declared before the /api/auth/** permitAll,
-    // since everything else under /api/auth (login, register) is public. false -> 400: the
-    // old password didn't match, the one failure the caller can correct.
+    // since everything else under /api/auth (login, register) is public. The service throws 400
+    // "Current password is incorrect" if the old password doesn't match — the one failure the caller
+    // can correct.
     @PostMapping("/change-password")
     public ResponseEntity<Void> changePassword(@AuthenticationPrincipal UserDetails principal,
                                                @RequestBody @Valid ChangePasswordDTO dto) {
-        return changePasswordService.changePassword(principal.getUsername(), dto)
-                ? ResponseEntity.ok().build()
-                : ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+        changePasswordService.changePassword(principal.getUsername(), dto);
+        return ResponseEntity.ok().build();
     }
 }

@@ -92,17 +92,15 @@ public class AdminController {
         return changeCompanyStatus(id, dto, CompanyStatus.ACTIVE, "reactivated");
     }
 
+    // The service throws on failure (404 no such user, 409 already in the target status); reaching
+    // here means it succeeded, so we just confirm the action.
     private ResponseEntity<?> changeUserStatus(Long id, StatusChangeDTO dto, UserStatus newStatus, String action) {
-        if (adminService.changeUserStatus(id, dto.getReason(), newStatus)) {
-            return ResponseEntity.ok("User " + action + " successfully");
-        }
-        return ResponseEntity.status(409).body("User status change failed");
+        adminService.changeUserStatus(id, dto.getReason(), newStatus);
+        return ResponseEntity.ok("User " + action + " successfully");
     }
 
     private ResponseEntity<?> changeCompanyStatus(Long id, StatusChangeDTO dto, CompanyStatus newStatus, String action) {
-        if (adminService.changeCompanyStatus(id, dto.getReason(), newStatus)) {
-            return ResponseEntity.ok("Company " + action + " successfully");
-        }
-        return ResponseEntity.status(409).body("Company status change failed");
+        adminService.changeCompanyStatus(id, dto.getReason(), newStatus);
+        return ResponseEntity.ok("Company " + action + " successfully");
     }
 }

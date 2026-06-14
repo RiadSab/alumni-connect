@@ -7,6 +7,8 @@ import dev.sabti.alumni_connect.auth.repositories.UserRepository;
 import dev.sabti.alumni_connect.company.entities.Company;
 import dev.sabti.alumni_connect.company.entities.CompanyStatus;
 import dev.sabti.alumni_connect.company.repositories.CompanyRepository;
+import dev.sabti.alumni_connect.shared.exception.ConflictException;
+import dev.sabti.alumni_connect.shared.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -56,27 +58,29 @@ public class AdminService {
 
     // Single status-change path for every User regardless of role (CANDIDATE, COMPANY_USER,
     // ADMINISTRATOR) — composition means they're all the same entity, so one method covers them all.
+    // The two failures the old boolean collapsed into one 409 are now separate: no such user -> 404,
+    // already in the target status (a no-op) -> 409.
     @Transactional
-    public boolean changeUserStatus(Long id, String reason, UserStatus newStatus) {
-        User user = userRepository.findById(id).orElse(null);
-        if (user == null || user.getUserStatus() == newStatus) {
-            return false;
+    public void changeUserStatus(Long id, String reason, UserStatus newStatus) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("User not found"));
+        if (user.getUserStatus() == newStatus) {
+            throw new ConflictException("User is already " + newStatus);
         }
         user.setUserStatus(newStatus);
         user.setStatusChangeReason(reason);
         userRepository.save(user);
-        return true;
     }
 
     @Transactional
-    public boolean changeCompanyStatus(Long id, String reason, CompanyStatus newStatus) {
-        Company company = companyRepository.findById(id).orElse(null);
-        if (company == null || company.getStatus() == newStatus) {
-            return false;
+    public void changeCompanyStatus(Long id, String reason, CompanyStatus newStatus) {
+        Company company = companyRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Company not found"));
+        if (company.getStatus() == newStatus) {
+            throw new ConflictException("Company is already " + newStatus);
         }
         company.setStatus(newStatus);
         company.setStatusChangeReason(reason);
         companyRepository.save(company);
-        return true;
     }
 }
