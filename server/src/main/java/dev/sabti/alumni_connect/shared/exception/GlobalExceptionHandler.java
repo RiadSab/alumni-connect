@@ -79,10 +79,8 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.PAYLOAD_TOO_LARGE, "The uploaded file is too large.");
     }
 
-    // No controller (or static resource) maps to the requested URL — an authenticated caller hitting
-    // a path that doesn't exist. Return a real 404 instead of letting it fall through to the generic
-    // error dispatch. (An unauthenticated caller hitting an unknown path is stopped earlier by the
-    // security entry point with a 401, by design — anonymous callers aren't told which routes exist.)
+    // Unknown URL for an authenticated caller -> real 404. (Anonymous callers are 401'd earlier by
+    // the security entry point, so they never reach here.)
     @ExceptionHandler({NoHandlerFoundException.class, NoResourceFoundException.class})
     ResponseEntity<ApiError> handleNotFound(Exception ex) {
         return build(HttpStatus.NOT_FOUND, "The requested resource was not found.");

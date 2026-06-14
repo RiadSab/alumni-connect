@@ -13,16 +13,9 @@ import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 
-// Authentication failed at the filter chain (no usable credentials), so the request never reached a
-// controller and GlobalExceptionHandler can't see it. This runs at the servlet level instead, and
-// writes the same ApiError body by hand with Jackson so a 401 looks like every other error to the
-// frontend. The injected ObjectMapper is Spring's MVC one (JSR-310 registered), so Instant serialises
-// the same way it does everywhere else.
-//
-// The code distinguishes the three 401 reasons the HTTP status alone can't: a token that simply
-// expired (TOKEN_EXPIRED) vs a malformed/forged one (INVALID_TOKEN) vs no token at all
-// (AUTH_REQUIRED). JwtRequestFilter records the first two on the request; their absence means none
-// was sent.
+// Writes a 401 ApiError body when authentication fails in the filter chain (before any controller,
+// so GlobalExceptionHandler can't). The code says why: TOKEN_EXPIRED / INVALID_TOKEN (from
+// JwtRequestFilter) or AUTH_REQUIRED when no token was sent.
 @Component
 @RequiredArgsConstructor
 public class RestAuthenticationEntryPoint implements AuthenticationEntryPoint {

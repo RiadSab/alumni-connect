@@ -13,12 +13,8 @@ import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 
-// The caller IS authenticated but lacks the required role (e.g. a company user hitting a
-// CANDIDATE-only endpoint). Spring Security rejects this at the filter chain, before any controller,
-// so GlobalExceptionHandler never sees it — this writes the ApiError body by hand instead, mirroring
-// RestAuthenticationEntryPoint. ACCESS_DENIED is the security 403, kept distinct from a domain
-// ForbiddenException (whose code is FORBIDDEN) so the frontend can tell "you're not allowed here at
-// all" from "the action itself was refused".
+// Writes a 403 ApiError body when an authenticated caller lacks the required role. The ACCESS_DENIED
+// code is kept distinct from a domain ForbiddenException's FORBIDDEN.
 @Component
 @RequiredArgsConstructor
 public class RestAccessDeniedHandler implements AccessDeniedHandler {

@@ -16,13 +16,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
-@Configuration // tell spring that this class contain bean definitions
-
-//without it we wont have http security features
-@EnableWebSecurity // activate security filter chain and web security config
-
-@EnableMethodSecurity // to enable method level security annotations like @PreAuthorize, @Secured, @RolesAllowed
-
+@Configuration
+@EnableWebSecurity
+@EnableMethodSecurity
 @AllArgsConstructor
 public class SecurityConfig {
     private final JwtRequestFilter jwtRequestFilter;
@@ -30,99 +26,55 @@ public class SecurityConfig {
     private final RestAuthenticationEntryPoint restAuthenticationEntryPoint;
     private final RestAccessDeniedHandler restAccessDeniedHandler;
 
-    @Bean  // define a bean to be managed by spring container
-    // spring search for a bean of type SecurityFilterChain, if found it uses it to configure security for HTTP requests
-    // SecurityFilterChaine main security configuration for HTTP requests
+   
+    @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http.cors(Customizer.withDefaults())
-        .csrf(csrf -> csrf.disable())
+                .csrf(csrf -> csrf.disable())
                 .sessionManagement(session ->
-                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // set session management to stateless, no HTTP session is created or used by spring security
-                // Filter-chain auth failures now return the same ApiError JSON as everything else:
-                // 401 (no/expired/invalid token) via the entry point, 403 (authenticated but wrong
-                // role) via the access-denied handler. Without these, Spring Security writes an empty
-                // body, which is what left the apply-as-company-user case a bodyless 403.
+                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                // Return ApiError JSON for filter-chain auth failures instead of an empty body.
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint(restAuthenticationEntryPoint)
                         .accessDeniedHandler(restAccessDeniedHandler))
                 .authorizeHttpRequests(auth -> auth
-                    // The error dispatch must be reachable without authentication. If an unhandled
-                    // exception ever forwards to /error, that forward carries no JWT — leaving /error
-                    // behind authenticated() would re-mask the real error as a 401/403.
+                    // An error forward carries no JWT; keep /error public so it isn't re-masked as 401/403.
                     .requestMatchers("/error").permitAll()
-                    // A logged-in user changing their own password — must be declared BEFORE the
-                    // broad /api/auth/** permitAll below, which otherwise (first match wins) would
-                    // make this public. Everything else under /api/auth (login, register) is public.
+                    // Before the /api/auth/** permitAll, so it isn't made public (login/register are).
                     .requestMatchers(HttpMethod.POST, "/api/auth/change-password").authenticated()
                     .requestMatchers("/api/auth/**").permitAll()
-                    // Public read access — feeds the "join an existing company" registration
-                    // form, which runs before the registrant has an account. Scoped to GET only
-                    // so future write endpoints on /api/companies/** stay behind authentication.
+                    // Public company browse feeds the "join an existing company" registration flow.
                     .requestMatchers(HttpMethod.GET, "/api/companies", "/api/companies/**").permitAll()
-                    // A company OWNER editing their own company profile — authenticated; the
-                    // "is an OWNER" authority is checked in CompanyService. Declared as PATCH so it
-                    // is not covered by the GET-only public matcher above.
                     .requestMatchers(HttpMethod.PATCH, "/api/companies/me").authenticated()
-                    // A company OWNER uploading their company logo — authenticated; the "is an
-                    // OWNER" authority is checked in CompanyService. POST, so not covered by the
-                    // GET-only public matcher above. (The matching GET /{id}/logo download is
-                    // public, served by that same GET matcher.)
                     .requestMatchers(HttpMethod.POST, "/api/companies/me/logo").authenticated()
-                    // Applicant lists are private to the posting company's own OWNER/RECRUITER —
-                    // must be declared BEFORE the broad public job-offers GET matcher below,
-                    // since /api/job-offers/** would otherwise also match this sub-resource
-                    // and wrongly expose candidates' applications. Fine-grained "same company"
-                    // authority is checked in JobApplicationService.
+                    // Private, company-scoped views — before the broad job-offers GET so the wildcard
+                    // doesn't expose them publicly.
                     .requestMatchers(HttpMethod.GET, "/api/job-offers/*/applications").authenticated()
-                    // "My company's postings" — must also be declared before the broad public
-                    // matcher below, same reasoning as /*/applications: it's a private,
-                    // company-scoped view, not a publicly browsable offer.
                     .requestMatchers(HttpMethod.GET, "/api/job-offers/me").authenticated()
-                    // "Recommended for you" — candidate-only, ranked against the caller's own
-                    // profile skills. Declared before the broad public GET below so it isn't made
-                    // public; "must be a candidate" maps cleanly onto one role, like /*/apply.
                     .requestMatchers(HttpMethod.GET, "/api/job-offers/recommended").hasRole("CANDIDATE")
-                    // Candidate self-profile — declared before /api/candidates/* below so
-                    // "/me" isn't caught by the admin-only by-id matcher.
+                    // Candidate self-profile — before the admin-only /api/candidates/* by-id matcher.
                     .requestMatchers(HttpMethod.GET, "/api/candidates/me").authenticated()
                     .requestMatchers(HttpMethod.PATCH, "/api/candidates/me").authenticated()
-                    // Candidate's own CV upload/download — authenticated; "is a candidate" is
-                    // checked in the service. Multi-segment paths, so not caught by /candidates/*.
                     .requestMatchers(HttpMethod.POST, "/api/candidates/me/resume").authenticated()
                     .requestMatchers(HttpMethod.GET, "/api/candidates/me/resume").authenticated()
-                    // Candidate's own profile photo upload/download — same reasoning as the resume
-                    // matchers above; "is a candidate" is checked in the service.
                     .requestMatchers(HttpMethod.POST, "/api/candidates/me/photo").authenticated()
                     .requestMatchers(HttpMethod.GET, "/api/candidates/me/photo").authenticated()
-                    // Admin review of any candidate's profile by User id (e.g. from
-                    // /api/admin/pending-users before approve/reject).
                     .requestMatchers(HttpMethod.GET, "/api/candidates/*").hasRole("ADMINISTRATOR")
-                    // The caller's own company roster — authenticated; "is a company user" is
-                    // checked in the service (a candidate gets 403). Exact path, distinct from
-                    // the /me and /* matchers.
+                    // Company-user self-profile — before the admin-only /api/company-users/* matcher.
                     .requestMatchers(HttpMethod.GET, "/api/company-users").authenticated()
-                    // Company-user self-profile — same ordering reasoning as /api/candidates/me.
                     .requestMatchers(HttpMethod.GET, "/api/company-users/me").authenticated()
                     .requestMatchers(HttpMethod.PATCH, "/api/company-users/me").authenticated()
-                    // A company OWNER changing a member's role — only "authenticated" here; the
-                    // "OWNER of the same company" authority is checked in CompanyUserService.
                     .requestMatchers(HttpMethod.PATCH, "/api/company-users/*/role").authenticated()
-                    // Admin review of any company-user's profile by User id.
                     .requestMatchers(HttpMethod.GET, "/api/company-users/*").hasRole("ADMINISTRATOR")
-                    // Public job-offer browsing — candidates search/apply before having an
-                    // account. Scoped to GET only; POST (posting an offer) stays authenticated
-                    // and is further authority-checked in JobOfferService.
+                    // Public job-offer browse; POST stays authenticated (authority in JobOfferService).
                     .requestMatchers(HttpMethod.GET, "/api/job-offers", "/api/job-offers/**").permitAll()
-                    // Unlike posting (OWNER/RECRUITER — too fine-grained for hasRole, checked
-                    // in JobOfferService), "must be a candidate" maps exactly onto a single
-                    // role, so it's safe and precise to gate it here too.
                     .requestMatchers(HttpMethod.POST, "/api/job-offers/*/apply").hasRole("CANDIDATE")
                     .requestMatchers("/api/admin/**").hasRole("ADMINISTRATOR")
                     .anyRequest().authenticated()
                 )
-                .addFilterBefore(jwtRequestFilter, UsernamePasswordAuthenticationFilter.class);  // add our custom JWT filter before the built-in UsernamePasswordAuthenticationFilter
-                    // if we dont add it before, our filter will not be executed
-                    // since UsernamePasswordAuthenticationFilter is responsible for processing authentication requests based on username and password,  it will not find them in this case
+                // Before UsernamePasswordAuthenticationFilter so the SecurityContext is populated
+                // from the JWT before any username/password handling runs.
+                .addFilterBefore(jwtRequestFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
 
