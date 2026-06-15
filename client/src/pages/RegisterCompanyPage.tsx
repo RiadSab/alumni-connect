@@ -1,12 +1,12 @@
-// Candidate sign-up form. Collects the required fields only; optional profile
-// details (skills, links, bio) are added later from the profile screen. Plain
-// controlled inputs validated with registerCandidateSchema.
+// Company sign-up: registers the owner account and the company together. Required
+// fields only; the rest of the company profile (description, website, address,
+// size, logo) is filled in later from the company settings screen.
 
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useRegisterCandidate } from "@/features/auth/hooks";
-import { registerCandidateSchema } from "@/types/auth";
-import { fieldsOptions } from "@/types/enums";
+import { useRegisterCompany } from "@/features/auth/hooks";
+import { registerCompanySchema } from "@/types/auth";
+import { companyUserPositionOptions, fieldsOptions } from "@/types/enums";
 import { isApiError } from "@/lib/http";
 import {
   Card,
@@ -17,7 +17,6 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -31,22 +30,21 @@ const emptyForm = {
   lastName: "",
   email: "",
   password: "",
-  phoneNumber: "",
-  isStudent: false,
-  studentId: "",
-  fieldOfStudy: "",
-  graduationYear: "",
+  position: "",
+  companyName: "",
+  companyEmail: "",
+  companyField: "",
 };
 
-export function RegisterCandidatePage() {
-  const register = useRegisterCandidate();
+export function RegisterCompanyPage() {
+  const register = useRegisterCompany();
   const navigate = useNavigate();
 
   const [form, setForm] = useState(emptyForm);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
 
-  function setField(name: keyof typeof emptyForm, value: string | boolean) {
+  function setField(name: keyof typeof emptyForm, value: string) {
     setForm((prev) => ({ ...prev, [name]: value }));
   }
 
@@ -54,20 +52,18 @@ export function RegisterCandidatePage() {
     event.preventDefault();
     setFormError(null);
 
-    // Build the payload, turning the text inputs into the types the schema wants.
     const payload = {
       firstName: form.firstName,
       lastName: form.lastName,
       email: form.email,
       password: form.password,
-      phoneNumber: form.phoneNumber,
-      isStudent: form.isStudent,
-      studentId: form.isStudent ? form.studentId : undefined,
-      fieldOfStudy: form.fieldOfStudy,
-      graduationYear: form.graduationYear === "" ? undefined : Number(form.graduationYear),
+      position: form.position,
+      companyName: form.companyName,
+      companyEmail: form.companyEmail,
+      companyField: form.companyField,
     };
 
-    const result = registerCandidateSchema.safeParse(payload);
+    const result = registerCompanySchema.safeParse(payload);
     if (!result.success) {
       const errors: Record<string, string> = {};
       for (const issue of result.error.issues) {
@@ -95,13 +91,15 @@ export function RegisterCandidatePage() {
     <div className="mx-auto max-w-lg">
       <Card>
         <CardHeader>
-          <CardTitle>Create a candidate account</CardTitle>
+          <CardTitle>Register your company</CardTitle>
           <CardDescription>
-            New accounts await admin approval before you can log in.
+            This creates your owner account and the company. Both await admin approval.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
+            <h2 className="text-sm font-semibold text-muted-foreground">Your account</h2>
+
             <div className="flex flex-col gap-2">
               <label htmlFor="firstName" className="text-sm font-medium">
                 First name
@@ -159,51 +157,63 @@ export function RegisterCandidatePage() {
             </div>
 
             <div className="flex flex-col gap-2">
-              <label htmlFor="phoneNumber" className="text-sm font-medium">
-                Phone number
-              </label>
-              <Input
-                id="phoneNumber"
-                value={form.phoneNumber}
-                onChange={(event) => setField("phoneNumber", event.target.value)}
-              />
-              {fieldErrors.phoneNumber && (
-                <p className="text-sm text-red-600">{fieldErrors.phoneNumber}</p>
+              <label className="text-sm font-medium">Your position</label>
+              <Select
+                value={form.position}
+                onValueChange={(value) => setField("position", value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select your position" />
+                </SelectTrigger>
+                <SelectContent>
+                  {companyUserPositionOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {fieldErrors.position && (
+                <p className="text-sm text-red-600">{fieldErrors.position}</p>
               )}
             </div>
 
-            <div className="flex items-center gap-3">
-              <Switch
-                id="isStudent"
-                checked={form.isStudent}
-                onCheckedChange={(checked) => setField("isStudent", checked)}
-              />
-              <label htmlFor="isStudent" className="text-sm font-medium">
-                I am currently a student
-              </label>
-            </div>
-
-            {form.isStudent && (
-              <div className="flex flex-col gap-2">
-                <label htmlFor="studentId" className="text-sm font-medium">
-                  Student ID
-                </label>
-                <Input
-                  id="studentId"
-                  value={form.studentId}
-                  onChange={(event) => setField("studentId", event.target.value)}
-                />
-                {fieldErrors.studentId && (
-                  <p className="text-sm text-red-600">{fieldErrors.studentId}</p>
-                )}
-              </div>
-            )}
+            <h2 className="mt-2 text-sm font-semibold text-muted-foreground">Your company</h2>
 
             <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium">Field of study</label>
+              <label htmlFor="companyName" className="text-sm font-medium">
+                Company name
+              </label>
+              <Input
+                id="companyName"
+                value={form.companyName}
+                onChange={(event) => setField("companyName", event.target.value)}
+              />
+              {fieldErrors.companyName && (
+                <p className="text-sm text-red-600">{fieldErrors.companyName}</p>
+              )}
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <label htmlFor="companyEmail" className="text-sm font-medium">
+                Company email
+              </label>
+              <Input
+                id="companyEmail"
+                type="email"
+                value={form.companyEmail}
+                onChange={(event) => setField("companyEmail", event.target.value)}
+              />
+              {fieldErrors.companyEmail && (
+                <p className="text-sm text-red-600">{fieldErrors.companyEmail}</p>
+              )}
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-medium">Company field</label>
               <Select
-                value={form.fieldOfStudy}
-                onValueChange={(value) => setField("fieldOfStudy", value)}
+                value={form.companyField}
+                onValueChange={(value) => setField("companyField", value)}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select a field" />
@@ -216,42 +226,21 @@ export function RegisterCandidatePage() {
                   ))}
                 </SelectContent>
               </Select>
-              {fieldErrors.fieldOfStudy && (
-                <p className="text-sm text-red-600">{fieldErrors.fieldOfStudy}</p>
-              )}
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <label htmlFor="graduationYear" className="text-sm font-medium">
-                Graduation year
-              </label>
-              <Input
-                id="graduationYear"
-                type="number"
-                value={form.graduationYear}
-                onChange={(event) => setField("graduationYear", event.target.value)}
-              />
-              {fieldErrors.graduationYear && (
-                <p className="text-sm text-red-600">{fieldErrors.graduationYear}</p>
+              {fieldErrors.companyField && (
+                <p className="text-sm text-red-600">{fieldErrors.companyField}</p>
               )}
             </div>
 
             {formError && <p className="text-sm text-red-600">{formError}</p>}
 
             <Button type="submit" disabled={register.isPending}>
-              {register.isPending ? "Creating account..." : "Create account"}
+              {register.isPending ? "Creating..." : "Register company"}
             </Button>
 
             <p className="text-center text-sm text-muted-foreground">
               Already have an account?{" "}
               <Link to="/login" className="underline">
                 Log in
-              </Link>
-            </p>
-            <p className="text-center text-sm text-muted-foreground">
-              Registering a company?{" "}
-              <Link to="/register/company" className="underline">
-                Register here
               </Link>
             </p>
           </form>
