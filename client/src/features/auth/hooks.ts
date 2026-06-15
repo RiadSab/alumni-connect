@@ -4,7 +4,6 @@
 
 import { useMutation } from "@tanstack/react-query";
 import { authApi } from "@/api/auth";
-import { setToken } from "@/lib/auth";
 import type {
   ChangePasswordDTO,
   LoginRequestDTO,
@@ -13,10 +12,11 @@ import type {
   RegisterCompanyMemberDTO,
 } from "@/types/auth";
 
+// Just calls the API and returns the LoginResponseDTO. The login page passes
+// that result to the auth context's login(), which saves the token + user.
 export function useLogin() {
   return useMutation({
     mutationFn: (body: LoginRequestDTO) => authApi.login(body),
-    onSuccess: (data) => setToken(data.token),
   });
 }
 
