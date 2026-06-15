@@ -1,9 +1,53 @@
-// Central query-key factory. Keeping keys in one place keeps cache reads and
-// invalidations consistent. Grows as more feature hooks land.
+// Central query-key factory. Every cached query gets its key from here so reads
+// and invalidations always use the same key. Each `all()` returns the top-level
+// prefix, which invalidates every query under that feature at once.
+
+import type { PageParams } from "@/types/common";
+import type { JobOfferFilters } from "@/types/jobOffer";
+import type { ApplicationFilters } from "@/types/jobApplication";
+import type { AdminUserFilters, AdminCompanyFilters } from "@/types/admin";
 
 export const queryKeys = {
   candidate: {
     me: () => ["candidate", "me"] as const,
     byId: (id: number) => ["candidate", "byId", id] as const,
+  },
+
+  companies: {
+    all: () => ["companies"] as const,
+    list: (params?: PageParams) => ["companies", "list", params] as const,
+    byId: (id: number) => ["companies", "byId", id] as const,
+  },
+
+  companyUsers: {
+    all: () => ["companyUsers"] as const,
+    roster: (params?: PageParams) => ["companyUsers", "roster", params] as const,
+    me: () => ["companyUsers", "me"] as const,
+    byId: (id: number) => ["companyUsers", "byId", id] as const,
+  },
+
+  jobOffers: {
+    all: () => ["jobOffers"] as const,
+    browse: (filters?: JobOfferFilters) => ["jobOffers", "browse", filters] as const,
+    mine: (params?: PageParams) => ["jobOffers", "mine", params] as const,
+    recommended: (params?: PageParams) => ["jobOffers", "recommended", params] as const,
+    byId: (id: number) => ["jobOffers", "byId", id] as const,
+    applications: (id: number, filters?: ApplicationFilters) =>
+      ["jobOffers", "byId", id, "applications", filters] as const,
+  },
+
+  jobApplications: {
+    all: () => ["jobApplications"] as const,
+    mine: (params?: PageParams) => ["jobApplications", "mine", params] as const,
+    byId: (id: number) => ["jobApplications", "byId", id] as const,
+    applicant: (id: number) => ["jobApplications", "byId", id, "applicant"] as const,
+  },
+
+  admin: {
+    all: () => ["admin"] as const,
+    pendingUsers: (params?: PageParams) => ["admin", "pendingUsers", params] as const,
+    users: (filters?: AdminUserFilters) => ["admin", "users", filters] as const,
+    pendingCompanies: (params?: PageParams) => ["admin", "pendingCompanies", params] as const,
+    companies: (filters?: AdminCompanyFilters) => ["admin", "companies", filters] as const,
   },
 };
