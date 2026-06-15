@@ -12,6 +12,9 @@ import { getToken } from "@/lib/auth";
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "/api";
 
+/** Absolute API URL for a path — use for public image `src` (no auth needed). */
+export const apiUrl = (path: string): string => `${BASE_URL}${path}`;
+
 /** Stable, machine-readable codes the backend sets on the error envelope. */
 export type ApiErrorCode =
   | "AUTH_REQUIRED"
@@ -54,7 +57,7 @@ export function isApiError(err: unknown): err is ApiError {
 }
 
 type QueryPrimitive = string | number | boolean;
-type QueryValue = QueryPrimitive | QueryPrimitive[] | null | undefined;
+export type QueryValue = QueryPrimitive | QueryPrimitive[] | null | undefined;
 
 export interface RequestOptions {
   query?: Record<string, QueryValue>;
