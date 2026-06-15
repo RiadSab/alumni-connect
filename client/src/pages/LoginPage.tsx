@@ -3,7 +3,7 @@
 // context and goes to the dashboard.
 
 import { useState } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
+import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useLogin } from "@/features/auth/hooks";
 import { useAuth } from "@/features/auth/auth-context";
 import { loginSchema } from "@/types/auth";
@@ -22,6 +22,10 @@ export function LoginPage() {
   const auth = useAuth();
   const login = useLogin();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Set by the register page after a successful sign-up.
+  const justRegistered = (location.state as { justRegistered?: boolean } | null)?.justRegistered;
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -73,6 +77,11 @@ export function LoginPage() {
           <CardDescription>Welcome back to Alumni Connect.</CardDescription>
         </CardHeader>
         <CardContent>
+          {justRegistered && (
+            <p className="mb-4 text-sm text-green-700">
+              Account created. It needs admin approval before you can log in.
+            </p>
+          )}
           <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
             <div className="flex flex-col gap-2">
               <label htmlFor="email" className="text-sm font-medium">
@@ -111,6 +120,13 @@ export function LoginPage() {
             <Button type="submit" disabled={login.isPending}>
               {login.isPending ? "Logging in..." : "Log in"}
             </Button>
+
+            <p className="text-center text-sm text-muted-foreground">
+              No account?{" "}
+              <Link to="/register/candidate" className="underline">
+                Create one
+              </Link>
+            </p>
           </form>
         </CardContent>
       </Card>

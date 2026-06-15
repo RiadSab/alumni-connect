@@ -6,6 +6,7 @@ import { RootLayout } from "@/routes/RootLayout";
 import { RequireAuth } from "@/routes/RequireAuth";
 import { HomePage } from "@/pages/HomePage";
 import { LoginPage } from "@/pages/LoginPage";
+import { RegisterCandidatePage } from "@/pages/RegisterCandidatePage";
 import { DashboardPage } from "@/pages/DashboardPage";
 import { NotFoundPage } from "@/pages/NotFoundPage";
 
@@ -17,6 +18,7 @@ function App() {
           {/* Public */}
           <Route index element={<HomePage />} />
           <Route path="login" element={<LoginPage />} />
+          <Route path="register/candidate" element={<RegisterCandidatePage />} />
 
           {/* Logged-in only */}
           <Route element={<RequireAuth />}>
