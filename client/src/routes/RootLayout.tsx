@@ -3,10 +3,12 @@
 
 import { Link, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "@/features/auth/auth-context";
+import { useT } from "@/features/i18n/lang-context";
 import { Button } from "@/components/ui/button";
 
 export function RootLayout() {
   const { user, isAuthenticated, logout } = useAuth();
+  const { lang, setLang, t } = useT();
   const navigate = useNavigate();
 
   function handleLogout() {
@@ -22,21 +24,38 @@ export function RootLayout() {
         </Link>
 
         <nav className="flex items-center gap-4 text-sm">
-          <Link to="/">Jobs</Link>
+          <Link to="/">{t("nav.jobs")}</Link>
 
           {isAuthenticated ? (
             <>
-              <Link to="/dashboard">Dashboard</Link>
+              <Link to="/dashboard">{t("nav.dashboard")}</Link>
               <span className="text-muted-foreground">
                 {user?.firstName} {user?.lastName}
               </span>
               <Button variant="outline" size="sm" onClick={handleLogout}>
-                Log out
+                {t("nav.logout")}
               </Button>
             </>
           ) : (
-            <Link to="/login">Login</Link>
+            <Link to="/login">{t("nav.login")}</Link>
           )}
+
+          <div className="flex overflow-hidden rounded-md border text-xs font-medium">
+            {(["en", "fr"] as const).map((option) => (
+              <button
+                key={option}
+                type="button"
+                onClick={() => setLang(option)}
+                className={
+                  option === lang
+                    ? "bg-primary px-2.5 py-1 text-primary-foreground"
+                    : "px-2.5 py-1 text-muted-foreground"
+                }
+              >
+                {option.toUpperCase()}
+              </button>
+            ))}
+          </div>
         </nav>
       </header>
 
