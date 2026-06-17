@@ -1,31 +1,12 @@
 // One job offer, rendered to match the Job Board design. Presentational only —
 // it takes a JobOfferDTO and shows it. Apply/save are wired in a later phase.
 
+import { Link } from "react-router-dom";
 import { Bookmark, Calendar, Clock, MapPin, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useT } from "@/features/i18n/lang-context";
+import { daysFromNow, formatMoney, humanizeType, logoColor } from "@/features/jobOffers/format";
 import type { JobOfferDTO } from "@/types/jobOffer";
-
-// Logo background palette from the design, picked by company id.
-const LOGO_COLORS = ["#5645d4", "#dd5b00", "#2a9d99", "#0075de", "#a02e6d", "#1aae39"];
-
-function logoColor(companyId: number): string {
-  return LOGO_COLORS[companyId % LOGO_COLORS.length];
-}
-
-function formatMoney(value: number): string {
-  return value.toLocaleString("en-US");
-}
-
-// Whole days between now and an ISO date-time. Positive = in the future.
-function daysFromNow(iso: string): number {
-  const diff = new Date(iso).getTime() - Date.now();
-  return Math.round(diff / 86_400_000);
-}
-
-function humanizeType(value: string): string {
-  return value.replace(/_/g, " ");
-}
 
 export function JobCard({ job }: { job: JobOfferDTO }) {
   const { t, tn } = useT();
@@ -56,7 +37,11 @@ export function JobCard({ job }: { job: JobOfferDTO }) {
       {/* Main */}
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-2">
-          <h3 className="text-lg font-semibold leading-tight text-foreground">{job.title}</h3>
+          <h3 className="text-lg font-semibold leading-tight text-foreground">
+            <Link to={`/jobs/${job.id}`} className="hover:text-primary">
+              {job.title}
+            </Link>
+          </h3>
           {job.isRemote && (
             <span className="rounded-full bg-[var(--color-tint-sky)] px-2 py-0.5 text-xs font-semibold text-[var(--color-link-blue-pressed)]">
               {t("card.remote")}
@@ -140,7 +125,9 @@ export function JobCard({ job }: { job: JobOfferDTO }) {
         >
           <Bookmark className="size-4" />
         </button>
-        <Button>{t("card.apply")}</Button>
+        <Button asChild>
+          <Link to={`/jobs/${job.id}`}>{t("card.apply")}</Link>
+        </Button>
       </div>
     </article>
   );
