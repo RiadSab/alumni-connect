@@ -1,6 +1,5 @@
 // Public job board. Fetches OPEN offers (optionally filtered) and renders them as
-// cards. Pagination comes in the next part; this shows page 1 with loading / empty
-// / error states matching the design.
+// cards with a numbered pager. Loading / empty / error states match the design.
 
 import { useState } from "react";
 import { CloudOff, RefreshCw, RotateCcw, SearchX } from "lucide-react";
@@ -12,6 +11,27 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import type { JobOfferFilters } from "@/types/jobOffer";
 import type { EmploymentType, JobCity } from "@/types/enums";
+
+// Page numbers to render: first, last, and a window around current. Gaps → "…".
+// All values are 0-indexed (Spring Page.number); the bar displays + 1.
+function pageWindow(current: number, total: number): (number | "…")[] {
+  const want = new Set([0, total - 1, current, current - 1, current + 1]);
+  const shown = [...want].filter((p) => p >= 0 && p < total).sort((a, b) => a - b);
+  const out: (number | "…")[] = [];
+  shown.forEach((p, i) => {
+    if (i > 0 && p - shown[i - 1] > 1) out.push("…");
+    out.push(p);
+  });
+  return out;
+}
+
+if (import.meta.env.DEV) {
+  console.assert(
+    JSON.stringify(pageWindow(5, 20)) === JSON.stringify([0, "…", 4, 5, 6, "…", 19]),
+    "pageWindow(5,20)",
+  );
+  console.assert(JSON.stringify(pageWindow(1, 3)) === JSON.stringify([0, 1, 2]), "pageWindow(1,3)");
+}
 
 function JobCardSkeleton() {
   return (
@@ -33,9 +53,16 @@ function JobCardSkeleton() {
 
 export function HomePage() {
   const [values, setValues] = useState<JobFilterValues>(EMPTY_FILTERS);
+  const [page, setPage] = useState(0);
 
   function patch(part: Partial<JobFilterValues>) {
     setValues((prev) => ({ ...prev, ...part }));
+    setPage(0); // new filter → back to the first page
+  }
+
+  function clearAll() {
+    setValues(EMPTY_FILTERS);
+    setPage(0);
   }
 
   const filters: JobOfferFilters = {
@@ -52,7 +79,7 @@ export function HomePage() {
     filters.employmentType !== undefined ||
     filters.isRemote !== undefined;
 
-  const { data, isLoading, isError, refetch } = useJobOffers(filters);
+  const { data, isLoading, isError, refetch } = useJobOffers({ ...filters, page });
 
   return (
     <div className="mx-auto max-w-6xl">
@@ -64,11 +91,7 @@ export function HomePage() {
       </div>
 
       <div className="grid items-start gap-7 lg:grid-cols-[264px_1fr]">
-        <FilterSidebar
-          values={values}
-          onChange={patch}
-          onClear={() => setValues(EMPTY_FILTERS)}
-        />
+        <FilterSidebar values={values} onChange={patch} onClear={clearAll} />
 
         <section>
           {isLoading && (
@@ -108,7 +131,7 @@ export function HomePage() {
                   : "There are no open positions at the moment. Check back soon — new roles are posted regularly."}
               </p>
               {hasActiveFilters && (
-                <Button className="mt-5" onClick={() => setValues(EMPTY_FILTERS)}>
+                <Button className="mt-5" onClick={clearAll}>
                   <RotateCcw className="size-4" /> Clear filters
                 </Button>
               )}
@@ -125,6 +148,43 @@ export function HomePage() {
                   <JobCard key={job.id} job={job} />
                 ))}
               </div>
+
+              {data.totalPages > 1 && (
+                <nav className="mt-6 flex items-center justify-center gap-1.5">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={data.first}
+                    onClick={() => setPage(page - 1)}
+                  >
+                    Prev
+                  </Button>
+                  {pageWindow(data.number, data.totalPages).map((p, i) =>
+                    p === "…" ? (
+                      <span key={`gap${i}`} className="px-2 text-[var(--color-stone)]">
+                        …
+                      </span>
+                    ) : (
+                      <Button
+                        key={p}
+                        size="sm"
+                        variant={p === data.number ? "default" : "outline"}
+                        onClick={() => setPage(p)}
+                      >
+                        {p + 1}
+                      </Button>
+                    ),
+                  )}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={data.last}
+                    onClick={() => setPage(page + 1)}
+                  >
+                    Next
+                  </Button>
+                </nav>
+              )}
             </>
           )}
         </section>

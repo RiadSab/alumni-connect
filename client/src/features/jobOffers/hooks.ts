@@ -1,6 +1,6 @@
 // React Query hooks for job offers (§5).
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { jobOffersApi } from "@/api/jobOffers";
 import { queryKeys } from "@/lib/queryKeys";
 import type { PageParams } from "@/types/common";
@@ -16,6 +16,8 @@ export function useJobOffers(filters?: JobOfferFilters) {
   return useQuery({
     queryKey: queryKeys.jobOffers.browse(filters),
     queryFn: () => jobOffersApi.browse(filters),
+    // Keep the current page on screen while the next one loads (no skeleton flash).
+    placeholderData: keepPreviousData,
   });
 }
 
