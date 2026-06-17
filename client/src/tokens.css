@@ -1,0 +1,136 @@
+/* Alumni Connect — design tokens.
+   Mirrored from the "Alumni Connect Design System" (Claude Design), kept 1:1 so it
+   stays easy to re-sync. These are the raw values; index.css maps shadcn's semantic
+   tokens (--primary, --background, ...) onto them. */
+
+/* Fonts. "Notion Sans" is proprietary; Inter is its documented fallback. */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+  /* ---- Colors -------------------------------------------------------- */
+
+  /* Brand & primary */
+  --color-primary: #5645d4;
+  --color-primary-pressed: #4534b3;
+  --color-primary-deep: #3a2a99;
+  --color-on-primary: #ffffff;
+
+  --color-brand-navy: #0a1530;
+  --color-brand-navy-deep: #070f24;
+  --color-brand-navy-mid: #1a2a52;
+
+  --color-link-blue: #0075de;
+  --color-link-blue-pressed: #005bab;
+
+  /* Brand color spectrum */
+  --color-brand-orange: #dd5b00;
+  --color-brand-orange-deep: #793400;
+  --color-brand-pink: #ff64c8;
+  --color-brand-pink-deep: #a02e6d;
+  --color-brand-purple: #7b3ff2;
+  --color-brand-purple-300: #d6b6f6;
+  --color-brand-purple-800: #391c57;
+  --color-brand-teal: #2a9d99;
+  --color-brand-green: #1aae39;
+  --color-brand-yellow: #f5d75e;
+  --color-brand-brown: #523410;
+
+  /* Card tints (pastel feature backgrounds) */
+  --color-tint-peach: #ffe8d4;
+  --color-tint-rose: #fde0ec;
+  --color-tint-mint: #d9f3e1;
+  --color-tint-lavender: #e6e0f5;
+  --color-tint-sky: #dcecfa;
+  --color-tint-yellow: #fef7d6;
+  --color-tint-yellow-bold: #f9e79f;
+  --color-tint-cream: #f8f5e8;
+  --color-tint-gray: #f0eeec;
+
+  /* Surfaces */
+  --color-canvas: #ffffff;
+  --color-surface: #f6f5f4;
+  --color-surface-soft: #fafaf9;
+  --color-hairline: #e5e3df;
+  --color-hairline-soft: #ede9e4;
+  --color-hairline-strong: #c8c4be;
+
+  /* Text / ink */
+  --color-ink-deep: #000000;
+  --color-ink: #1a1a1a;
+  --color-charcoal: #37352f;
+  --color-slate: #5d5b54;
+  --color-steel: #787671;
+  --color-stone: #a4a097;
+  --color-muted: #bbb8b1;
+  --color-on-dark: #ffffff;
+  --color-on-dark-muted: #a4a097;
+
+  /* Semantic */
+  --color-success: #1aae39;
+  --color-warning: #dd5b00;
+  --color-error: #e03131;
+
+  /* Semantic aliases */
+  --surface-page: var(--color-surface-soft);
+  --surface-card: var(--color-canvas);
+  --surface-muted: var(--color-surface);
+  --border-default: var(--color-hairline);
+  --border-strong: var(--color-hairline-strong);
+  --text-strong: var(--color-ink);
+  --text-body: var(--color-charcoal);
+  --text-secondary: var(--color-slate);
+  --text-tertiary: var(--color-steel);
+  --text-muted: var(--color-stone);
+
+  /* ---- Spacing (4px base, 8px increment) ----------------------------- */
+  --space-xxs: 4px;
+  --space-xs: 8px;
+  --space-sm: 12px;
+  --space-md: 16px;
+  --space-lg: 20px;
+  --space-xl: 24px;
+  --space-xxl: 32px;
+  --space-xxxl: 40px;
+  --space-section-sm: 48px;
+  --space-section: 64px;
+  --space-section-lg: 96px;
+  --space-hero: 120px;
+
+  /* ---- Radius -------------------------------------------------------- */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-xxl: 20px;
+  --radius-xxxl: 24px;
+  --radius-full: 9999px;
+
+  /* ---- Elevation ----------------------------------------------------- */
+  --shadow-1: rgba(15, 15, 15, 0.04) 0px 1px 2px 0px;
+  --shadow-2: rgba(15, 15, 15, 0.08) 0px 4px 12px 0px;
+  --shadow-3: rgba(15, 15, 15, 0.20) 0px 24px 48px -8px;
+  --shadow-4: rgba(15, 15, 15, 0.16) 0px 16px 48px -8px;
+
+  /* ---- Typography ---------------------------------------------------- */
+  --font-sans: "Inter", -apple-system, system-ui, "Segoe UI", Helvetica, Arial, sans-serif;
+
+  /* Type scale: size / weight / line-height / letter-spacing */
+  --text-hero-size: 80px;   --text-hero-weight: 600; --text-hero-lh: 1.05; --text-hero-ls: -2px;
+  --text-display-size: 56px; --text-display-weight: 600; --text-display-lh: 1.10; --text-display-ls: -1px;
+  --text-h1-size: 48px; --text-h1-weight: 600; --text-h1-lh: 1.15; --text-h1-ls: -0.5px;
+  --text-h2-size: 36px; --text-h2-weight: 600; --text-h2-lh: 1.20; --text-h2-ls: -0.5px;
+  --text-h3-size: 28px; --text-h3-weight: 600; --text-h3-lh: 1.25; --text-h3-ls: 0;
+  --text-h4-size: 22px; --text-h4-weight: 600; --text-h4-lh: 1.30; --text-h4-ls: 0;
+  --text-h5-size: 18px; --text-h5-weight: 600; --text-h5-lh: 1.40; --text-h5-ls: 0;
+  --text-subtitle-size: 18px; --text-subtitle-weight: 400; --text-subtitle-lh: 1.50;
+  --text-body-size: 16px; --text-body-weight: 400; --text-body-lh: 1.55;
+  --text-body-medium-weight: 500;
+  --text-sm-size: 14px; --text-sm-weight: 400; --text-sm-lh: 1.50;
+  --text-sm-medium-weight: 500;
+  --text-caption-size: 13px; --text-caption-weight: 400; --text-caption-lh: 1.40;
+  --text-caption-bold-weight: 600;
+  --text-micro-size: 12px; --text-micro-weight: 500; --text-micro-lh: 1.40;
+  --text-micro-upper-size: 11px; --text-micro-upper-weight: 600; --text-micro-upper-ls: 1px;
+  --text-button-size: 14px; --text-button-weight: 500; --text-button-lh: 1.30;
+}
