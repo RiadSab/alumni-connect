@@ -5,6 +5,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { RootLayout } from "@/routes/RootLayout";
 import { RequireAuth } from "@/routes/RequireAuth";
 import { HomePage } from "@/pages/HomePage";
+import { JobDetailPage } from "@/pages/JobDetailPage";
 import { LoginPage } from "@/pages/LoginPage";
 import { RegisterCandidatePage } from "@/pages/RegisterCandidatePage";
 import { RegisterCompanyPage } from "@/pages/RegisterCompanyPage";
@@ -18,6 +19,7 @@ function App() {
         <Route element={<RootLayout />}>
           {/* Public */}
           <Route index element={<HomePage />} />
+          <Route path="jobs/:id" element={<JobDetailPage />} />
           <Route path="login" element={<LoginPage />} />
           <Route path="register/candidate" element={<RegisterCandidatePage />} />
           <Route path="register/company" element={<RegisterCompanyPage />} />
