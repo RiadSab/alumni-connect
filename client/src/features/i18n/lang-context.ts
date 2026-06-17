@@ -11,6 +11,8 @@ export interface LangContextValue {
   setLang: (lang: Lang) => void;
   // Look up a UI string in the current language. `vars` fills {placeholders}.
   t: (key: TKey, vars?: Record<string, string | number>) => string;
+  // Plural-aware lookup: picks `one` or `other` by count + language, fills {n}.
+  tn: (n: number, one: TKey, other: TKey, vars?: Record<string, string | number>) => string;
 }
 
 export const LangContext = createContext<LangContextValue | null>(null);

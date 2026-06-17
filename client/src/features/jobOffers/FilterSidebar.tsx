@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { jobCityOptions, employmentTypeOptions } from "@/types/enums";
+import { useT } from "@/features/i18n/lang-context";
 import type { JobFilterValues } from "@/features/jobOffers/filters";
 
 interface FilterSidebarProps {
@@ -22,31 +23,32 @@ interface FilterSidebarProps {
 }
 
 export function FilterSidebar({ values, onChange, onClear }: FilterSidebarProps) {
+  const { t } = useT();
   return (
     <aside className="sticky top-6 rounded-lg border border-border bg-card p-5">
       <div className="mb-4 flex items-center justify-between">
         <h2 className="flex items-center gap-2 text-sm font-semibold text-foreground">
-          <SlidersHorizontal className="size-4 text-[var(--color-steel)]" /> Filters
+          <SlidersHorizontal className="size-4 text-[var(--color-steel)]" /> {t("filters.title")}
         </h2>
         <button
           type="button"
           onClick={onClear}
           className="text-[13px] font-medium text-[var(--color-link-blue)] hover:text-[var(--color-link-blue-pressed)]"
         >
-          Clear all
+          {t("filters.clearAll")}
         </button>
       </div>
 
       <div className="mb-4">
         <label htmlFor="kw" className="mb-2 block text-[11px] font-semibold uppercase tracking-wider text-[var(--color-stone)]">
-          Keyword
+          {t("filters.keyword")}
         </label>
         <div className="relative">
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[var(--color-steel)]" />
           <Input
             id="kw"
             className="pl-9"
-            placeholder="Title, company, skill…"
+            placeholder={t("filters.keywordPlaceholder")}
             value={values.q}
             onChange={(event) => onChange({ q: event.target.value })}
           />
@@ -55,14 +57,14 @@ export function FilterSidebar({ values, onChange, onClear }: FilterSidebarProps)
 
       <div className="mb-4">
         <label className="mb-2 block text-[11px] font-semibold uppercase tracking-wider text-[var(--color-stone)]">
-          City
+          {t("filters.city")}
         </label>
         <Select value={values.city} onValueChange={(city) => onChange({ city })}>
           <SelectTrigger className="w-full">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="ALL">All cities</SelectItem>
+            <SelectItem value="ALL">{t("filters.allCities")}</SelectItem>
             {jobCityOptions.map((option) => (
               <SelectItem key={option.value} value={option.value}>
                 {option.label}
@@ -74,7 +76,7 @@ export function FilterSidebar({ values, onChange, onClear }: FilterSidebarProps)
 
       <div className="mb-4">
         <label className="mb-2 block text-[11px] font-semibold uppercase tracking-wider text-[var(--color-stone)]">
-          Employment type
+          {t("filters.type")}
         </label>
         <Select
           value={values.employmentType}
@@ -84,7 +86,7 @@ export function FilterSidebar({ values, onChange, onClear }: FilterSidebarProps)
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="ALL">All types</SelectItem>
+            <SelectItem value="ALL">{t("filters.allTypes")}</SelectItem>
             {employmentTypeOptions.map((option) => (
               <SelectItem key={option.value} value={option.value}>
                 {option.label}
@@ -95,7 +97,9 @@ export function FilterSidebar({ values, onChange, onClear }: FilterSidebarProps)
       </div>
 
       <div className="flex items-center justify-between">
-        <span className="text-sm font-medium text-[var(--color-charcoal)]">Remote only</span>
+        <span className="text-sm font-medium text-[var(--color-charcoal)]">
+          {t("filters.remoteOnly")}
+        </span>
         <Switch
           checked={values.isRemote}
           onCheckedChange={(isRemote) => onChange({ isRemote })}

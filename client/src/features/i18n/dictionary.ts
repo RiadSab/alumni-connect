@@ -2,19 +2,104 @@
 // Record<TKey, string>, so every English key MUST have a French translation or
 // it's a compile error (no silent missing-string fallback). Keys are added per
 // surface as pages get translated — start small, grow as needed.
+//
+// `{name}` placeholders are filled by t(key, vars). Plural keys come in pairs
+// (.one / .other) chosen by tn(n, ...) — see LangProvider.
 
 export const en = {
+  // nav
   "nav.jobs": "Jobs",
   "nav.dashboard": "Dashboard",
   "nav.login": "Login",
   "nav.logout": "Log out",
+  // job board
+  "board.title": "Job Board",
+  "board.subtitle": "Opportunities posted by companies in the Alumni Connect network.",
+  "board.count.one": "{n} job",
+  "board.count.other": "{n} jobs",
+  "board.error.title": "Couldn't load jobs",
+  "board.error.body":
+    "Something went wrong reaching the job board. Check your connection and try again.",
+  "board.retry": "Retry",
+  "board.empty.title": "No open jobs right now",
+  "board.empty.body":
+    "There are no open positions at the moment. Check back soon — new roles are posted regularly.",
+  "board.emptyFiltered.title": "No jobs match your filters",
+  "board.emptyFiltered.body":
+    "Try removing a filter or two — broadening the city or clearing the type usually surfaces more roles.",
+  "board.clearFilters": "Clear filters",
+  // filters
+  "filters.title": "Filters",
+  "filters.clearAll": "Clear all",
+  "filters.keyword": "Keyword",
+  "filters.keywordPlaceholder": "Title, company, skill…",
+  "filters.city": "City",
+  "filters.allCities": "All cities",
+  "filters.type": "Employment type",
+  "filters.allTypes": "All types",
+  "filters.remoteOnly": "Remote only",
+  // job card
+  "card.remote": "Remote",
+  "card.urgent": "Urgent",
+  "card.perMonth": "/ month",
+  "card.applicantsMax": "{current} / {max} applicants",
+  "card.applicants.one": "{n} applicant",
+  "card.applicants.other": "{n} applicants",
+  "card.posted.one": "Posted {n} day ago",
+  "card.posted.other": "Posted {n} days ago",
+  "card.closes.one": "Closes in {n} day",
+  "card.closes.other": "Closes in {n} days",
+  "card.more": "+{n} more",
+  "card.apply": "Apply",
+  "card.save": "Save job",
 } satisfies Record<string, string>;
 
 export type TKey = keyof typeof en;
 
 export const fr: Record<TKey, string> = {
+  // nav
   "nav.jobs": "Offres",
   "nav.dashboard": "Tableau de bord",
   "nav.login": "Connexion",
   "nav.logout": "Déconnexion",
+  // job board
+  "board.title": "Offres d'emploi",
+  "board.subtitle": "Opportunités publiées par les entreprises du réseau Alumni Connect.",
+  "board.count.one": "{n} offre",
+  "board.count.other": "{n} offres",
+  "board.error.title": "Impossible de charger les offres",
+  "board.error.body":
+    "Une erreur est survenue lors du chargement des offres. Vérifiez votre connexion et réessayez.",
+  "board.retry": "Réessayer",
+  "board.empty.title": "Aucune offre disponible pour le moment",
+  "board.empty.body":
+    "Il n'y a aucun poste ouvert pour le moment. Revenez bientôt — de nouvelles offres sont publiées régulièrement.",
+  "board.emptyFiltered.title": "Aucune offre ne correspond à vos filtres",
+  "board.emptyFiltered.body":
+    "Essayez de retirer un ou deux filtres — élargir la ville ou enlever le type fait souvent apparaître plus d'offres.",
+  "board.clearFilters": "Effacer les filtres",
+  // filters
+  "filters.title": "Filtres",
+  "filters.clearAll": "Tout effacer",
+  "filters.keyword": "Mot-clé",
+  "filters.keywordPlaceholder": "Titre, entreprise, compétence…",
+  "filters.city": "Ville",
+  "filters.allCities": "Toutes les villes",
+  "filters.type": "Type de contrat",
+  "filters.allTypes": "Tous les types",
+  "filters.remoteOnly": "Télétravail uniquement",
+  // job card
+  "card.remote": "Télétravail",
+  "card.urgent": "Urgent",
+  "card.perMonth": "/ mois",
+  "card.applicantsMax": "{current} / {max} candidats",
+  "card.applicants.one": "{n} candidat",
+  "card.applicants.other": "{n} candidats",
+  "card.posted.one": "Publié il y a {n} jour",
+  "card.posted.other": "Publié il y a {n} jours",
+  "card.closes.one": "Clôture dans {n} jour",
+  "card.closes.other": "Clôture dans {n} jours",
+  "card.more": "+{n} de plus",
+  "card.apply": "Postuler",
+  "card.save": "Enregistrer l'offre",
 };

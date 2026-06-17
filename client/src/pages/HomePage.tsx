@@ -4,6 +4,7 @@
 import { useState } from "react";
 import { CloudOff, RefreshCw, RotateCcw, SearchX } from "lucide-react";
 import { useJobOffers } from "@/features/jobOffers/hooks";
+import { useT } from "@/features/i18n/lang-context";
 import { JobCard } from "@/features/jobOffers/JobCard";
 import { FilterSidebar } from "@/features/jobOffers/FilterSidebar";
 import { EMPTY_FILTERS, type JobFilterValues } from "@/features/jobOffers/filters";
@@ -52,6 +53,7 @@ function JobCardSkeleton() {
 }
 
 export function HomePage() {
+  const { t, tn } = useT();
   const [values, setValues] = useState<JobFilterValues>(EMPTY_FILTERS);
   const [page, setPage] = useState(0);
 
@@ -84,10 +86,10 @@ export function HomePage() {
   return (
     <div className="mx-auto max-w-6xl">
       <div className="mb-6">
-        <h1 className="text-3xl font-semibold tracking-tight text-foreground">Job Board</h1>
-        <p className="mt-1.5 text-[15px] text-[var(--color-steel)]">
-          Opportunities posted by companies in the Alumni Connect network.
-        </p>
+        <h1 className="text-3xl font-semibold tracking-tight text-foreground">
+          {t("board.title")}
+        </h1>
+        <p className="mt-1.5 text-[15px] text-[var(--color-steel)]">{t("board.subtitle")}</p>
       </div>
 
       <div className="grid items-start gap-7 lg:grid-cols-[264px_1fr]">
@@ -107,12 +109,12 @@ export function HomePage() {
               <div className="mb-4 grid size-14 place-items-center rounded-xl bg-[color-mix(in_srgb,var(--color-error)_12%,#fff)] text-[var(--color-error)]">
                 <CloudOff className="size-6" />
               </div>
-              <h3 className="text-lg font-semibold text-foreground">Couldn't load jobs</h3>
+              <h3 className="text-lg font-semibold text-foreground">{t("board.error.title")}</h3>
               <p className="mt-2 max-w-sm text-sm text-[var(--color-steel)]">
-                Something went wrong reaching the job board. Check your connection and try again.
+                {t("board.error.body")}
               </p>
               <Button className="mt-5" onClick={() => refetch()}>
-                <RefreshCw className="size-4" /> Retry
+                <RefreshCw className="size-4" /> {t("board.retry")}
               </Button>
             </div>
           )}
@@ -123,16 +125,14 @@ export function HomePage() {
                 <SearchX className="size-6" />
               </div>
               <h3 className="text-lg font-semibold text-foreground">
-                {hasActiveFilters ? "No jobs match your filters" : "No open jobs right now"}
+                {hasActiveFilters ? t("board.emptyFiltered.title") : t("board.empty.title")}
               </h3>
               <p className="mt-2 max-w-sm text-sm text-[var(--color-steel)]">
-                {hasActiveFilters
-                  ? "Try removing a filter or two — broadening the city or clearing the type usually surfaces more roles."
-                  : "There are no open positions at the moment. Check back soon — new roles are posted regularly."}
+                {hasActiveFilters ? t("board.emptyFiltered.body") : t("board.empty.body")}
               </p>
               {hasActiveFilters && (
                 <Button className="mt-5" onClick={clearAll}>
-                  <RotateCcw className="size-4" /> Clear filters
+                  <RotateCcw className="size-4" /> {t("board.clearFilters")}
                 </Button>
               )}
             </div>
@@ -141,7 +141,7 @@ export function HomePage() {
           {data && !data.empty && (
             <>
               <div className="mb-4 text-[15px] font-semibold text-foreground">
-                {data.totalElements} {data.totalElements === 1 ? "job" : "jobs"}
+                {tn(data.totalElements, "board.count.one", "board.count.other")}
               </div>
               <div className="flex flex-col gap-3">
                 {data.content.map((job) => (

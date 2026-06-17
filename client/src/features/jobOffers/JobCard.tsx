@@ -3,6 +3,7 @@
 
 import { Bookmark, Calendar, Clock, MapPin, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useT } from "@/features/i18n/lang-context";
 import type { JobOfferDTO } from "@/types/jobOffer";
 
 // Logo background palette from the design, picked by company id.
@@ -27,6 +28,7 @@ function humanizeType(value: string): string {
 }
 
 export function JobCard({ job }: { job: JobOfferDTO }) {
+  const { t, tn } = useT();
   const shownSkills = job.skillsRequired.slice(0, 4);
   const extraSkills = job.skillsRequired.length - shownSkills.length;
 
@@ -35,8 +37,11 @@ export function JobCard({ job }: { job: JobOfferDTO }) {
 
   const applicants =
     job.maxApplications != null
-      ? `${job.currentApplicationCount} / ${job.maxApplications} applicants`
-      : `${job.currentApplicationCount} applicants`;
+      ? t("card.applicantsMax", {
+          current: job.currentApplicationCount,
+          max: job.maxApplications,
+        })
+      : tn(job.currentApplicationCount, "card.applicants.one", "card.applicants.other");
 
   return (
     <article className="grid grid-cols-[48px_1fr_auto] gap-4 rounded-lg border border-border bg-card p-5 transition-shadow hover:shadow-md">
@@ -54,12 +59,12 @@ export function JobCard({ job }: { job: JobOfferDTO }) {
           <h3 className="text-lg font-semibold leading-tight text-foreground">{job.title}</h3>
           {job.isRemote && (
             <span className="rounded-full bg-[var(--color-tint-sky)] px-2 py-0.5 text-xs font-semibold text-[var(--color-link-blue-pressed)]">
-              Remote
+              {t("card.remote")}
             </span>
           )}
           {job.isUrgent && (
             <span className="rounded-full bg-[var(--color-tint-peach)] px-2 py-0.5 text-xs font-semibold text-[var(--color-brand-orange-deep)]">
-              Urgent
+              {t("card.urgent")}
             </span>
           )}
         </div>
@@ -85,7 +90,9 @@ export function JobCard({ job }: { job: JobOfferDTO }) {
         {job.minSalary != null && job.maxSalary != null && (
           <div className="mt-3 text-[15px] font-semibold text-[var(--color-charcoal)]">
             {formatMoney(job.minSalary)} – {formatMoney(job.maxSalary)} MAD{" "}
-            <span className="text-[13px] font-normal text-[var(--color-steel)]">/ month</span>
+            <span className="text-[13px] font-normal text-[var(--color-steel)]">
+              {t("card.perMonth")}
+            </span>
           </div>
         )}
 
@@ -101,7 +108,7 @@ export function JobCard({ job }: { job: JobOfferDTO }) {
             ))}
             {extraSkills > 0 && (
               <span className="rounded-sm bg-[var(--color-surface)] px-2 py-[3px] text-[12.5px] font-medium text-[var(--color-steel)]">
-                +{extraSkills} more
+                {t("card.more", { n: extraSkills })}
               </span>
             )}
           </div>
@@ -112,11 +119,13 @@ export function JobCard({ job }: { job: JobOfferDTO }) {
             <Users className="size-3.5" /> {applicants}
           </span>
           <span className="inline-flex items-center gap-1.5">
-            <Calendar className="size-3.5" /> Posted {postedDaysAgo} {postedDaysAgo === 1 ? "day" : "days"} ago
+            <Calendar className="size-3.5" />{" "}
+            {tn(postedDaysAgo, "card.posted.one", "card.posted.other")}
           </span>
           {deadlineDays != null && deadlineDays >= 0 && (
             <span className="inline-flex items-center gap-1.5 font-medium text-[var(--color-brand-orange-deep)]">
-              <Clock className="size-3.5" /> Closes in {deadlineDays} {deadlineDays === 1 ? "day" : "days"}
+              <Clock className="size-3.5" />{" "}
+              {tn(deadlineDays, "card.closes.one", "card.closes.other")}
             </span>
           )}
         </div>
@@ -126,12 +135,12 @@ export function JobCard({ job }: { job: JobOfferDTO }) {
       <div className="flex flex-col items-end justify-between gap-3.5">
         <button
           type="button"
-          aria-label="Save job"
+          aria-label={t("card.save")}
           className="grid size-9 place-items-center rounded-md border border-[var(--color-hairline-strong)] text-[var(--color-steel)] hover:border-[var(--color-stone)] hover:text-[var(--color-charcoal)]"
         >
           <Bookmark className="size-4" />
         </button>
-        <Button>Apply</Button>
+        <Button>{t("card.apply")}</Button>
       </div>
     </article>
   );
