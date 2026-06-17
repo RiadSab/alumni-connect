@@ -26,6 +26,8 @@ export function LoginPage() {
 
   // Set by the register page after a successful sign-up.
   const justRegistered = (location.state as { justRegistered?: boolean } | null)?.justRegistered;
+  // Where to return after login (set by RequireAuth or a "log in to…" link).
+  const from = (location.state as { from?: string } | null)?.from ?? "/dashboard";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -34,7 +36,7 @@ export function LoginPage() {
 
   // Already logged in? Don't show the form.
   if (auth.isAuthenticated) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to={from} replace />;
   }
 
   function handleSubmit(event: React.FormEvent) {
@@ -59,7 +61,7 @@ export function LoginPage() {
     login.mutate(result.data, {
       onSuccess: (response) => {
         auth.login(response);
-        navigate("/dashboard");
+        navigate(from, { replace: true });
       },
       onError: (error) => {
         setFormError(

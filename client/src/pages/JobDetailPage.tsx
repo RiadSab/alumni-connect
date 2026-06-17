@@ -268,7 +268,9 @@ function ApplyAction({ job }: { job: JobOfferDTO }) {
   if (!isAuthenticated) {
     return (
       <Button asChild className="w-full">
-        <Link to="/login">{t("detail.loginToApply")}</Link>
+        <Link to="/login" state={{ from: `/jobs/${job.id}` }}>
+          {t("detail.loginToApply")}
+        </Link>
       </Button>
     );
   }
