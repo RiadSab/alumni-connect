@@ -78,7 +78,7 @@ export function LoginPage() {
         </CardHeader>
         <CardContent>
           {justRegistered && (
-            <p className="mb-4 text-sm text-green-700">
+            <p className="mb-4 text-sm text-success">
               Account created. It needs admin approval before you can log in.
             </p>
           )}
@@ -95,7 +95,7 @@ export function LoginPage() {
                 aria-invalid={fieldErrors.email !== undefined}
               />
               {fieldErrors.email && (
-                <p className="text-sm text-red-600">{fieldErrors.email}</p>
+                <p className="text-sm text-destructive">{fieldErrors.email}</p>
               )}
             </div>
 
@@ -111,11 +111,11 @@ export function LoginPage() {
                 aria-invalid={fieldErrors.password !== undefined}
               />
               {fieldErrors.password && (
-                <p className="text-sm text-red-600">{fieldErrors.password}</p>
+                <p className="text-sm text-destructive">{fieldErrors.password}</p>
               )}
             </div>
 
-            {formError && <p className="text-sm text-red-600">{formError}</p>}
+            {formError && <p className="text-sm text-destructive">{formError}</p>}
 
             <Button type="submit" disabled={login.isPending}>
               {login.isPending ? "Logging in..." : "Log in"}

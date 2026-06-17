@@ -110,7 +110,7 @@ export function RegisterCompanyPage() {
                 onChange={(event) => setField("firstName", event.target.value)}
               />
               {fieldErrors.firstName && (
-                <p className="text-sm text-red-600">{fieldErrors.firstName}</p>
+                <p className="text-sm text-destructive">{fieldErrors.firstName}</p>
               )}
             </div>
 
@@ -124,7 +124,7 @@ export function RegisterCompanyPage() {
                 onChange={(event) => setField("lastName", event.target.value)}
               />
               {fieldErrors.lastName && (
-                <p className="text-sm text-red-600">{fieldErrors.lastName}</p>
+                <p className="text-sm text-destructive">{fieldErrors.lastName}</p>
               )}
             </div>
 
@@ -138,7 +138,7 @@ export function RegisterCompanyPage() {
                 value={form.email}
                 onChange={(event) => setField("email", event.target.value)}
               />
-              {fieldErrors.email && <p className="text-sm text-red-600">{fieldErrors.email}</p>}
+              {fieldErrors.email && <p className="text-sm text-destructive">{fieldErrors.email}</p>}
             </div>
 
             <div className="flex flex-col gap-2">
@@ -152,7 +152,7 @@ export function RegisterCompanyPage() {
                 onChange={(event) => setField("password", event.target.value)}
               />
               {fieldErrors.password && (
-                <p className="text-sm text-red-600">{fieldErrors.password}</p>
+                <p className="text-sm text-destructive">{fieldErrors.password}</p>
               )}
             </div>
 
@@ -174,7 +174,7 @@ export function RegisterCompanyPage() {
                 </SelectContent>
               </Select>
               {fieldErrors.position && (
-                <p className="text-sm text-red-600">{fieldErrors.position}</p>
+                <p className="text-sm text-destructive">{fieldErrors.position}</p>
               )}
             </div>
 
@@ -190,7 +190,7 @@ export function RegisterCompanyPage() {
                 onChange={(event) => setField("companyName", event.target.value)}
               />
               {fieldErrors.companyName && (
-                <p className="text-sm text-red-600">{fieldErrors.companyName}</p>
+                <p className="text-sm text-destructive">{fieldErrors.companyName}</p>
               )}
             </div>
 
@@ -205,7 +205,7 @@ export function RegisterCompanyPage() {
                 onChange={(event) => setField("companyEmail", event.target.value)}
               />
               {fieldErrors.companyEmail && (
-                <p className="text-sm text-red-600">{fieldErrors.companyEmail}</p>
+                <p className="text-sm text-destructive">{fieldErrors.companyEmail}</p>
               )}
             </div>
 
@@ -227,11 +227,11 @@ export function RegisterCompanyPage() {
                 </SelectContent>
               </Select>
               {fieldErrors.companyField && (
-                <p className="text-sm text-red-600">{fieldErrors.companyField}</p>
+                <p className="text-sm text-destructive">{fieldErrors.companyField}</p>
               )}
             </div>
 
-            {formError && <p className="text-sm text-red-600">{formError}</p>}
+            {formError && <p className="text-sm text-destructive">{formError}</p>}
 
             <Button type="submit" disabled={register.isPending}>
               {register.isPending ? "Creating..." : "Register company"}

@@ -112,7 +112,7 @@ export function RegisterCandidatePage() {
                 onChange={(event) => setField("firstName", event.target.value)}
               />
               {fieldErrors.firstName && (
-                <p className="text-sm text-red-600">{fieldErrors.firstName}</p>
+                <p className="text-sm text-destructive">{fieldErrors.firstName}</p>
               )}
             </div>
 
@@ -126,7 +126,7 @@ export function RegisterCandidatePage() {
                 onChange={(event) => setField("lastName", event.target.value)}
               />
               {fieldErrors.lastName && (
-                <p className="text-sm text-red-600">{fieldErrors.lastName}</p>
+                <p className="text-sm text-destructive">{fieldErrors.lastName}</p>
               )}
             </div>
 
@@ -140,7 +140,7 @@ export function RegisterCandidatePage() {
                 value={form.email}
                 onChange={(event) => setField("email", event.target.value)}
               />
-              {fieldErrors.email && <p className="text-sm text-red-600">{fieldErrors.email}</p>}
+              {fieldErrors.email && <p className="text-sm text-destructive">{fieldErrors.email}</p>}
             </div>
 
             <div className="flex flex-col gap-2">
@@ -154,7 +154,7 @@ export function RegisterCandidatePage() {
                 onChange={(event) => setField("password", event.target.value)}
               />
               {fieldErrors.password && (
-                <p className="text-sm text-red-600">{fieldErrors.password}</p>
+                <p className="text-sm text-destructive">{fieldErrors.password}</p>
               )}
             </div>
 
@@ -168,7 +168,7 @@ export function RegisterCandidatePage() {
                 onChange={(event) => setField("phoneNumber", event.target.value)}
               />
               {fieldErrors.phoneNumber && (
-                <p className="text-sm text-red-600">{fieldErrors.phoneNumber}</p>
+                <p className="text-sm text-destructive">{fieldErrors.phoneNumber}</p>
               )}
             </div>
 
@@ -194,7 +194,7 @@ export function RegisterCandidatePage() {
                   onChange={(event) => setField("studentId", event.target.value)}
                 />
                 {fieldErrors.studentId && (
-                  <p className="text-sm text-red-600">{fieldErrors.studentId}</p>
+                  <p className="text-sm text-destructive">{fieldErrors.studentId}</p>
                 )}
               </div>
             )}
@@ -217,7 +217,7 @@ export function RegisterCandidatePage() {
                 </SelectContent>
               </Select>
               {fieldErrors.fieldOfStudy && (
-                <p className="text-sm text-red-600">{fieldErrors.fieldOfStudy}</p>
+                <p className="text-sm text-destructive">{fieldErrors.fieldOfStudy}</p>
               )}
             </div>
 
@@ -232,11 +232,11 @@ export function RegisterCandidatePage() {
                 onChange={(event) => setField("graduationYear", event.target.value)}
               />
               {fieldErrors.graduationYear && (
-                <p className="text-sm text-red-600">{fieldErrors.graduationYear}</p>
+                <p className="text-sm text-destructive">{fieldErrors.graduationYear}</p>
               )}
             </div>
 
-            {formError && <p className="text-sm text-red-600">{formError}</p>}
+            {formError && <p className="text-sm text-destructive">{formError}</p>}
 
             <Button type="submit" disabled={register.isPending}>
               {register.isPending ? "Creating account..." : "Create account"}
