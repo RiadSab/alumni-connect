@@ -100,6 +100,7 @@ export const en = {
   "profile.currentRole": "Current role",
   "profile.links": "Links",
   "profile.about": "About",
+  "profile.edit": "Edit profile",
 } satisfies Record<string, string>;
 
 export type TKey = keyof typeof en;
@@ -198,4 +199,5 @@ export const fr: Record<TKey, string> = {
   "profile.currentRole": "Poste actuel",
   "profile.links": "Liens",
   "profile.about": "À propos",
+  "profile.edit": "Modifier le profil",
 };
