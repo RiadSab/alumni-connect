@@ -101,6 +101,15 @@ export const en = {
   "profile.links": "Links",
   "profile.about": "About",
   "profile.edit": "Edit profile",
+  "profile.resume.title": "Résumé",
+  "profile.resume.onFile": "Résumé on file",
+  "profile.resume.none": "No résumé uploaded yet",
+  "profile.resume.upload": "Upload résumé",
+  "profile.resume.replace": "Replace",
+  "profile.resume.view": "View",
+  "profile.resume.uploading": "Uploading…",
+  "profile.resume.notPdf": "Please choose a PDF file.",
+  "profile.resume.error": "Couldn't upload your résumé. Please try again.",
 } satisfies Record<string, string>;
 
 export type TKey = keyof typeof en;
@@ -200,4 +209,13 @@ export const fr: Record<TKey, string> = {
   "profile.links": "Liens",
   "profile.about": "À propos",
   "profile.edit": "Modifier le profil",
+  "profile.resume.title": "CV",
+  "profile.resume.onFile": "CV enregistré",
+  "profile.resume.none": "Aucun CV téléchargé pour l'instant",
+  "profile.resume.upload": "Téléverser un CV",
+  "profile.resume.replace": "Remplacer",
+  "profile.resume.view": "Voir",
+  "profile.resume.uploading": "Téléversement…",
+  "profile.resume.notPdf": "Veuillez choisir un fichier PDF.",
+  "profile.resume.error": "Impossible de téléverser votre CV. Veuillez réessayer.",
 };
