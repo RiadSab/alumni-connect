@@ -75,6 +75,7 @@ export const en = {
   "detail.loginToApply": "Log in to apply",
   "detail.applying": "Applying…",
   "detail.applied": "Application sent",
+  "detail.alreadyApplied": "Already applied",
   "detail.applyHint": "Applies with the CV on your profile.",
   "detail.applyError": "Couldn't submit your application. Please try again.",
   // my applications
@@ -159,6 +160,7 @@ export const fr: Record<TKey, string> = {
   "detail.loginToApply": "Connectez-vous pour postuler",
   "detail.applying": "Envoi…",
   "detail.applied": "Candidature envoyée",
+  "detail.alreadyApplied": "Déjà postulé",
   "detail.applyHint": "Postule avec le CV de votre profil.",
   "detail.applyError": "Impossible d'envoyer votre candidature. Veuillez réessayer.",
   // my applications

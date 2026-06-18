@@ -6,11 +6,13 @@ import { queryKeys } from "@/lib/queryKeys";
 import type { PageParams } from "@/types/common";
 import type { ReviewApplicationDTO } from "@/types/jobApplication";
 
-// CANDIDATE — own application history.
-export function useMyApplications(params?: PageParams) {
+// CANDIDATE — own application history. `enabled` lets callers skip the fetch for
+// non-candidates (the endpoint is candidate-only).
+export function useMyApplications(params?: PageParams, options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: queryKeys.jobApplications.mine(params),
     queryFn: () => jobApplicationsApi.mine(params),
+    enabled: options?.enabled ?? true,
   });
 }
 
