@@ -20,9 +20,24 @@ export function useUpdateMyCandidateProfile() {
   });
 }
 
+// Presence + content of the candidate's own CV. The profile DTO has no résumé
+// field, so "do I have one?" comes from this download: success = on file, a 404
+// ApiError = none yet. retry:false so a 404 doesn't get retried.
+export function useMyResume() {
+  return useQuery({
+    queryKey: queryKeys.candidate.resume(),
+    queryFn: () => candidatesApi.downloadResume(),
+    retry: false,
+    staleTime: Infinity, // the blob only changes when we upload a new one
+  });
+}
+
 export function useUploadResume() {
+  const qc = useQueryClient();
   return useMutation({
     mutationFn: (file: File) => candidatesApi.uploadResume(file),
+    // flips the "no résumé yet" state to "on file" and refetches the new blob.
+    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.candidate.resume() }),
   });
 }
 

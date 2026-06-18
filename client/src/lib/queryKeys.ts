@@ -10,6 +10,7 @@ import type { AdminUserFilters, AdminCompanyFilters } from "@/types/admin";
 export const queryKeys = {
   candidate: {
     me: () => ["candidate", "me"] as const,
+    resume: () => ["candidate", "me", "resume"] as const,
     byId: (id: number) => ["candidate", "byId", id] as const,
   },
 
