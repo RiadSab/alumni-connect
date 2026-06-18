@@ -11,6 +11,7 @@ export const en = {
   "nav.jobs": "Jobs",
   "nav.dashboard": "Dashboard",
   "nav.myApplications": "My applications",
+  "nav.profile": "Profile",
   "nav.login": "Login",
   "nav.logout": "Log out",
   // job board
@@ -87,6 +88,18 @@ export const en = {
   "apps.empty.body": "When you apply to a job, it'll show up here.",
   "apps.empty.cta": "Browse jobs",
   "apps.applied": "Applied {date}",
+  // candidate profile
+  "profile.contact": "Contact",
+  "profile.email": "Email",
+  "profile.phone": "Phone",
+  "profile.education": "Education",
+  "profile.fieldOfStudy": "Field of study",
+  "profile.graduationYear": "Graduation year",
+  "profile.studentId": "Student ID",
+  "profile.dateOfBirth": "Date of birth",
+  "profile.currentRole": "Current role",
+  "profile.links": "Links",
+  "profile.about": "About",
 } satisfies Record<string, string>;
 
 export type TKey = keyof typeof en;
@@ -96,6 +109,7 @@ export const fr: Record<TKey, string> = {
   "nav.jobs": "Offres",
   "nav.dashboard": "Tableau de bord",
   "nav.myApplications": "Mes candidatures",
+  "nav.profile": "Profil",
   "nav.login": "Connexion",
   "nav.logout": "Déconnexion",
   // job board
@@ -172,4 +186,16 @@ export const fr: Record<TKey, string> = {
   "apps.empty.body": "Lorsque vous postulez à une offre, elle apparaît ici.",
   "apps.empty.cta": "Parcourir les offres",
   "apps.applied": "Postulé le {date}",
+  // candidate profile
+  "profile.contact": "Contact",
+  "profile.email": "E-mail",
+  "profile.phone": "Téléphone",
+  "profile.education": "Formation",
+  "profile.fieldOfStudy": "Domaine d'études",
+  "profile.graduationYear": "Année de diplôme",
+  "profile.studentId": "Numéro étudiant",
+  "profile.dateOfBirth": "Date de naissance",
+  "profile.currentRole": "Poste actuel",
+  "profile.links": "Liens",
+  "profile.about": "À propos",
 };
