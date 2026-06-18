@@ -11,6 +11,7 @@ export const queryKeys = {
   candidate: {
     me: () => ["candidate", "me"] as const,
     resume: () => ["candidate", "me", "resume"] as const,
+    photo: () => ["candidate", "me", "photo"] as const,
     byId: (id: number) => ["candidate", "byId", id] as const,
   },
 
