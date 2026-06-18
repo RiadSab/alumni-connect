@@ -1,7 +1,7 @@
 // Candidate's own profile, read-only. Fetches /candidates/me and lays it out as
 // cards. Editing and résumé/photo upload land in later commits.
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Camera, CloudOff, ExternalLink, FileText, Loader2, RefreshCw, Upload } from "lucide-react";
 import {
@@ -64,12 +64,20 @@ export function ProfilePage() {
 // whether the profile actually has a photo. Revokes the URL on change/unmount.
 function useMyPhotoUrl(enabled: boolean): string | null {
   const photo = useMyPhoto(enabled);
-  const url = useMemo(
-    () => (photo.data ? URL.createObjectURL(photo.data) : null),
-    [photo.data],
-  );
-  // Revoke the previous URL when the blob changes or the component unmounts.
-  useEffect(() => () => { if (url) URL.revokeObjectURL(url); }, [url]);
+  const blob = photo.data;
+  const [url, setUrl] = useState<string | null>(null);
+  // Mint a fresh object URL whenever the blob changes, and revoke it on the next
+  // change/unmount. This MUST create the URL inside the effect (not useMemo): in
+  // Strict Mode the effect runs setup→cleanup→setup, so a memoized URL would get
+  // revoked while still rendered (blank photo after navigating back with the blob
+  // already cached). Re-minting each setup keeps the URL in state valid.
+  useEffect(() => {
+    const objectUrl = blob ? URL.createObjectURL(blob) : null;
+    setUrl(objectUrl); // eslint-disable-line react-hooks/set-state-in-effect -- syncing an external blob to a renderable URL; the extra render is intended
+    return () => {
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [blob]);
   return url;
 }
 
