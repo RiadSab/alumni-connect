@@ -12,6 +12,7 @@ export const en = {
   "nav.dashboard": "Dashboard",
   "nav.myApplications": "My applications",
   "nav.profile": "Profile",
+  "nav.settings": "Settings",
   "nav.login": "Login",
   "nav.logout": "Log out",
   // job board
@@ -123,6 +124,7 @@ export const fr: Record<TKey, string> = {
   "nav.dashboard": "Tableau de bord",
   "nav.myApplications": "Mes candidatures",
   "nav.profile": "Profil",
+  "nav.settings": "Paramètres",
   "nav.login": "Connexion",
   "nav.logout": "Déconnexion",
   // job board
