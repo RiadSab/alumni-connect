@@ -1,6 +1,7 @@
 // Candidate's own profile, read-only. Fetches /candidates/me and lays it out as
 // cards. Editing and résumé/photo upload land in later commits.
 
+import { Link } from "react-router-dom";
 import { CloudOff, ExternalLink, RefreshCw } from "lucide-react";
 import { useMyCandidateProfile } from "@/features/candidates/hooks";
 import { useT } from "@/features/i18n/lang-context";
@@ -55,17 +56,22 @@ function ProfileHeader({ profile }: { profile: CandidateProfileDTO }) {
   const role = [profile.currentJobTitle, profile.currentCompany].filter(Boolean).join(" · ");
   return (
     <div className="rounded-lg border border-border bg-card p-6">
-      <div className="flex gap-4">
-        <div className="grid size-16 shrink-0 place-items-center rounded-full bg-primary text-2xl font-bold text-primary-foreground">
-          {profile.firstName.charAt(0)}
-          {profile.lastName.charAt(0)}
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex min-w-0 gap-4">
+          <div className="grid size-16 shrink-0 place-items-center rounded-full bg-primary text-2xl font-bold text-primary-foreground">
+            {profile.firstName.charAt(0)}
+            {profile.lastName.charAt(0)}
+          </div>
+          <div className="min-w-0">
+            <h1 className="text-2xl font-semibold leading-tight text-foreground">
+              {profile.firstName} {profile.lastName}
+            </h1>
+            {role && <p className="mt-1 text-sm text-[var(--color-slate)]">{role}</p>}
+          </div>
         </div>
-        <div className="min-w-0">
-          <h1 className="text-2xl font-semibold leading-tight text-foreground">
-            {profile.firstName} {profile.lastName}
-          </h1>
-          {role && <p className="mt-1 text-sm text-[var(--color-slate)]">{role}</p>}
-        </div>
+        <Button variant="outline" size="sm" asChild>
+          <Link to="/profile/edit">{t("profile.edit")}</Link>
+        </Button>
       </div>
       <div className="mt-5 grid gap-3 sm:grid-cols-2">
         <Row label={t("profile.email")}>
