@@ -30,7 +30,10 @@ export function RootLayout() {
             <>
               <Link to="/dashboard">{t("nav.dashboard")}</Link>
               {user?.userType === "CANDIDATE" && (
-                <Link to="/applications">{t("nav.myApplications")}</Link>
+                <>
+                  <Link to="/applications">{t("nav.myApplications")}</Link>
+                  <Link to="/profile">{t("nav.profile")}</Link>
+                </>
               )}
               <span className="text-muted-foreground">
                 {user?.firstName} {user?.lastName}
