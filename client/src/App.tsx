@@ -13,6 +13,7 @@ import { DashboardPage } from "@/pages/DashboardPage";
 import { MyApplicationsPage } from "@/pages/MyApplicationsPage";
 import { ProfilePage } from "@/pages/ProfilePage";
 import { ProfileEditPage } from "@/pages/ProfileEditPage";
+import { ChangePasswordPage } from "@/pages/ChangePasswordPage";
 import { NotFoundPage } from "@/pages/NotFoundPage";
 
 function App() {
@@ -33,6 +34,7 @@ function App() {
             <Route path="applications" element={<MyApplicationsPage />} />
             <Route path="profile" element={<ProfilePage />} />
             <Route path="profile/edit" element={<ProfileEditPage />} />
+            <Route path="settings/password" element={<ChangePasswordPage />} />
           </Route>
 
           {/* Fallback */}
