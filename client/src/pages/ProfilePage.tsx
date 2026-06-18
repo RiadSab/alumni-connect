@@ -1,10 +1,12 @@
 // Candidate's own profile, read-only. Fetches /candidates/me and lays it out as
 // cards. Editing and résumé/photo upload land in later commits.
 
+import { useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { CloudOff, ExternalLink, RefreshCw } from "lucide-react";
-import { useMyCandidateProfile } from "@/features/candidates/hooks";
+import { CloudOff, ExternalLink, FileText, RefreshCw, Upload } from "lucide-react";
+import { useMyCandidateProfile, useMyResume, useUploadResume } from "@/features/candidates/hooks";
 import { useT } from "@/features/i18n/lang-context";
+import { isApiError } from "@/lib/http";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { fieldsOptions } from "@/types/enums";
@@ -43,6 +45,7 @@ export function ProfilePage() {
   return (
     <div className="mx-auto max-w-3xl space-y-4">
       <ProfileHeader profile={profile} />
+      <Resume />
       <Education profile={profile} />
       {profile.skills.length > 0 && <Skills profile={profile} />}
       <Links profile={profile} />
@@ -82,6 +85,88 @@ function ProfileHeader({ profile }: { profile: CandidateProfileDTO }) {
         <Row label={t("profile.phone")}>{profile.phoneNumber}</Row>
       </div>
     </div>
+  );
+}
+
+// Résumé upload/replace. The CV is what the Apply button reuses (useProfileResume),
+// so without one here, applying fails. Presence comes from useMyResume: success =
+// on file (and we can open the blob), a 404 = none yet.
+function Resume() {
+  const { t } = useT();
+  const resume = useMyResume();
+  const upload = useUploadResume();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  function pickFile() {
+    setError(null);
+    inputRef.current?.click();
+  }
+
+  function onFileChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = ""; // let the user re-pick the same filename next time
+    if (!file) return;
+    if (file.type !== "application/pdf") {
+      setError(t("profile.resume.notPdf"));
+      return;
+    }
+    setError(null);
+    upload.mutate(file, {
+      onError: (err) => setError(isApiError(err) ? err.message : t("profile.resume.error")),
+    });
+  }
+
+  function view() {
+    if (!resume.data) return;
+    const url = URL.createObjectURL(resume.data);
+    window.open(url, "_blank");
+    // ponytail: revoke after a minute — the new tab has loaded the blob by then.
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  }
+
+  const hasResume = resume.isSuccess;
+
+  return (
+    <Section title={t("profile.resume.title")}>
+      <div className="flex flex-wrap items-center gap-3">
+        {resume.isLoading ? (
+          <Skeleton className="h-5 w-32 rounded" />
+        ) : hasResume ? (
+          <>
+            <span className="inline-flex items-center gap-1.5 text-sm font-medium text-[var(--color-charcoal)]">
+              <FileText className="size-4" /> {t("profile.resume.onFile")}
+            </span>
+            <button
+              type="button"
+              onClick={view}
+              className="text-sm font-medium text-[var(--color-link-blue)] hover:underline"
+            >
+              {t("profile.resume.view")}
+            </button>
+          </>
+        ) : (
+          <span className="text-sm text-[var(--color-slate)]">{t("profile.resume.none")}</span>
+        )}
+
+        <Button
+          variant="outline"
+          size="sm"
+          className="ml-auto"
+          onClick={pickFile}
+          disabled={upload.isPending}
+        >
+          <Upload className="size-4" />
+          {upload.isPending
+            ? t("profile.resume.uploading")
+            : hasResume
+              ? t("profile.resume.replace")
+              : t("profile.resume.upload")}
+        </Button>
+        <input ref={inputRef} type="file" accept="application/pdf" hidden onChange={onFileChange} />
+      </div>
+      {error && <p className="mt-2 text-sm text-destructive">{error}</p>}
+    </Section>
   );
 }
 
