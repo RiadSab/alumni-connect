@@ -10,6 +10,7 @@ export const en = {
   // nav
   "nav.jobs": "Jobs",
   "nav.dashboard": "Dashboard",
+  "nav.myApplications": "My applications",
   "nav.login": "Login",
   "nav.logout": "Log out",
   // job board
@@ -76,6 +77,15 @@ export const en = {
   "detail.applied": "Application sent",
   "detail.applyHint": "Applies with the CV on your profile.",
   "detail.applyError": "Couldn't submit your application. Please try again.",
+  // my applications
+  "apps.title": "My Applications",
+  "apps.subtitle": "Track the status of every job you've applied to.",
+  "apps.count.one": "{n} application",
+  "apps.count.other": "{n} applications",
+  "apps.empty.title": "No applications yet",
+  "apps.empty.body": "When you apply to a job, it'll show up here.",
+  "apps.empty.cta": "Browse jobs",
+  "apps.applied": "Applied {date}",
 } satisfies Record<string, string>;
 
 export type TKey = keyof typeof en;
@@ -84,6 +94,7 @@ export const fr: Record<TKey, string> = {
   // nav
   "nav.jobs": "Offres",
   "nav.dashboard": "Tableau de bord",
+  "nav.myApplications": "Mes candidatures",
   "nav.login": "Connexion",
   "nav.logout": "Déconnexion",
   // job board
@@ -150,4 +161,13 @@ export const fr: Record<TKey, string> = {
   "detail.applied": "Candidature envoyée",
   "detail.applyHint": "Postule avec le CV de votre profil.",
   "detail.applyError": "Impossible d'envoyer votre candidature. Veuillez réessayer.",
+  // my applications
+  "apps.title": "Mes candidatures",
+  "apps.subtitle": "Suivez le statut de chaque poste auquel vous avez postulé.",
+  "apps.count.one": "{n} candidature",
+  "apps.count.other": "{n} candidatures",
+  "apps.empty.title": "Aucune candidature pour l'instant",
+  "apps.empty.body": "Lorsque vous postulez à une offre, elle apparaît ici.",
+  "apps.empty.cta": "Parcourir les offres",
+  "apps.applied": "Postulé le {date}",
 };

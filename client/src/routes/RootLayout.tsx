@@ -29,6 +29,9 @@ export function RootLayout() {
           {isAuthenticated ? (
             <>
               <Link to="/dashboard">{t("nav.dashboard")}</Link>
+              {user?.userType === "CANDIDATE" && (
+                <Link to="/applications">{t("nav.myApplications")}</Link>
+              )}
               <span className="text-muted-foreground">
                 {user?.firstName} {user?.lastName}
               </span>

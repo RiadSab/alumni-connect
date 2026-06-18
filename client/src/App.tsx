@@ -10,6 +10,7 @@ import { LoginPage } from "@/pages/LoginPage";
 import { RegisterCandidatePage } from "@/pages/RegisterCandidatePage";
 import { RegisterCompanyPage } from "@/pages/RegisterCompanyPage";
 import { DashboardPage } from "@/pages/DashboardPage";
+import { MyApplicationsPage } from "@/pages/MyApplicationsPage";
 import { NotFoundPage } from "@/pages/NotFoundPage";
 
 function App() {
@@ -27,6 +28,7 @@ function App() {
           {/* Logged-in only */}
           <Route element={<RequireAuth />}>
             <Route path="dashboard" element={<DashboardPage />} />
+            <Route path="applications" element={<MyApplicationsPage />} />
           </Route>
 
           {/* Fallback */}
