@@ -35,6 +35,7 @@ export function RootLayout() {
                   <Link to="/profile">{t("nav.profile")}</Link>
                 </>
               )}
+              <Link to="/settings/password">{t("nav.settings")}</Link>
               <span className="text-muted-foreground">
                 {user?.firstName} {user?.lastName}
               </span>
