@@ -41,12 +41,28 @@ export function useUploadResume() {
   });
 }
 
+// The photo endpoint is authenticated, so the image can't go straight in an
+// <img src> — we download the blob and turn it into an object URL. Gated on
+// `enabled` so we only fetch when the profile says a photo exists.
+export function useMyPhoto(enabled: boolean) {
+  return useQuery({
+    queryKey: queryKeys.candidate.photo(),
+    queryFn: () => candidatesApi.downloadPhoto(),
+    enabled,
+    retry: false,
+    staleTime: Infinity, // only changes when we upload a new one
+  });
+}
+
 export function useUploadProfilePhoto() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (file: File) => candidatesApi.uploadPhoto(file),
-    // photo handle (profilePhotoId) lives on the profile — refetch it.
-    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.candidate.me() }),
+    onSuccess: () => {
+      // profilePhotoId lives on the profile, the image blob is its own query.
+      qc.invalidateQueries({ queryKey: queryKeys.candidate.me() });
+      qc.invalidateQueries({ queryKey: queryKeys.candidate.photo() });
+    },
   });
 }
 
