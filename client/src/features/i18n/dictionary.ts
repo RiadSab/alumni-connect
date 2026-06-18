@@ -110,6 +110,9 @@ export const en = {
   "profile.resume.uploading": "Uploading…",
   "profile.resume.notPdf": "Please choose a PDF file.",
   "profile.resume.error": "Couldn't upload your résumé. Please try again.",
+  "profile.photo.change": "Change photo",
+  "profile.photo.badType": "Please choose a PNG, JPEG, or WEBP image.",
+  "profile.photo.error": "Couldn't upload your photo. Please try again.",
 } satisfies Record<string, string>;
 
 export type TKey = keyof typeof en;
@@ -218,4 +221,7 @@ export const fr: Record<TKey, string> = {
   "profile.resume.uploading": "Téléversement…",
   "profile.resume.notPdf": "Veuillez choisir un fichier PDF.",
   "profile.resume.error": "Impossible de téléverser votre CV. Veuillez réessayer.",
+  "profile.photo.change": "Changer la photo",
+  "profile.photo.badType": "Veuillez choisir une image PNG, JPEG ou WEBP.",
+  "profile.photo.error": "Impossible de téléverser votre photo. Veuillez réessayer.",
 };
