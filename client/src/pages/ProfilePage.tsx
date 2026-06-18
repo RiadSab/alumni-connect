@@ -1,10 +1,16 @@
 // Candidate's own profile, read-only. Fetches /candidates/me and lays it out as
 // cards. Editing and résumé/photo upload land in later commits.
 
-import { useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { CloudOff, ExternalLink, FileText, RefreshCw, Upload } from "lucide-react";
-import { useMyCandidateProfile, useMyResume, useUploadResume } from "@/features/candidates/hooks";
+import { Camera, CloudOff, ExternalLink, FileText, Loader2, RefreshCw, Upload } from "lucide-react";
+import {
+  useMyCandidateProfile,
+  useMyPhoto,
+  useMyResume,
+  useUploadProfilePhoto,
+  useUploadResume,
+} from "@/features/candidates/hooks";
 import { useT } from "@/features/i18n/lang-context";
 import { isApiError } from "@/lib/http";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -54,22 +60,82 @@ export function ProfilePage() {
   );
 }
 
+// Turn the authenticated photo blob into an object URL for <img>, gated on
+// whether the profile actually has a photo. Revokes the URL on change/unmount.
+function useMyPhotoUrl(enabled: boolean): string | null {
+  const photo = useMyPhoto(enabled);
+  const url = useMemo(
+    () => (photo.data ? URL.createObjectURL(photo.data) : null),
+    [photo.data],
+  );
+  // Revoke the previous URL when the blob changes or the component unmounts.
+  useEffect(() => () => { if (url) URL.revokeObjectURL(url); }, [url]);
+  return url;
+}
+
 function ProfileHeader({ profile }: { profile: CandidateProfileDTO }) {
   const { t } = useT();
   const role = [profile.currentJobTitle, profile.currentCompany].filter(Boolean).join(" · ");
+
+  const photoUrl = useMyPhotoUrl(profile.profilePhotoId != null);
+  const upload = useUploadProfilePhoto();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [photoError, setPhotoError] = useState<string | null>(null);
+
+  function onPhotoChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    if (!["image/png", "image/jpeg", "image/webp"].includes(file.type)) {
+      setPhotoError(t("profile.photo.badType"));
+      return;
+    }
+    setPhotoError(null);
+    upload.mutate(file, {
+      onError: (err) => setPhotoError(isApiError(err) ? err.message : t("profile.photo.error")),
+    });
+  }
+
   return (
     <div className="rounded-lg border border-border bg-card p-6">
       <div className="flex items-start justify-between gap-4">
         <div className="flex min-w-0 gap-4">
-          <div className="grid size-16 shrink-0 place-items-center rounded-full bg-primary text-2xl font-bold text-primary-foreground">
-            {profile.firstName.charAt(0)}
-            {profile.lastName.charAt(0)}
+          <div className="relative size-16 shrink-0">
+            {photoUrl ? (
+              <img src={photoUrl} alt="" className="size-16 rounded-full object-cover" />
+            ) : (
+              <div className="grid size-16 place-items-center rounded-full bg-primary text-2xl font-bold text-primary-foreground">
+                {profile.firstName.charAt(0)}
+                {profile.lastName.charAt(0)}
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={() => inputRef.current?.click()}
+              disabled={upload.isPending}
+              aria-label={t("profile.photo.change")}
+              className="absolute -bottom-1 -right-1 grid size-6 place-items-center rounded-full border border-border bg-card text-foreground shadow-sm hover:bg-muted disabled:opacity-60"
+            >
+              {upload.isPending ? (
+                <Loader2 className="size-3 animate-spin" />
+              ) : (
+                <Camera className="size-3" />
+              )}
+            </button>
+            <input
+              ref={inputRef}
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              hidden
+              onChange={onPhotoChange}
+            />
           </div>
           <div className="min-w-0">
             <h1 className="text-2xl font-semibold leading-tight text-foreground">
               {profile.firstName} {profile.lastName}
             </h1>
             {role && <p className="mt-1 text-sm text-[var(--color-slate)]">{role}</p>}
+            {photoError && <p className="mt-1 text-sm text-destructive">{photoError}</p>}
           </div>
         </div>
         <Button variant="outline" size="sm" asChild>
