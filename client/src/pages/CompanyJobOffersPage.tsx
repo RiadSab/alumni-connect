@@ -115,9 +115,14 @@ function OfferRow({ offer }: { offer: JobOfferDTO }) {
           <span>{tn(postedDaysAgo, "card.posted.one", "card.posted.other")}</span>
         </div>
       </div>
-      <Button variant="outline" size="sm" asChild>
-        <Link to={`/company/jobs/${offer.id}/edit`}>{t("myJobs.manage")}</Link>
-      </Button>
+      <div className="flex shrink-0 gap-2">
+        <Button variant="ghost" size="sm" asChild>
+          <Link to={`/jobs/${offer.id}`}>{t("myJobs.view")}</Link>
+        </Button>
+        <Button variant="outline" size="sm" asChild>
+          <Link to={`/company/jobs/${offer.id}/edit`}>{t("myJobs.manage")}</Link>
+        </Button>
+      </div>
     </article>
   );
 }
