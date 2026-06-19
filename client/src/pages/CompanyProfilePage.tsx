@@ -4,6 +4,7 @@
 // COMPANY_USER is logged in (ProfilePage dispatches by user type). Editing and logo
 // upload (OWNER only) land in the next commit.
 
+import { Link } from "react-router-dom";
 import { Building2, CloudOff, ExternalLink, RefreshCw } from "lucide-react";
 import { useMyCompanyUserProfile } from "@/features/companyUsers/hooks";
 import { useCompany } from "@/features/companies/hooks";
@@ -51,42 +52,51 @@ export function CompanyProfilePage() {
   }
 
   const profile = company.data;
+  // Only the company OWNER can edit; the backend enforces this too (403).
+  const isOwner = me.data?.companyRole === "OWNER";
 
   return (
     <div className="mx-auto max-w-3xl space-y-4">
-      <CompanyHeader profile={profile} />
+      <CompanyHeader profile={profile} isOwner={isOwner} />
       <Details profile={profile} />
       {profile.description && <About profile={profile} />}
     </div>
   );
 }
 
-function CompanyHeader({ profile }: { profile: CompanyDTO }) {
+function CompanyHeader({ profile, isOwner }: { profile: CompanyDTO; isOwner: boolean }) {
   const { t } = useT();
   const field = fieldsOptions.find((o) => o.value === profile.field)?.label ?? profile.field;
 
   return (
     <div className="rounded-lg border border-border bg-card p-6">
-      <div className="flex min-w-0 items-start gap-4">
-        <div className="size-16 shrink-0">
-          {profile.logoId ? (
-            // The logo endpoint is public, so it can go straight into <img src>
-            // (no auth header / blob dance like the candidate photo needs).
-            <img
-              src={companiesApi.logoUrl(profile.id)}
-              alt=""
-              className="size-16 rounded-lg border border-border object-cover"
-            />
-          ) : (
-            <div className="grid size-16 place-items-center rounded-lg bg-primary text-primary-foreground">
-              <Building2 className="size-7" />
-            </div>
-          )}
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex min-w-0 items-start gap-4">
+          <div className="size-16 shrink-0">
+            {profile.logoId ? (
+              // The logo endpoint is public, so it can go straight into <img src>
+              // (no auth header / blob dance like the candidate photo needs).
+              <img
+                src={companiesApi.logoUrl(profile.id)}
+                alt=""
+                className="size-16 rounded-lg border border-border object-cover"
+              />
+            ) : (
+              <div className="grid size-16 place-items-center rounded-lg bg-primary text-primary-foreground">
+                <Building2 className="size-7" />
+              </div>
+            )}
+          </div>
+          <div className="min-w-0">
+            <h1 className="text-2xl font-semibold leading-tight text-foreground">{profile.name}</h1>
+            <p className="mt-1 text-sm text-[var(--color-slate)]">{field}</p>
+          </div>
         </div>
-        <div className="min-w-0">
-          <h1 className="text-2xl font-semibold leading-tight text-foreground">{profile.name}</h1>
-          <p className="mt-1 text-sm text-[var(--color-slate)]">{field}</p>
-        </div>
+        {isOwner && (
+          <Button variant="outline" size="sm" asChild>
+            <Link to="/profile/edit">{t("profile.edit")}</Link>
+          </Button>
+        )}
       </div>
       <div className="mt-5 grid gap-3 sm:grid-cols-2">
         <Row label={t("profile.email")}>
