@@ -19,6 +19,7 @@ import { CompanyJobOffersPage } from "@/pages/CompanyJobOffersPage";
 import { CompanyJobOfferCreatePage } from "@/pages/CompanyJobOfferCreatePage";
 import { CompanyJobOfferEditPage } from "@/pages/CompanyJobOfferEditPage";
 import { CompanyApplicantsPage } from "@/pages/CompanyApplicantsPage";
+import { CompanyApplicationReviewPage } from "@/pages/CompanyApplicationReviewPage";
 import { NotFoundPage } from "@/pages/NotFoundPage";
 
 function App() {
@@ -47,6 +48,7 @@ function App() {
               <Route path="company/jobs/new" element={<CompanyJobOfferCreatePage />} />
               <Route path="company/jobs/:id/edit" element={<CompanyJobOfferEditPage />} />
               <Route path="company/jobs/:id/applications" element={<CompanyApplicantsPage />} />
+              <Route path="company/applications/:appId" element={<CompanyApplicationReviewPage />} />
             </Route>
           </Route>
 
