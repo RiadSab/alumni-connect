@@ -70,6 +70,11 @@ export function RootLayout() {
                   {t("nav.companyJobs")}
                 </NavLink>
               )}
+              {isCompany && (
+                <NavLink to="/company/team" className={navLinkClass}>
+                  {t("nav.companyTeam")}
+                </NavLink>
+              )}
             </nav>
           </div>
 
