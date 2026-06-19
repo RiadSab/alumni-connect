@@ -16,6 +16,7 @@ import { ProfilePage } from "@/pages/ProfilePage";
 import { ProfileEditPage } from "@/pages/ProfileEditPage";
 import { ChangePasswordPage } from "@/pages/ChangePasswordPage";
 import { CompanyJobOffersPage } from "@/pages/CompanyJobOffersPage";
+import { CompanyJobOfferCreatePage } from "@/pages/CompanyJobOfferCreatePage";
 import { NotFoundPage } from "@/pages/NotFoundPage";
 
 function App() {
@@ -41,6 +42,7 @@ function App() {
             {/* Company users only */}
             <Route element={<RequireCompany />}>
               <Route path="company/jobs" element={<CompanyJobOffersPage />} />
+              <Route path="company/jobs/new" element={<CompanyJobOfferCreatePage />} />
             </Route>
           </Route>
 

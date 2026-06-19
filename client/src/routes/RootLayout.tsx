@@ -33,7 +33,7 @@ export function RootLayout() {
   const navigate = useNavigate();
 
   const isCandidate = user?.userType === "CANDIDATE";
-  const isCompany = user?.userType == "COMPANY_USER";
+  const isCompany = user?.userType === "COMPANY_USER";
   function handleLogout() {
     logout();
     navigate("/");
