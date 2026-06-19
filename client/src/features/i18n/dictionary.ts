@@ -114,6 +114,12 @@ export const en = {
   "profile.photo.change": "Change photo",
   "profile.photo.badType": "Please choose a PNG, JPEG, or WEBP image.",
   "profile.photo.error": "Couldn't upload your photo. Please try again.",
+  // company profile
+  "company.details": "Company details",
+  "company.size": "Company size",
+  "company.address": "Address",
+  "company.website": "Website",
+  "company.status": "Status",
 } satisfies Record<string, string>;
 
 export type TKey = keyof typeof en;
@@ -226,4 +232,10 @@ export const fr: Record<TKey, string> = {
   "profile.photo.change": "Changer la photo",
   "profile.photo.badType": "Veuillez choisir une image PNG, JPEG ou WEBP.",
   "profile.photo.error": "Impossible de téléverser votre photo. Veuillez réessayer.",
+  // company profile
+  "company.details": "Détails de l'entreprise",
+  "company.size": "Taille de l'entreprise",
+  "company.address": "Adresse",
+  "company.website": "Site web",
+  "company.status": "Statut",
 };
