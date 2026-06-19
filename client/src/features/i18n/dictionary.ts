@@ -123,6 +123,9 @@ export const en = {
   "company.error.title": "Couldn't load company profile",
   "company.error.body":
     "Something went wrong loading your company. Check your connection and try again.",
+  "company.logo.change": "Change logo",
+  "company.logo.badType": "Please choose a PNG, JPEG, or WEBP image.",
+  "company.logo.error": "Couldn't upload your logo. Please try again.",
 } satisfies Record<string, string>;
 
 export type TKey = keyof typeof en;
@@ -244,4 +247,7 @@ export const fr: Record<TKey, string> = {
   "company.error.title": "Impossible de charger le profil de l'entreprise",
   "company.error.body":
     "Une erreur est survenue lors du chargement de votre entreprise. Vérifiez votre connexion et réessayez.",
+  "company.logo.change": "Changer le logo",
+  "company.logo.badType": "Veuillez choisir une image PNG, JPEG ou WEBP.",
+  "company.logo.error": "Impossible de téléverser votre logo. Veuillez réessayer.",
 };

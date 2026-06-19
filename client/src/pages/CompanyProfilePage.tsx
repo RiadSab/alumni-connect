@@ -4,12 +4,14 @@
 // COMPANY_USER is logged in (ProfilePage dispatches by user type). Editing and logo
 // upload (OWNER only) land in the next commit.
 
+import { useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { Building2, CloudOff, ExternalLink, RefreshCw } from "lucide-react";
+import { Building2, Camera, CloudOff, ExternalLink, Loader2, RefreshCw } from "lucide-react";
 import { useMyCompanyUserProfile } from "@/features/companyUsers/hooks";
-import { useCompany } from "@/features/companies/hooks";
+import { useCompany, useUploadCompanyLogo } from "@/features/companies/hooks";
 import { companiesApi } from "@/api/companies";
 import { useT } from "@/features/i18n/lang-context";
+import { isApiError } from "@/lib/http";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { companySizeOptions, companyStatusOptions, fieldsOptions } from "@/types/enums";
@@ -68,16 +70,36 @@ function CompanyHeader({ profile, isOwner }: { profile: CompanyDTO; isOwner: boo
   const { t } = useT();
   const field = fieldsOptions.find((o) => o.value === profile.field)?.label ?? profile.field;
 
+  const upload = useUploadCompanyLogo();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [logoError, setLogoError] = useState<string | null>(null);
+
+  function onLogoChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    if (!["image/png", "image/jpeg", "image/webp"].includes(file.type)) {
+      setLogoError(t("company.logo.badType"));
+      return;
+    }
+    setLogoError(null);
+    upload.mutate(file, {
+      onError: (err) => setLogoError(isApiError(err) ? err.message : t("company.logo.error")),
+    });
+  }
+
   return (
     <div className="rounded-lg border border-border bg-card p-6">
       <div className="flex items-start justify-between gap-4">
         <div className="flex min-w-0 items-start gap-4">
-          <div className="size-16 shrink-0">
+          <div className="relative size-16 shrink-0">
             {profile.logoId ? (
               // The logo endpoint is public, so it can go straight into <img src>
-              // (no auth header / blob dance like the candidate photo needs).
+              // (no auth header / blob dance like the candidate photo needs). The
+              // URL is the same after a re-upload, so ?v=logoId busts the browser
+              // cache when the logo changes.
               <img
-                src={companiesApi.logoUrl(profile.id)}
+                src={`${companiesApi.logoUrl(profile.id)}?v=${profile.logoId}`}
                 alt=""
                 className="size-16 rounded-lg border border-border object-cover"
               />
@@ -86,10 +108,35 @@ function CompanyHeader({ profile, isOwner }: { profile: CompanyDTO; isOwner: boo
                 <Building2 className="size-7" />
               </div>
             )}
+            {isOwner && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => inputRef.current?.click()}
+                  disabled={upload.isPending}
+                  aria-label={t("company.logo.change")}
+                  className="absolute -bottom-1 -right-1 grid size-6 place-items-center rounded-full border border-border bg-card text-foreground shadow-sm hover:bg-muted disabled:opacity-60"
+                >
+                  {upload.isPending ? (
+                    <Loader2 className="size-3 animate-spin" />
+                  ) : (
+                    <Camera className="size-3" />
+                  )}
+                </button>
+                <input
+                  ref={inputRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  hidden
+                  onChange={onLogoChange}
+                />
+              </>
+            )}
           </div>
           <div className="min-w-0">
             <h1 className="text-2xl font-semibold leading-tight text-foreground">{profile.name}</h1>
             <p className="mt-1 text-sm text-[var(--color-slate)]">{field}</p>
+            {logoError && <p className="mt-1 text-sm text-destructive">{logoError}</p>}
           </div>
         </div>
         {isOwner && (
