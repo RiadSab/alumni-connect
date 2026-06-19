@@ -40,8 +40,8 @@ export function CompanyProfilePage() {
           <div className="mb-4 grid size-14 place-items-center rounded-xl bg-[color-mix(in_srgb,var(--color-error)_12%,#fff)] text-[var(--color-error)]">
             <CloudOff className="size-6" />
           </div>
-          <h3 className="text-lg font-semibold text-foreground">{t("board.error.title")}</h3>
-          <p className="mt-2 max-w-sm text-sm text-[var(--color-steel)]">{t("board.error.body")}</p>
+          <h3 className="text-lg font-semibold text-foreground">{t("company.error.title")}</h3>
+          <p className="mt-2 max-w-sm text-sm text-[var(--color-steel)]">{t("company.error.body")}</p>
           <Button className="mt-5" onClick={() => company.refetch()}>
             <RefreshCw className="size-4" /> {t("board.retry")}
           </Button>

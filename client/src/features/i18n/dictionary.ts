@@ -120,6 +120,9 @@ export const en = {
   "company.address": "Address",
   "company.website": "Website",
   "company.status": "Status",
+  "company.error.title": "Couldn't load company profile",
+  "company.error.body":
+    "Something went wrong loading your company. Check your connection and try again.",
 } satisfies Record<string, string>;
 
 export type TKey = keyof typeof en;
@@ -238,4 +241,7 @@ export const fr: Record<TKey, string> = {
   "company.address": "Adresse",
   "company.website": "Site web",
   "company.status": "Statut",
+  "company.error.title": "Impossible de charger le profil de l'entreprise",
+  "company.error.body":
+    "Une erreur est survenue lors du chargement de votre entreprise. Vérifiez votre connexion et réessayez.",
 };
