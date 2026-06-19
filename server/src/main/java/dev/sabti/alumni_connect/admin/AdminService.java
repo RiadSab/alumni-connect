@@ -22,8 +22,8 @@ public class AdminService {
     private final UserRepository userRepository;
     private final CompanyRepository companyRepository;
 
-    public Page<User> getPendingUsers(Pageable pageable) {
-        return userRepository.findByUserStatus(UserStatus.PENDING, pageable);
+    public Page<AdminUserDTO> getPendingUsers(Pageable pageable) {
+        return userRepository.findByUserStatus(UserStatus.PENDING, pageable).map(AdminUserDTO::from);
     }
 
     // Admin moderation browse: every user, optionally narrowed by status and/or type (no filter
@@ -41,8 +41,8 @@ public class AdminService {
         return userRepository.findAll(spec, pageable).map(AdminUserDTO::from);
     }
 
-    public Page<Company> getPendingCompanies(Pageable pageable) {
-        return companyRepository.findByStatus(CompanyStatus.PENDING, pageable);
+    public Page<AdminCompanyDTO> getPendingCompanies(Pageable pageable) {
+        return companyRepository.findByStatus(CompanyStatus.PENDING, pageable).map(AdminCompanyDTO::from);
     }
 
     // Admin moderation browse over companies, optionally narrowed by status (no filter = all).

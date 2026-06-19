@@ -1,9 +1,7 @@
 package dev.sabti.alumni_connect.admin;
 
-import dev.sabti.alumni_connect.auth.entities.User;
 import dev.sabti.alumni_connect.auth.entities.UserStatus;
 import dev.sabti.alumni_connect.auth.entities.UserType;
-import dev.sabti.alumni_connect.company.entities.Company;
 import dev.sabti.alumni_connect.company.entities.CompanyStatus;
 import dev.sabti.alumni_connect.shared.StatusChangeDTO;
 import jakarta.validation.Valid;
@@ -21,7 +19,7 @@ public class AdminController {
     private final AdminService adminService;
 
     @GetMapping("/pending-users")
-    public ResponseEntity<Page<User>> getPendingUsers(@PageableDefault Pageable pageable) {
+    public ResponseEntity<Page<AdminUserDTO>> getPendingUsers(@PageableDefault Pageable pageable) {
         return ResponseEntity.ok(adminService.getPendingUsers(pageable));
     }
 
@@ -36,7 +34,7 @@ public class AdminController {
     }
 
     @GetMapping("/pending-companies")
-    public ResponseEntity<Page<Company>> getPendingCompanies(@PageableDefault Pageable pageable) {
+    public ResponseEntity<Page<AdminCompanyDTO>> getPendingCompanies(@PageableDefault Pageable pageable) {
         return ResponseEntity.ok(adminService.getPendingCompanies(pageable));
     }
 
