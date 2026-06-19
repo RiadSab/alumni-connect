@@ -172,6 +172,13 @@ export const en = {
   "dash.recent": "Recent postings",
   "dash.viewAll": "View all",
   "dash.empty": "No postings yet.",
+  "dash.team": "Team",
+  // company team roster
+  "team.title": "Team",
+  "team.subtitle": "Your company's members.",
+  "team.count.one": "{n} member",
+  "team.count.other": "{n} members",
+  "team.roleError": "Couldn't change the role. Please try again.",
 } satisfies Record<string, string>;
 
 export type TKey = keyof typeof en;
@@ -342,4 +349,11 @@ export const fr: Record<TKey, string> = {
   "dash.recent": "Offres récentes",
   "dash.viewAll": "Tout voir",
   "dash.empty": "Aucune offre pour l'instant.",
+  "dash.team": "Équipe",
+  // company team roster
+  "team.title": "Équipe",
+  "team.subtitle": "Les membres de votre entreprise.",
+  "team.count.one": "{n} membre",
+  "team.count.other": "{n} membres",
+  "team.roleError": "Impossible de changer le rôle. Veuillez réessayer.",
 };

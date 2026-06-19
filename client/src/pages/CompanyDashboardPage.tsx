@@ -5,7 +5,7 @@
 // dashes and only the shortcuts show.
 
 import { Link } from "react-router-dom";
-import { Briefcase, FilePlus2, Settings, Users } from "lucide-react";
+import { Briefcase, FilePlus2, Settings, Users, UsersRound } from "lucide-react";
 import { useAuth } from "@/features/auth/auth-context";
 import { useMyCompanyUserProfile } from "@/features/companyUsers/hooks";
 import { useMyJobOffers } from "@/features/jobOffers/hooks";
@@ -67,6 +67,11 @@ export function CompanyDashboardPage() {
         <Button variant="outline" asChild>
           <Link to="/company/jobs">
             <Briefcase className="size-4" /> {t("dash.managePostings")}
+          </Link>
+        </Button>
+        <Button variant="outline" asChild>
+          <Link to="/company/team">
+            <UsersRound className="size-4" /> {t("dash.team")}
           </Link>
         </Button>
         <Button variant="outline" asChild>
