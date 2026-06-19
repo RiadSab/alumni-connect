@@ -13,6 +13,7 @@ export const en = {
   "nav.myApplications": "My applications",
   "nav.companyJobs": "Company board",
   "nav.companyTeam": "Team",
+  "nav.admin": "Admin",
   "nav.profile": "Profile",
   "nav.settings": "Settings",
   "nav.login": "Login",
@@ -180,6 +181,13 @@ export const en = {
   "team.count.one": "{n} member",
   "team.count.other": "{n} members",
   "team.roleError": "Couldn't change the role. Please try again.",
+  // admin console
+  "admin.dash.subtitle": "Review pending sign-ups and moderate accounts.",
+  "admin.dash.pendingUsers": "Pending users",
+  "admin.dash.pendingCompanies": "Pending companies",
+  "admin.dash.reviewApprovals": "Review approvals",
+  "admin.dash.allUsers": "All users",
+  "admin.dash.allCompanies": "All companies",
 } satisfies Record<string, string>;
 
 export type TKey = keyof typeof en;
@@ -191,6 +199,7 @@ export const fr: Record<TKey, string> = {
   "nav.myApplications": "Mes candidatures",
   "nav.companyJobs": "Espace entreprise",
   "nav.companyTeam": "Équipe",
+  "nav.admin": "Admin",
   "nav.profile": "Profil",
   "nav.settings": "Paramètres",
   "nav.login": "Connexion",
@@ -358,4 +367,11 @@ export const fr: Record<TKey, string> = {
   "team.count.one": "{n} membre",
   "team.count.other": "{n} membres",
   "team.roleError": "Impossible de changer le rôle. Veuillez réessayer.",
+  // admin console
+  "admin.dash.subtitle": "Examinez les inscriptions en attente et modérez les comptes.",
+  "admin.dash.pendingUsers": "Utilisateurs en attente",
+  "admin.dash.pendingCompanies": "Entreprises en attente",
+  "admin.dash.reviewApprovals": "Examiner les demandes",
+  "admin.dash.allUsers": "Tous les utilisateurs",
+  "admin.dash.allCompanies": "Toutes les entreprises",
 };
