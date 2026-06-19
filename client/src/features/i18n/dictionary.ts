@@ -162,6 +162,16 @@ export const en = {
   "review.saving": "Saving…",
   "review.saved": "Review saved",
   "review.error": "Couldn't save the review. Please try again.",
+  // company dashboard
+  "dash.welcome": "Welcome, {name}",
+  "dash.stat.postings": "Postings",
+  "dash.stat.open": "Open",
+  "dash.stat.applicants": "Applicants",
+  "dash.managePostings": "Manage postings",
+  "dash.companyProfile": "Company profile",
+  "dash.recent": "Recent postings",
+  "dash.viewAll": "View all",
+  "dash.empty": "No postings yet.",
 } satisfies Record<string, string>;
 
 export type TKey = keyof typeof en;
@@ -322,4 +332,14 @@ export const fr: Record<TKey, string> = {
   "review.saving": "Enregistrement…",
   "review.saved": "Évaluation enregistrée",
   "review.error": "Impossible d'enregistrer l'évaluation. Veuillez réessayer.",
+  // company dashboard
+  "dash.welcome": "Bienvenue, {name}",
+  "dash.stat.postings": "Offres",
+  "dash.stat.open": "Ouvertes",
+  "dash.stat.applicants": "Candidats",
+  "dash.managePostings": "Gérer les offres",
+  "dash.companyProfile": "Profil de l'entreprise",
+  "dash.recent": "Offres récentes",
+  "dash.viewAll": "Tout voir",
+  "dash.empty": "Aucune offre pour l'instant.",
 };

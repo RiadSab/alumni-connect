@@ -1,10 +1,16 @@
-// Protected page (behind RequireAuth). For now it just proves the guard and the
-// auth context work by showing the logged-in user.
+// Route component for /dashboard. The view depends on who is logged in: company
+// users get their company dashboard; everyone else gets the simple placeholder for
+// now (a real candidate/admin dashboard comes later).
 
 import { useAuth } from "@/features/auth/auth-context";
+import { CompanyDashboardPage } from "@/pages/CompanyDashboardPage";
 
 export function DashboardPage() {
   const { user } = useAuth();
+
+  if (user?.userType === "COMPANY_USER") {
+    return <CompanyDashboardPage />;
+  }
 
   return (
     <div>
