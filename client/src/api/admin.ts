@@ -8,15 +8,13 @@ import type {
   AdminCompanyFilters,
   AdminUserDTO,
   AdminUserFilters,
-  CompanyEntity,
   StatusChangeDTO,
-  UserEntity,
 } from "@/types/admin";
 
 export const adminApi = {
   // --- Users ---------------------------------------------------------------
   pendingUsers: (params?: PageParams) =>
-    http.get<Page<UserEntity>>("/admin/pending-users", { query: params }),
+    http.get<Page<AdminUserDTO>>("/admin/pending-users", { query: params }),
 
   users: (filters?: AdminUserFilters) =>
     http.get<Page<AdminUserDTO>>("/admin/users", { query: filters }),
@@ -32,7 +30,7 @@ export const adminApi = {
 
   // --- Companies -----------------------------------------------------------
   pendingCompanies: (params?: PageParams) =>
-    http.get<Page<CompanyEntity>>("/admin/pending-companies", { query: params }),
+    http.get<Page<AdminCompanyDTO>>("/admin/pending-companies", { query: params }),
 
   companies: (filters?: AdminCompanyFilters) =>
     http.get<Page<AdminCompanyDTO>>("/admin/companies", { query: filters }),

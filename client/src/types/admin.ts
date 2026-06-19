@@ -1,5 +1,4 @@
-// Admin DTOs (§7). Includes the two raw JPA entity shapes that the "pending"
-// endpoints serialize instead of a clean DTO.
+// Admin DTOs (§7). The "pending" and browse-all endpoints both return these DTOs.
 
 import { z } from "zod";
 import type {
@@ -40,38 +39,9 @@ export interface AdminCompanyDTO extends AuditFields {
   statusChangeReason: string | null;
 }
 
-// Raw User entity — GET /api/admin/pending-users (passwordHash never serialized).
-export interface UserEntity extends AuditFields {
-  id: number;
-  email: string;
-  firstName: string;
-  lastName: string;
-  phoneNumber: string | null;
-  userType: UserType;
-  userStatus: UserStatus;
-  emailVerified: boolean;
-  preferredLanguage: string; // default "en"
-  statusChangeReason: string | null;
-  version: number;
-}
-
-// Raw Company entity — GET /api/admin/pending-companies.
-export interface CompanyEntity extends AuditFields {
-  id: number;
-  name: string;
-  email: string;
-  phone: string | null;
-  field: Fields;
-  description: string | null;
-  website: string | null;
-  address: string | null;
-  logoId: string | null;
-  videoPresentationId: string | null;
-  status: CompanyStatus;
-  size: CompanySize | null;
-  statusChangeReason: string | null;
-  version: number;
-}
+// NOTE: GET /api/admin/pending-users & /pending-companies used to serialize the raw
+// JPA entities; the backend now maps them through AdminUserDTO / AdminCompanyDTO, so
+// the pending and browse-all endpoints share one shape (above) — no entity types needed.
 
 // Body for all 8 user/company lifecycle actions.
 export const statusChangeSchema = z.object({
