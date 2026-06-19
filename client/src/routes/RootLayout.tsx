@@ -71,7 +71,7 @@ export function RootLayout() {
           <div className="flex items-center gap-3">
             <LangToggle />
             {isAuthenticated && user ? (
-              <UserMenu user={user} isCandidate={isCandidate} onLogout={handleLogout} />
+              <UserMenu user={user} onLogout={handleLogout} />
             ) : (
               <Button asChild size="sm">
                 <Link to="/login">{t("nav.login")}</Link>
@@ -90,15 +90,15 @@ export function RootLayout() {
 
 function UserMenu({
   user,
-  isCandidate,
   onLogout,
 }: {
   user: AuthUser;
-  isCandidate: boolean;
   onLogout: () => void;
 }) {
   const { t } = useT();
   const initials = `${user.firstName.charAt(0)}${user.lastName.charAt(0)}`;
+  // Both candidates and company users have a /profile (it dispatches by type).
+  const showProfile = user.userType === "CANDIDATE" || user.userType === "COMPANY_USER";
 
   return (
     <DropdownMenu>
@@ -122,7 +122,7 @@ function UserMenu({
           <div className="text-xs text-muted-foreground">{user.email}</div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        {isCandidate && (
+        {showProfile && (
           <DropdownMenuItem asChild>
             <Link to="/profile">
               <User /> {t("nav.profile")}
