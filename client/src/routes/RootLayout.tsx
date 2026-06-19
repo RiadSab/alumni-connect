@@ -33,7 +33,7 @@ export function RootLayout() {
   const navigate = useNavigate();
 
   const isCandidate = user?.userType === "CANDIDATE";
-
+  const isCompany = user?.userType == "COMPANY_USER";
   function handleLogout() {
     logout();
     navigate("/");
@@ -63,6 +63,11 @@ export function RootLayout() {
               {isCandidate && (
                 <NavLink to="/applications" className={navLinkClass}>
                   {t("nav.myApplications")}
+                </NavLink>
+              )}
+              {isCompany && (
+                <NavLink to="/company/jobs" className={navLinkClass}>
+                  {t("nav.companyJobs")}
                 </NavLink>
               )}
             </nav>
