@@ -4,6 +4,7 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { RootLayout } from "@/routes/RootLayout";
 import { RequireAuth } from "@/routes/RequireAuth";
+import { RequireCompany } from "@/routes/RequireCompany";
 import { HomePage } from "@/pages/HomePage";
 import { JobDetailPage } from "@/pages/JobDetailPage";
 import { LoginPage } from "@/pages/LoginPage";
@@ -14,6 +15,7 @@ import { MyApplicationsPage } from "@/pages/MyApplicationsPage";
 import { ProfilePage } from "@/pages/ProfilePage";
 import { ProfileEditPage } from "@/pages/ProfileEditPage";
 import { ChangePasswordPage } from "@/pages/ChangePasswordPage";
+import { CompanyJobOffersPage } from "@/pages/CompanyJobOffersPage";
 import { NotFoundPage } from "@/pages/NotFoundPage";
 
 function App() {
@@ -35,6 +37,11 @@ function App() {
             <Route path="profile" element={<ProfilePage />} />
             <Route path="profile/edit" element={<ProfileEditPage />} />
             <Route path="settings/password" element={<ChangePasswordPage />} />
+
+            {/* Company users only */}
+            <Route element={<RequireCompany />}>
+              <Route path="company/jobs" element={<CompanyJobOffersPage />} />
+            </Route>
           </Route>
 
           {/* Fallback */}

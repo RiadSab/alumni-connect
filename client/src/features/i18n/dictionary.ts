@@ -126,6 +126,15 @@ export const en = {
   "company.logo.change": "Change logo",
   "company.logo.badType": "Please choose a PNG, JPEG, or WEBP image.",
   "company.logo.error": "Couldn't upload your logo. Please try again.",
+  // company job postings
+  "myJobs.title": "Job postings",
+  "myJobs.subtitle": "Manage the offers your company has posted.",
+  "myJobs.post": "Post a job",
+  "myJobs.manage": "Manage",
+  "myJobs.count.one": "{n} posting",
+  "myJobs.count.other": "{n} postings",
+  "myJobs.empty.title": "No postings yet",
+  "myJobs.empty.body": "Post your first job offer and it'll show up here.",
 } satisfies Record<string, string>;
 
 export type TKey = keyof typeof en;
@@ -250,4 +259,13 @@ export const fr: Record<TKey, string> = {
   "company.logo.change": "Changer le logo",
   "company.logo.badType": "Veuillez choisir une image PNG, JPEG ou WEBP.",
   "company.logo.error": "Impossible de téléverser votre logo. Veuillez réessayer.",
+  // company job postings
+  "myJobs.title": "Offres publiées",
+  "myJobs.subtitle": "Gérez les offres publiées par votre entreprise.",
+  "myJobs.post": "Publier une offre",
+  "myJobs.manage": "Gérer",
+  "myJobs.count.one": "{n} offre",
+  "myJobs.count.other": "{n} offres",
+  "myJobs.empty.title": "Aucune offre pour l'instant",
+  "myJobs.empty.body": "Publiez votre première offre d'emploi et elle apparaîtra ici.",
 };
