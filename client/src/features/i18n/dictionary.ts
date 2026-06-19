@@ -137,6 +137,12 @@ export const en = {
   "myJobs.count.other": "{n} postings",
   "myJobs.empty.title": "No postings yet",
   "myJobs.empty.body": "Post your first job offer and it'll show up here.",
+  // applicants
+  "applicants.back": "Back to postings",
+  "applicants.title": "Applicants",
+  "applicants.review": "Review",
+  "applicants.empty.title": "No applicants yet",
+  "applicants.empty.body": "When candidates apply to this offer, they'll show up here.",
 } satisfies Record<string, string>;
 
 export type TKey = keyof typeof en;
@@ -272,4 +278,10 @@ export const fr: Record<TKey, string> = {
   "myJobs.count.other": "{n} offres",
   "myJobs.empty.title": "Aucune offre pour l'instant",
   "myJobs.empty.body": "Publiez votre première offre d'emploi et elle apparaîtra ici.",
+  // applicants
+  "applicants.back": "Retour aux offres",
+  "applicants.title": "Candidats",
+  "applicants.review": "Examiner",
+  "applicants.empty.title": "Aucun candidat pour l'instant",
+  "applicants.empty.body": "Lorsque des candidats postulent à cette offre, ils apparaissent ici.",
 };

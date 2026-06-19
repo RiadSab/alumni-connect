@@ -109,9 +109,13 @@ function OfferRow({ offer }: { offer: JobOfferDTO }) {
         </div>
         <div className="mt-1.5 flex flex-wrap items-center gap-2.5 text-sm text-[var(--color-slate)]">
           {offer.employmentType && <span>{humanizeType(offer.employmentType)}</span>}
-          <span className="inline-flex items-center gap-1.5">
+          {/* The applicant count doubles as the link into the applicants screen. */}
+          <Link
+            to={`/company/jobs/${offer.id}/applications`}
+            className="inline-flex items-center gap-1.5 hover:text-foreground hover:underline"
+          >
             <Users className="size-3.5" /> {applicants}
-          </span>
+          </Link>
           <span>{tn(postedDaysAgo, "card.posted.one", "card.posted.other")}</span>
         </div>
       </div>
