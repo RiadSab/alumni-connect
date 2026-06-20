@@ -19,7 +19,7 @@ public class MyUserDetailsService implements UserDetailsService {
         User user = userRepository.findByEmail(username)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
-        String role = determineRole(user);
+        String role = user.getUserType().name(); // CANDIDATE, COMPANY_USER, or ADMINISTRATOR
 
         return org.springframework.security.core.userdetails.User.builder()
                 .username(user.getEmail())
@@ -32,11 +32,4 @@ public class MyUserDetailsService implements UserDetailsService {
                 .build();
     }
 
-    private String determineRole(User user) {
-        return switch (user.getUserType()) {
-            case CANDIDATE -> "CANDIDATE";
-            case COMPANY_USER -> "COMPANYUSER";
-            case ADMINISTRATOR -> "ADMINISTRATOR";
-        };
-    }
 }
