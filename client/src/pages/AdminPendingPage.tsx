@@ -2,7 +2,7 @@
 // Approve / Reject actions that open the reason dialog. Reached at /admin/pending.
 // Approving or rejecting invalidates the admin lists, so the row drops out here.
 
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { CloudOff, RefreshCw } from "lucide-react";
 import {
   usePendingUsers,
@@ -38,9 +38,8 @@ export function AdminPendingPage() {
 
 function PendingUsers() {
   const { t, tn } = useT();
-  // ponytail: size 100 loads the whole queue in one shot; paginate if the pending
-  // backlog ever grows past that.
-  const query = usePendingUsers({ size: 100 });
+  const [page, setPage] = useState(0);
+  const query = usePendingUsers({ page });
 
   return (
     <Section
@@ -48,6 +47,8 @@ function PendingUsers() {
       query={query}
       count={(n) => tn(n, "admin.pending.users.count.one", "admin.pending.users.count.other")}
       empty={t("admin.pending.users.empty")}
+      page={page}
+      onPageChange={setPage}
       renderRow={(user) => <PendingUserRow key={user.id} user={user} />}
     />
   );
@@ -55,8 +56,8 @@ function PendingUsers() {
 
 function PendingCompanies() {
   const { t, tn } = useT();
-  // ponytail: same size-100 cap as the users queue above.
-  const query = usePendingCompanies({ size: 100 });
+  const [page, setPage] = useState(0);
+  const query = usePendingCompanies({ page });
 
   return (
     <Section
@@ -64,6 +65,8 @@ function PendingCompanies() {
       query={query}
       count={(n) => tn(n, "admin.pending.companies.count.one", "admin.pending.companies.count.other")}
       empty={t("admin.pending.companies.empty")}
+      page={page}
+      onPageChange={setPage}
       renderRow={(company) => <PendingCompanyRow key={company.id} company={company} />}
     />
   );
@@ -76,17 +79,28 @@ function Section<T>({
   query,
   count,
   empty,
+  page,
+  onPageChange,
   renderRow,
 }: {
   title: string;
   query: {
     isLoading: boolean;
     isError: boolean;
-    data?: { content: T[]; totalElements: number };
+    data?: {
+      content: T[];
+      totalElements: number;
+      totalPages: number;
+      number: number;
+      first: boolean;
+      last: boolean;
+    };
     refetch: () => void;
   };
   count: (n: number) => string;
   empty: string;
+  page: number;
+  onPageChange: (page: number) => void;
   renderRow: (item: T) => ReactNode;
 }) {
   const { t } = useT();
@@ -121,6 +135,20 @@ function Section<T>({
         <>
           <p className="mb-3 text-sm text-[var(--color-steel)]">{count(query.data.totalElements)}</p>
           <div className="space-y-3">{query.data.content.map(renderRow)}</div>
+
+          {query.data.totalPages > 1 && (
+            <nav className="mt-6 flex items-center justify-center gap-3">
+              <Button variant="outline" size="sm" disabled={query.data.first} onClick={() => onPageChange(page - 1)}>
+                {t("pager.prev")}
+              </Button>
+              <span className="text-sm text-[var(--color-steel)]">
+                {t("pager.page", { n: query.data.number + 1, total: query.data.totalPages })}
+              </span>
+              <Button variant="outline" size="sm" disabled={query.data.last} onClick={() => onPageChange(page + 1)}>
+                {t("pager.next")}
+              </Button>
+            </nav>
+          )}
         </>
       )}
     </section>
