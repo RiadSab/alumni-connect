@@ -6,6 +6,7 @@ import { RootLayout } from "@/routes/RootLayout";
 import { RequireAuth } from "@/routes/RequireAuth";
 import { RequireCompany } from "@/routes/RequireCompany";
 import { RequireAdmin } from "@/routes/RequireAdmin";
+import { RequireCandidate } from "@/routes/RequireCandidate";
 import { HomePage } from "@/pages/HomePage";
 import { JobDetailPage } from "@/pages/JobDetailPage";
 import { LoginPage } from "@/pages/LoginPage";
@@ -24,7 +25,6 @@ import { CompanyApplicationReviewPage } from "@/pages/CompanyApplicationReviewPa
 import { CompanyTeamPage } from "@/pages/CompanyTeamPage";
 import { AdminPendingPage } from "@/pages/AdminPendingPage";
 import { AdminUsersPage } from "@/pages/AdminUsersPage";
-import { AdminCompaniesPage } from "@/pages/AdminCompaniesPage";
 import { NotFoundPage } from "@/pages/NotFoundPage";
 
 function App() {
@@ -41,11 +41,17 @@ function App() {
 
           {/* Logged-in only */}
           <Route element={<RequireAuth />}>
+            {/* Shared by every role */}
             <Route path="dashboard" element={<DashboardPage />} />
-            <Route path="applications" element={<MyApplicationsPage />} />
+            <Route path="settings/password" element={<ChangePasswordPage />} />
+            {/* Candidate + company; the page dispatches by type (admins sent home) */}
             <Route path="profile" element={<ProfilePage />} />
             <Route path="profile/edit" element={<ProfileEditPage />} />
-            <Route path="settings/password" element={<ChangePasswordPage />} />
+
+            {/* Candidates only */}
+            <Route element={<RequireCandidate />}>
+              <Route path="applications" element={<MyApplicationsPage />} />
+            </Route>
 
             {/* Company users only */}
             <Route element={<RequireCompany />}>
@@ -61,7 +67,6 @@ function App() {
             <Route element={<RequireAdmin />}>
               <Route path="admin/pending" element={<AdminPendingPage />} />
               <Route path="admin/users" element={<AdminUsersPage />} />
-              <Route path="admin/companies" element={<AdminCompaniesPage />} />
             </Route>
           </Route>
 
