@@ -178,6 +178,14 @@ export const en = {
   "dash.viewAll": "View all",
   "dash.empty": "No postings yet.",
   "dash.team": "Team",
+  // dashboard — candidate
+  "dash.stat.applications": "Applications",
+  "dash.stat.active": "In progress",
+  "dash.stat.accepted": "Accepted",
+  "dash.browseJobs": "Browse jobs",
+  "dash.editProfile": "Edit profile",
+  "dash.recentApplications": "Recent applications",
+  "dash.noApplications": "You haven't applied to any jobs yet.",
   // company team roster
   "team.title": "Team",
   "team.subtitle": "Your company's members.",
@@ -420,6 +428,14 @@ export const fr: Record<TKey, string> = {
   "dash.viewAll": "Tout voir",
   "dash.empty": "Aucune offre pour l'instant.",
   "dash.team": "Équipe",
+  // dashboard — candidate
+  "dash.stat.applications": "Candidatures",
+  "dash.stat.active": "En cours",
+  "dash.stat.accepted": "Acceptées",
+  "dash.browseJobs": "Parcourir les offres",
+  "dash.editProfile": "Modifier le profil",
+  "dash.recentApplications": "Candidatures récentes",
+  "dash.noApplications": "Vous n'avez encore postulé à aucune offre.",
   // company team roster
   "team.title": "Équipe",
   "team.subtitle": "Les membres de votre entreprise.",

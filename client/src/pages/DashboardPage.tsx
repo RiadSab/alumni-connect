@@ -1,11 +1,11 @@
 // Route component for /dashboard. The view depends on who is logged in: company
-// users get their company dashboard; administrators get the moderation dashboard;
-// everyone else gets the simple placeholder for now (a real candidate dashboard
-// comes later).
+// users get their company dashboard, administrators get the moderation dashboard,
+// candidates get their job-search dashboard.
 
 import { useAuth } from "@/features/auth/auth-context";
 import { CompanyDashboardPage } from "@/pages/CompanyDashboardPage";
 import { AdminDashboardPage } from "@/pages/AdminDashboardPage";
+import { CandidateDashboardPage } from "@/pages/CandidateDashboardPage";
 
 export function DashboardPage() {
   const { user } = useAuth();
@@ -18,12 +18,5 @@ export function DashboardPage() {
     return <AdminDashboardPage />;
   }
 
-  return (
-    <div>
-      <h1 className="text-2xl font-bold">Dashboard</h1>
-      <p className="text-muted-foreground">
-        Welcome, {user?.firstName}. Your role is {user?.userType}.
-      </p>
-    </div>
-  );
+  return <CandidateDashboardPage />;
 }
