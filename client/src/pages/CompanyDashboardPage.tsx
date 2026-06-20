@@ -1,14 +1,12 @@
-// Company user's dashboard: a quick overview of their company's postings plus
-// shortcuts to the main company screens. Reached via /dashboard when a COMPANY_USER
-// is logged in (DashboardPage dispatches by user type). Stats come from
-// /job-offers/me (OWNER/RECRUITER); a MEMBER 403s there, so the stats fall back to
-// dashes and only the shortcuts show.
+// Company user's dashboard: overview of the company's postings plus shortcuts.
+// Reached via /dashboard for a COMPANY_USER. Stats come from /job-offers/me/stats
+// (OWNER/RECRUITER); a MEMBER 403s there, so the stats fall back to dashes.
 
 import { Link } from "react-router-dom";
 import { Briefcase, FilePlus2, Settings, Users, UsersRound } from "lucide-react";
 import { useAuth } from "@/features/auth/auth-context";
 import { useMyCompanyUserProfile } from "@/features/companyUsers/hooks";
-import { useMyJobOffers } from "@/features/jobOffers/hooks";
+import { useMyCompanyStats, useMyJobOffers } from "@/features/jobOffers/hooks";
 import { useT } from "@/features/i18n/lang-context";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -28,15 +26,9 @@ export function CompanyDashboardPage() {
   const { t } = useT();
   const { user } = useAuth();
   const me = useMyCompanyUserProfile();
-  // ponytail: size 100 covers the stats in one shot; add a backend summary endpoint
-  // if a company ever posts more than that.
-  const offers = useMyJobOffers({ size: 100 });
-
-  const list = offers.data?.content ?? [];
-  const totalPostings = offers.data?.totalElements ?? 0;
-  const openPostings = list.filter((o) => o.status === "OPEN").length;
-  const totalApplicants = list.reduce((sum, o) => sum + o.currentApplicationCount, 0);
-  const recent = list.slice(0, 5);
+  const stats = useMyCompanyStats();
+  const offers = useMyJobOffers({ size: 5 });
+  const recent = offers.data?.content ?? [];
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
@@ -49,12 +41,12 @@ export function CompanyDashboardPage() {
 
       {/* Stats */}
       <div className="grid gap-4 sm:grid-cols-3">
-        <StatCard label={t("dash.stat.postings")} value={offers.isError ? "—" : totalPostings}
-          loading={offers.isLoading} />
-        <StatCard label={t("dash.stat.open")} value={offers.isError ? "—" : openPostings}
-          loading={offers.isLoading} />
-        <StatCard label={t("dash.stat.applicants")} value={offers.isError ? "—" : totalApplicants}
-          loading={offers.isLoading} />
+        <StatCard label={t("dash.stat.postings")} value={stats.isError ? "—" : stats.data?.totalPostings ?? 0}
+          loading={stats.isLoading} />
+        <StatCard label={t("dash.stat.open")} value={stats.isError ? "—" : stats.data?.openPostings ?? 0}
+          loading={stats.isLoading} />
+        <StatCard label={t("dash.stat.applicants")} value={stats.isError ? "—" : stats.data?.totalApplicants ?? 0}
+          loading={stats.isLoading} />
       </div>
 
       {/* Quick actions */}

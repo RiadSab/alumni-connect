@@ -4,6 +4,7 @@ import { http } from "@/lib/http";
 import { appendIfPresent } from "@/lib/form";
 import type { Page, PageParams } from "@/types/common";
 import type {
+  CompanyOfferStatsDTO,
   CreateJobOfferDTO,
   JobOfferDTO,
   JobOfferFilters,
@@ -33,6 +34,9 @@ export const jobOffersApi = {
 
   // OWNER/RECRUITER — own company's offers, any status.
   mine: (params?: PageParams) => http.get<Page<JobOfferDTO>>("/job-offers/me", { query: params }),
+
+  // OWNER/RECRUITER — dashboard counts.
+  myStats: () => http.get<CompanyOfferStatsDTO>("/job-offers/me/stats"),
 
   // CANDIDATE — skill-matched OPEN offers.
   recommended: (params?: PageParams) =>

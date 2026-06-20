@@ -1,12 +1,11 @@
-// Candidate's dashboard: a quick overview of their job search plus shortcuts to the
-// main candidate screens. Reached via /dashboard when a CANDIDATE is logged in
-// (DashboardPage dispatches by user type). Stats are computed client-side from the
-// candidate's own applications.
+// Candidate's dashboard: job-search overview plus shortcuts. Reached via /dashboard
+// for a CANDIDATE. Counts come from the stats endpoint; the recent list is a small
+// page of the latest applications.
 
 import { Link } from "react-router-dom";
 import { Briefcase, FileText, UserPen } from "lucide-react";
 import { useAuth } from "@/features/auth/auth-context";
-import { useMyApplications } from "@/features/jobApplications/hooks";
+import { useMyApplications, useMyApplicationStats } from "@/features/jobApplications/hooks";
 import { useT } from "@/features/i18n/lang-context";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -14,9 +13,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { applicationStatusOptions } from "@/types/enums";
 import type { ApplicationStatus } from "@/types/enums";
 import type { JobApplicationDTO } from "@/types/jobApplication";
-
-// An application is "in progress" until it reaches a terminal state.
-const TERMINAL: ApplicationStatus[] = ["ACCEPTED", "REJECTED", "WITHDRAWN"];
 
 function statusVariant(status: ApplicationStatus): "default" | "secondary" | "destructive" | "outline" {
   if (status === "ACCEPTED") return "default";
@@ -28,15 +24,10 @@ function statusVariant(status: ApplicationStatus): "default" | "secondary" | "de
 export function CandidateDashboardPage() {
   const { t } = useT();
   const { user } = useAuth();
-  // size 100 covers the stats in one shot; add a backend summary endpoint
-  // if a candidate ever applies to more than that.
-  const apps = useMyApplications({ size: 100 });
-
-  const list = apps.data?.content ?? [];
-  const total = apps.data?.totalElements ?? 0;
-  const active = list.filter((a) => !TERMINAL.includes(a.applicationStatus)).length;
-  const accepted = list.filter((a) => a.applicationStatus === "ACCEPTED").length;
-  const recent = list.slice(0, 5);
+  const stats = useMyApplicationStats();
+  // Just the latest few for the recent list; the counts come from stats above.
+  const recentQuery = useMyApplications({ size: 5 });
+  const recent = recentQuery.data?.content ?? [];
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
@@ -48,12 +39,12 @@ export function CandidateDashboardPage() {
 
       {/* Stats */}
       <div className="grid gap-4 sm:grid-cols-3">
-        <StatCard label={t("dash.stat.applications")} value={apps.isError ? "—" : total}
-          loading={apps.isLoading} />
-        <StatCard label={t("dash.stat.active")} value={apps.isError ? "—" : active}
-          loading={apps.isLoading} />
-        <StatCard label={t("dash.stat.accepted")} value={apps.isError ? "—" : accepted}
-          loading={apps.isLoading} />
+        <StatCard label={t("dash.stat.applications")} value={stats.isError ? "—" : stats.data?.total ?? 0}
+          loading={stats.isLoading} />
+        <StatCard label={t("dash.stat.active")} value={stats.isError ? "—" : stats.data?.active ?? 0}
+          loading={stats.isLoading} />
+        <StatCard label={t("dash.stat.accepted")} value={stats.isError ? "—" : stats.data?.accepted ?? 0}
+          loading={stats.isLoading} />
       </div>
 
       {/* Quick actions */}
@@ -88,7 +79,7 @@ export function CandidateDashboardPage() {
           )}
         </div>
 
-        {apps.isLoading ? (
+        {recentQuery.isLoading ? (
           <Skeleton className="h-20 w-full rounded-lg" />
         ) : recent.length === 0 ? (
           <p className="text-sm text-[var(--color-slate)]">{t("dash.noApplications")}</p>

@@ -58,3 +58,9 @@ export interface AdminUserFilters extends PageParams {
 export interface AdminCompanyFilters extends PageParams {
   status?: CompanyStatus;
 }
+
+// GET /api/admin/stats — admin dashboard counts.
+export interface AdminStatsDTO {
+  pendingUsers: number;
+  pendingCompanies: number;
+}

@@ -30,6 +30,13 @@ export interface JobOfferDTO extends AuditFields {
   contactEmail: string | null;
 }
 
+// GET /api/job-offers/me/stats — company dashboard counts.
+export interface CompanyOfferStatsDTO {
+  totalPostings: number;
+  openPostings: number;
+  totalApplicants: number;
+}
+
 // POST /api/job-offers
 export const createJobOfferSchema = z.object({
   title: nonBlank(),

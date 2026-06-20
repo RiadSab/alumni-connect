@@ -14,6 +14,13 @@ import type {
 
 // --- Queries ---------------------------------------------------------------
 
+export function useAdminStats() {
+  return useQuery({
+    queryKey: queryKeys.admin.stats(),
+    queryFn: () => adminApi.stats(),
+  });
+}
+
 export function usePendingUsers(params?: PageParams) {
   return useQuery({
     queryKey: queryKeys.admin.pendingUsers(params),

@@ -32,6 +32,7 @@ export const queryKeys = {
     all: () => ["jobOffers"] as const,
     browse: (filters?: JobOfferFilters) => ["jobOffers", "browse", filters] as const,
     mine: (params?: PageParams) => ["jobOffers", "mine", params] as const,
+    myStats: () => ["jobOffers", "myStats"] as const,
     recommended: (params?: PageParams) => ["jobOffers", "recommended", params] as const,
     byId: (id: number) => ["jobOffers", "byId", id] as const,
     applications: (id: number, filters?: ApplicationFilters) =>
@@ -41,12 +42,14 @@ export const queryKeys = {
   jobApplications: {
     all: () => ["jobApplications"] as const,
     mine: (params?: PageParams) => ["jobApplications", "mine", params] as const,
+    myStats: () => ["jobApplications", "myStats"] as const,
     byId: (id: number) => ["jobApplications", "byId", id] as const,
     applicant: (id: number) => ["jobApplications", "byId", id, "applicant"] as const,
   },
 
   admin: {
     all: () => ["admin"] as const,
+    stats: () => ["admin", "stats"] as const,
     pendingUsers: (params?: PageParams) => ["admin", "pendingUsers", params] as const,
     users: (filters?: AdminUserFilters) => ["admin", "users", filters] as const,
     pendingCompanies: (params?: PageParams) => ["admin", "pendingCompanies", params] as const,

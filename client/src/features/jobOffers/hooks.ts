@@ -29,6 +29,14 @@ export function useMyJobOffers(params?: PageParams) {
   });
 }
 
+// OWNER/RECRUITER — dashboard counts.
+export function useMyCompanyStats() {
+  return useQuery({
+    queryKey: queryKeys.jobOffers.myStats(),
+    queryFn: () => jobOffersApi.myStats(),
+  });
+}
+
 // CANDIDATE — recommended offers.
 export function useRecommendedJobOffers(params?: PageParams) {
   return useQuery({

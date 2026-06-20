@@ -16,6 +16,14 @@ export function useMyApplications(params?: PageParams, options?: { enabled?: boo
   });
 }
 
+// CANDIDATE — dashboard counts.
+export function useMyApplicationStats() {
+  return useQuery({
+    queryKey: queryKeys.jobApplications.myStats(),
+    queryFn: () => jobApplicationsApi.myStats(),
+  });
+}
+
 // Applicant or posting company — single application.
 export function useApplication(id: number) {
   return useQuery({

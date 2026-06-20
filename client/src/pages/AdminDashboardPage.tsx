@@ -1,12 +1,11 @@
-// Administrator's dashboard: the count of accounts awaiting approval plus shortcuts
-// to the moderation screens. Reached via /dashboard when an ADMINISTRATOR is logged
-// in (DashboardPage dispatches by user type). Counts come from the two "pending"
-// endpoints; only their totals are needed here, so we request a single row.
+// Administrator's dashboard: counts of accounts awaiting approval plus shortcuts to
+// the moderation screens. Reached via /dashboard for an ADMINISTRATOR. Counts come
+// from the admin stats endpoint.
 
 import { Link } from "react-router-dom";
 import { Building2, ClipboardCheck, Users } from "lucide-react";
 import { useAuth } from "@/features/auth/auth-context";
-import { usePendingUsers, usePendingCompanies } from "@/features/admin/hooks";
+import { useAdminStats } from "@/features/admin/hooks";
 import { useT } from "@/features/i18n/lang-context";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -14,9 +13,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 export function AdminDashboardPage() {
   const { t } = useT();
   const { user } = useAuth();
-  // Only the totals matter on this screen, so ask for one row and read totalElements.
-  const pendingUsers = usePendingUsers({ size: 1 });
-  const pendingCompanies = usePendingCompanies({ size: 1 });
+  const stats = useAdminStats();
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
@@ -31,14 +28,14 @@ export function AdminDashboardPage() {
       <div className="grid gap-4 sm:grid-cols-2">
         <StatCard
           label={t("admin.dash.pendingUsers")}
-          value={pendingUsers.isError ? "—" : pendingUsers.data?.totalElements ?? 0}
-          loading={pendingUsers.isLoading}
+          value={stats.isError ? "—" : stats.data?.pendingUsers ?? 0}
+          loading={stats.isLoading}
           to="/admin/pending"
         />
         <StatCard
           label={t("admin.dash.pendingCompanies")}
-          value={pendingCompanies.isError ? "—" : pendingCompanies.data?.totalElements ?? 0}
-          loading={pendingCompanies.isLoading}
+          value={stats.isError ? "—" : stats.data?.pendingCompanies ?? 0}
+          loading={stats.isLoading}
           to="/admin/pending"
         />
       </div>

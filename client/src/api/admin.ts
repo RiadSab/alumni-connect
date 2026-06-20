@@ -6,12 +6,16 @@ import type { Page, PageParams } from "@/types/common";
 import type {
   AdminCompanyDTO,
   AdminCompanyFilters,
+  AdminStatsDTO,
   AdminUserDTO,
   AdminUserFilters,
   StatusChangeDTO,
 } from "@/types/admin";
 
 export const adminApi = {
+  // Dashboard counts.
+  stats: () => http.get<AdminStatsDTO>("/admin/stats"),
+
   // --- Users ---------------------------------------------------------------
   pendingUsers: (params?: PageParams) =>
     http.get<Page<AdminUserDTO>>("/admin/pending-users", { query: params }),

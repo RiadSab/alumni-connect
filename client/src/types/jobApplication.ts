@@ -23,6 +23,13 @@ export interface JobApplicationDTO extends AuditFields {
   rating: number | null; // 0-10
 }
 
+// GET /api/job-applications/me/stats — candidate dashboard counts.
+export interface MyApplicationStatsDTO {
+  total: number;
+  active: number;
+  accepted: number;
+}
+
 // POST /api/job-offers/{id}/apply — multipart. Text/bool parts validated here;
 // the file is attached separately by the api layer.
 export const applyToJobOfferSchema = z.object({

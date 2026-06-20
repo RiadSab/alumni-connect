@@ -3,12 +3,19 @@
 import { http } from "@/lib/http";
 import type { Page, PageParams } from "@/types/common";
 import type { CandidateProfileDTO } from "@/types/candidate";
-import type { JobApplicationDTO, ReviewApplicationDTO } from "@/types/jobApplication";
+import type {
+  JobApplicationDTO,
+  MyApplicationStatsDTO,
+  ReviewApplicationDTO,
+} from "@/types/jobApplication";
 
 export const jobApplicationsApi = {
   // CANDIDATE — own application history.
   mine: (params?: PageParams) =>
     http.get<Page<JobApplicationDTO>>("/job-applications/me", { query: params }),
+
+  // CANDIDATE — dashboard counts.
+  myStats: () => http.get<MyApplicationStatsDTO>("/job-applications/me/stats"),
 
   // Applicant or posting company's OWNER/RECRUITER.
   byId: (id: number) => http.get<JobApplicationDTO>(`/job-applications/${id}`),
