@@ -26,6 +26,14 @@ public class AdminService {
         return userRepository.findByUserStatus(UserStatus.PENDING, pageable).map(AdminUserDTO::from);
     }
 
+    // Admin dashboard counts via aggregate queries (pending users / pending companies).
+    @Transactional(readOnly = true)
+    public AdminStatsDTO getStats() {
+        long pendingUsers = userRepository.countByUserStatus(UserStatus.PENDING);
+        long pendingCompanies = companyRepository.countByStatus(CompanyStatus.PENDING);
+        return new AdminStatsDTO(pendingUsers, pendingCompanies);
+    }
+
     // Admin moderation browse: every user, optionally narrowed by status and/or type (no filter
     // = everything). This is the "find an already-active scammer" path that makes the existing
     // suspend action reachable — pending-users only surfaces accounts awaiting approval.

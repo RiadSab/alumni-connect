@@ -16,4 +16,5 @@ import java.util.Optional;
 public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificationExecutor<User> {
     Optional<User> findByEmail(String email);
     Page<User> findByUserStatus(UserStatus userStatus, Pageable pageable);
+    long countByUserStatus(UserStatus userStatus);
 }

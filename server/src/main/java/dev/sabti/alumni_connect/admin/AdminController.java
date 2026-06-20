@@ -18,6 +18,12 @@ import org.springframework.web.bind.annotation.*;
 public class AdminController {
     private final AdminService adminService;
 
+    // Admin dashboard counts.
+    @GetMapping("/stats")
+    public ResponseEntity<AdminStatsDTO> getStats() {
+        return ResponseEntity.ok(adminService.getStats());
+    }
+
     @GetMapping("/pending-users")
     public ResponseEntity<Page<AdminUserDTO>> getPendingUsers(@PageableDefault Pageable pageable) {
         return ResponseEntity.ok(adminService.getPendingUsers(pageable));

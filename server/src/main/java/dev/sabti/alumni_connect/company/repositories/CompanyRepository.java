@@ -13,4 +13,5 @@ import java.util.Optional;
 public interface CompanyRepository extends JpaRepository<Company, Long> {
     Optional<Company> findByEmail(String email);
     Page<Company> findByStatus(CompanyStatus status, Pageable pageable);
+    long countByStatus(CompanyStatus status);
 }
