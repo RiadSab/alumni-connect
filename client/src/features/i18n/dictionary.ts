@@ -249,9 +249,9 @@ export const en = {
   "admin.filter.allStatuses": "All statuses",
   "admin.filter.allTypes": "All types",
   "admin.filter.clear": "Clear filters",
-  "admin.pager.prev": "Previous",
-  "admin.pager.next": "Next",
-  "admin.pager.page": "Page {n} of {total}",
+  "pager.prev": "Previous",
+  "pager.next": "Next",
+  "pager.page": "Page {n} of {total}",
 } satisfies Record<string, string>;
 
 export type TKey = keyof typeof en;
@@ -499,7 +499,7 @@ export const fr: Record<TKey, string> = {
   "admin.filter.allStatuses": "Tous les statuts",
   "admin.filter.allTypes": "Tous les types",
   "admin.filter.clear": "Réinitialiser",
-  "admin.pager.prev": "Précédent",
-  "admin.pager.next": "Suivant",
-  "admin.pager.page": "Page {n} sur {total}",
+  "pager.prev": "Précédent",
+  "pager.next": "Suivant",
+  "pager.page": "Page {n} sur {total}",
 };

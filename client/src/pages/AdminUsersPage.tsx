@@ -152,13 +152,13 @@ export function AdminUsersPage() {
           {data.totalPages > 1 && (
             <nav className="flex items-center justify-center gap-3">
               <Button variant="outline" size="sm" disabled={data.first} onClick={() => setPage(page - 1)}>
-                {t("admin.pager.prev")}
+                {t("pager.prev")}
               </Button>
               <span className="text-sm text-[var(--color-steel)]">
-                {t("admin.pager.page", { n: data.number + 1, total: data.totalPages })}
+                {t("pager.page", { n: data.number + 1, total: data.totalPages })}
               </span>
               <Button variant="outline" size="sm" disabled={data.last} onClick={() => setPage(page + 1)}>
-                {t("admin.pager.next")}
+                {t("pager.next")}
               </Button>
             </nav>
           )}

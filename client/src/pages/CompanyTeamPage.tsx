@@ -34,9 +34,8 @@ function roleVariant(role: CompanyRole): "default" | "secondary" | "outline" {
 export function CompanyTeamPage() {
   const { t, tn } = useT();
   const me = useMyCompanyUserProfile();
-  // ponytail: size 100 loads the whole roster in one shot; paginate if a company
-  // ever has more than that many members.
-  const roster = useCompanyRoster({ size: 100 });
+  const [page, setPage] = useState(0);
+  const roster = useCompanyRoster({ page });
 
   const isOwner = me.data?.companyRole === "OWNER";
   const myId = me.data?.id;
@@ -78,6 +77,20 @@ export function CompanyTeamPage() {
               />
             ))}
           </div>
+
+          {roster.data.totalPages > 1 && (
+            <nav className="mt-6 flex items-center justify-center gap-3">
+              <Button variant="outline" size="sm" disabled={roster.data.first} onClick={() => setPage(page - 1)}>
+                {t("pager.prev")}
+              </Button>
+              <span className="text-sm text-[var(--color-steel)]">
+                {t("pager.page", { n: roster.data.number + 1, total: roster.data.totalPages })}
+              </span>
+              <Button variant="outline" size="sm" disabled={roster.data.last} onClick={() => setPage(page + 1)}>
+                {t("pager.next")}
+              </Button>
+            </nav>
+          )}
         </>
       )}
     </div>
