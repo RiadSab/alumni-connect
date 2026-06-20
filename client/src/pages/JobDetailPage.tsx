@@ -15,7 +15,6 @@ import {
   Users,
 } from "lucide-react";
 import { useJobOffer, useApplyToJobOffer } from "@/features/jobOffers/hooks";
-import { useMyApplications } from "@/features/jobApplications/hooks";
 import { daysFromNow, formatMoney, humanizeType, logoColor } from "@/features/jobOffers/format";
 import { useT } from "@/features/i18n/lang-context";
 import { useAuth } from "@/features/auth/auth-context";
@@ -262,9 +261,6 @@ function ApplyAction({ job }: { job: JobOfferDTO }) {
   const { t } = useT();
   const { isAuthenticated, user } = useAuth();
   const isCandidate = isAuthenticated && user?.userType === "CANDIDATE";
-  // ponytail: size 100 scans all of the candidate's applications in one shot;
-  // add a backend hasApplied flag if anyone applies to more than that.
-  const myApps = useMyApplications({ size: 100 }, { enabled: isCandidate });
   const apply = useApplyToJobOffer();
 
   // Companies/admins can't apply — no button for them.
@@ -280,9 +276,7 @@ function ApplyAction({ job }: { job: JobOfferDTO }) {
     );
   }
 
-  const appliedBefore = myApps.data?.content.some((a) => a.jobOfferId === job.id) ?? false;
-
-  if (apply.isSuccess || appliedBefore) {
+  if (apply.isSuccess || job.hasApplied) {
     return (
       <div className="flex items-center justify-center gap-2 rounded-md bg-[color-mix(in_srgb,var(--color-brand-green)_12%,#fff)] px-3 py-2 text-sm font-medium text-[var(--color-brand-green)]">
         <CheckCircle2 className="size-4" /> {apply.isSuccess ? t("detail.applied") : t("detail.alreadyApplied")}
@@ -294,7 +288,7 @@ function ApplyAction({ job }: { job: JobOfferDTO }) {
     <div className="space-y-2">
       <Button
         className="w-full"
-        disabled={apply.isPending || myApps.isLoading}
+        disabled={apply.isPending}
         onClick={() => apply.mutate({ id: job.id, data: { useProfileResume: true } })}
       >
         {apply.isPending ? t("detail.applying") : t("card.apply")}
