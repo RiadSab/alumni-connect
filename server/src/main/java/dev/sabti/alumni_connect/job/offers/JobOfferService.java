@@ -9,8 +9,10 @@ import dev.sabti.alumni_connect.company.entities.CompanyRole;
 import dev.sabti.alumni_connect.company.entities.CompanyStatus;
 import dev.sabti.alumni_connect.company.entities.CompanyUserProfile;
 import dev.sabti.alumni_connect.company.repositories.CompanyUserProfileRepository;
+import dev.sabti.alumni_connect.job.entities.ApplicationStatus;
 import dev.sabti.alumni_connect.job.entities.JobOffer;
 import dev.sabti.alumni_connect.job.entities.JobStatus;
+import dev.sabti.alumni_connect.job.repositories.JobApplicationRepository;
 import dev.sabti.alumni_connect.job.repositories.JobOfferRepository;
 import dev.sabti.alumni_connect.shared.exception.ForbiddenException;
 import dev.sabti.alumni_connect.shared.exception.NotFoundException;
@@ -29,6 +31,7 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class JobOfferService {
     private final JobOfferRepository jobOfferRepository;
+    private final JobApplicationRepository jobApplicationRepository;
     private final UserRepository userRepository;
     private final CompanyUserProfileRepository companyUserProfileRepository;
     private final CandidateProfileRepository candidateProfileRepository;
@@ -131,24 +134,33 @@ public class JobOfferService {
         return JobOfferDTO.from(jobOfferRepository.save(offer));
     }
 
-    // OPEN offers are publicly visible (same as getOpenJobOffers). Anything else
-    // (DRAFT/CLOSED/EXPIRED) is only visible to the posting company's own OWNER/RECRUITER — otherwise
-    // 404, deliberately not distinguishing "doesn't exist" from "exists but not yours to see", so a
-    // draft posting's existence isn't leaked to outsiders.
+    // OPEN offers are public; anything else (DRAFT/CLOSED/EXPIRED) is visible only to the posting
+    // company's OWNER/RECRUITER (404 otherwise, so a draft's existence isn't leaked). hasApplied is
+    // filled for a candidate caller.
     @Transactional(readOnly = true)
     public JobOfferDTO getJobOfferById(String callerEmail, Long id) {
         JobOffer offer = jobOfferRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Job offer not found"));
 
-        if (offer.getStatus() == JobStatus.OPEN) {
-            return JobOfferDTO.from(offer);
-        }
-
-        if (callerEmail == null || resolvePosterForCompany(callerEmail, offer.getCompany().getId()).isEmpty()) {
+        if (offer.getStatus() != JobStatus.OPEN
+                && (callerEmail == null || resolvePosterForCompany(callerEmail, offer.getCompany().getId()).isEmpty())) {
             throw new NotFoundException("Job offer not found");
         }
 
-        return JobOfferDTO.from(offer);
+        JobOfferDTO dto = JobOfferDTO.from(offer);
+        dto.setHasApplied(hasApplied(callerEmail, offer));
+        return dto;
+    }
+
+    // True if a candidate caller already has an active (non-withdrawn) application to this offer —
+    // the same condition apply() enforces, so a withdrawn one reads false and re-applying is allowed.
+    private boolean hasApplied(String callerEmail, JobOffer offer) {
+        if (callerEmail == null) return false;
+        return userRepository.findByEmail(callerEmail)
+                .flatMap(candidateProfileRepository::findByUser)
+                .map(candidate -> jobApplicationRepository
+                        .existsByJobOfferAndApplicantAndApplicationStatusNot(offer, candidate, ApplicationStatus.WITHDRAWN))
+                .orElse(false);
     }
 
     // Editing (including closing/reopening via status) is restricted to the posting company's own
