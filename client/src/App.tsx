@@ -5,6 +5,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { RootLayout } from "@/routes/RootLayout";
 import { RequireAuth } from "@/routes/RequireAuth";
 import { RequireCompany } from "@/routes/RequireCompany";
+import { RequireAdmin } from "@/routes/RequireAdmin";
 import { HomePage } from "@/pages/HomePage";
 import { JobDetailPage } from "@/pages/JobDetailPage";
 import { LoginPage } from "@/pages/LoginPage";
@@ -21,6 +22,7 @@ import { CompanyJobOfferEditPage } from "@/pages/CompanyJobOfferEditPage";
 import { CompanyApplicantsPage } from "@/pages/CompanyApplicantsPage";
 import { CompanyApplicationReviewPage } from "@/pages/CompanyApplicationReviewPage";
 import { CompanyTeamPage } from "@/pages/CompanyTeamPage";
+import { AdminPendingPage } from "@/pages/AdminPendingPage";
 import { NotFoundPage } from "@/pages/NotFoundPage";
 
 function App() {
@@ -51,6 +53,11 @@ function App() {
               <Route path="company/jobs/:id/applications" element={<CompanyApplicantsPage />} />
               <Route path="company/applications/:appId" element={<CompanyApplicationReviewPage />} />
               <Route path="company/team" element={<CompanyTeamPage />} />
+            </Route>
+
+            {/* Administrators only */}
+            <Route element={<RequireAdmin />}>
+              <Route path="admin/pending" element={<AdminPendingPage />} />
             </Route>
           </Route>
 

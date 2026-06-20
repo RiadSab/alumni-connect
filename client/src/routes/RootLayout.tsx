@@ -34,6 +34,7 @@ export function RootLayout() {
 
   const isCandidate = user?.userType === "CANDIDATE";
   const isCompany = user?.userType === "COMPANY_USER";
+  const isAdmin = user?.userType === "ADMINISTRATOR";
   function handleLogout() {
     logout();
     navigate("/");
@@ -73,6 +74,11 @@ export function RootLayout() {
               {isCompany && (
                 <NavLink to="/company/team" className={navLinkClass}>
                   {t("nav.companyTeam")}
+                </NavLink>
+              )}
+              {isAdmin && (
+                <NavLink to="/admin/pending" className={navLinkClass}>
+                  {t("nav.admin")}
                 </NavLink>
               )}
             </nav>
