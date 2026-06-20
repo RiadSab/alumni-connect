@@ -5,11 +5,18 @@ import { Link } from "react-router-dom";
 import { Bookmark, Calendar, Clock, MapPin, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useT } from "@/features/i18n/lang-context";
+import { useAuth } from "@/features/auth/auth-context";
+import { cn } from "@/lib/utils";
 import { daysFromNow, formatMoney, humanizeType, logoColor } from "@/features/jobOffers/format";
 import type { JobOfferDTO } from "@/types/jobOffer";
 
 export function JobCard({ job }: { job: JobOfferDTO }) {
   const { t, tn } = useT();
+  const { isAuthenticated, user } = useAuth();
+  // Apply/save are candidate actions. Logged-out visitors keep them (the detail
+  // page funnels them to login); authenticated companies/admins can't apply, so
+  // they see no side actions — same rule as the detail page's ApplyAction.
+  const canApply = !isAuthenticated || user?.userType === "CANDIDATE";
   const shownSkills = job.skillsRequired.slice(0, 4);
   const extraSkills = job.skillsRequired.length - shownSkills.length;
 
@@ -25,7 +32,12 @@ export function JobCard({ job }: { job: JobOfferDTO }) {
       : tn(job.currentApplicationCount, "card.applicants.one", "card.applicants.other");
 
   return (
-    <article className="grid grid-cols-[48px_1fr_auto] gap-4 rounded-lg border border-border bg-card p-5 transition-shadow hover:shadow-md">
+    <article
+      className={cn(
+        "grid gap-4 rounded-lg border border-border bg-card p-5 transition-shadow hover:shadow-md",
+        canApply ? "grid-cols-[48px_1fr_auto]" : "grid-cols-[48px_1fr]",
+      )}
+    >
       {/* Logo */}
       <div
         className="grid size-12 place-items-center rounded-md text-lg font-bold text-white"
@@ -116,19 +128,21 @@ export function JobCard({ job }: { job: JobOfferDTO }) {
         </div>
       </div>
 
-      {/* Side actions */}
-      <div className="flex flex-col items-end justify-between gap-3.5">
-        <button
-          type="button"
-          aria-label={t("card.save")}
-          className="grid size-9 place-items-center rounded-md border border-[var(--color-hairline-strong)] text-[var(--color-steel)] hover:border-[var(--color-stone)] hover:text-[var(--color-charcoal)]"
-        >
-          <Bookmark className="size-4" />
-        </button>
-        <Button asChild>
-          <Link to={`/jobs/${job.id}`}>{t("card.apply")}</Link>
-        </Button>
-      </div>
+      {/* Side actions — candidates and logged-out visitors only */}
+      {canApply && (
+        <div className="flex flex-col items-end justify-between gap-3.5">
+          <button
+            type="button"
+            aria-label={t("card.save")}
+            className="grid size-9 place-items-center rounded-md border border-[var(--color-hairline-strong)] text-[var(--color-steel)] hover:border-[var(--color-stone)] hover:text-[var(--color-charcoal)]"
+          >
+            <Bookmark className="size-4" />
+          </button>
+          <Button asChild>
+            <Link to={`/jobs/${job.id}`}>{t("card.apply")}</Link>
+          </Button>
+        </div>
+      )}
     </article>
   );
 }
