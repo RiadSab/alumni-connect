@@ -2,7 +2,7 @@
 // and a user dropdown (profile / settings / log out). An <Outlet /> renders the
 // current page below.
 
-import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
+import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { ChevronDown, LogOut, Settings, User } from "lucide-react";
 import { useAuth } from "@/features/auth/auth-context";
 import { useT, type Lang } from "@/features/i18n/lang-context";
@@ -76,11 +76,7 @@ export function RootLayout() {
                   {t("nav.companyTeam")}
                 </NavLink>
               )}
-              {isAdmin && (
-                <NavLink to="/admin/pending" className={navLinkClass}>
-                  {t("nav.admin")}
-                </NavLink>
-              )}
+              {isAdmin && <ModerateMenu />}
             </nav>
           </div>
 
@@ -153,6 +149,40 @@ function UserMenu({
         <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={onLogout}>
           <LogOut /> {t("nav.logout")}
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+// The admin nav entry: a "Moderate" dropdown linking to the three moderation
+// screens (the approvals inbox, the users list, the companies list). The trigger
+// shows the active styling whenever the current route is under /admin.
+function ModerateMenu() {
+  const { t } = useT();
+  const { pathname } = useLocation();
+  const onAdminRoute = pathname.startsWith("/admin");
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          className={cn(navLinkClass({ isActive: onAdminRoute }), "flex items-center gap-1")}
+        >
+          {t("nav.moderate")}
+          <ChevronDown className="size-4" />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start">
+        <DropdownMenuItem asChild>
+          <Link to="/admin/pending">{t("nav.moderate.pending")}</Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link to="/admin/users">{t("nav.moderate.users")}</Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link to="/admin/companies">{t("nav.moderate.companies")}</Link>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
