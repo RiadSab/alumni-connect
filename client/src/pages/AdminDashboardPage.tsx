@@ -27,17 +27,19 @@ export function AdminDashboardPage() {
         <p className="mt-1 text-sm text-[var(--color-slate)]">{t("admin.dash.subtitle")}</p>
       </div>
 
-      {/* Pending counts */}
+      {/* Pending counts — both lead to the single approvals inbox. */}
       <div className="grid gap-4 sm:grid-cols-2">
         <StatCard
           label={t("admin.dash.pendingUsers")}
           value={pendingUsers.isError ? "—" : pendingUsers.data?.totalElements ?? 0}
           loading={pendingUsers.isLoading}
+          to="/admin/pending"
         />
         <StatCard
           label={t("admin.dash.pendingCompanies")}
           value={pendingCompanies.isError ? "—" : pendingCompanies.data?.totalElements ?? 0}
           loading={pendingCompanies.isLoading}
+          to="/admin/pending"
         />
       </div>
 
@@ -63,9 +65,22 @@ export function AdminDashboardPage() {
   );
 }
 
-function StatCard({ label, value, loading }: { label: string; value: number | string; loading: boolean }) {
+function StatCard({
+  label,
+  value,
+  loading,
+  to,
+}: {
+  label: string;
+  value: number | string;
+  loading: boolean;
+  to: string;
+}) {
   return (
-    <div className="rounded-lg border border-border bg-card p-5">
+    <Link
+      to={to}
+      className="block rounded-lg border border-border bg-card p-5 transition-colors hover:bg-muted/60"
+    >
       <div className="text-[11px] font-semibold uppercase tracking-wider text-[var(--color-stone)]">
         {label}
       </div>
@@ -74,6 +89,6 @@ function StatCard({ label, value, loading }: { label: string; value: number | st
       ) : (
         <div className="mt-1 text-3xl font-semibold text-foreground">{value}</div>
       )}
-    </div>
+    </Link>
   );
 }
