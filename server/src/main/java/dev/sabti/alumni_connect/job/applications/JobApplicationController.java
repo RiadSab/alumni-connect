@@ -37,6 +37,12 @@ public class JobApplicationController {
         return jobApplicationService.getMyApplications(principal.getUsername(), pageable);
     }
 
+    // Candidate dashboard counts — the aggregated companion to /me.
+    @GetMapping("/me/stats")
+    public MyApplicationStatsDTO getMyApplicationStats(@AuthenticationPrincipal UserDetails principal) {
+        return jobApplicationService.getMyApplicationStats(principal.getUsername());
+    }
+
     // Visible only to the applicant or the posting company's own OWNER/RECRUITER — checked in the
     // service. "Not found" and "not yours" both throw 404, so this endpoint never confirms whether an
     // application id you can't access exists.

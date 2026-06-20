@@ -10,13 +10,18 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collection;
+
 // JpaSpecificationExecutor backs the applicant-triage on an offer (filter by status/reviewed/
 // rating via findAll(Specification, Pageable)); the derived methods stay for the fixed lookups.
 @Repository
 public interface JobApplicationRepository extends JpaRepository<JobApplication, Long>, JpaSpecificationExecutor<JobApplication> {
-    // "Already has an ACTIVE application to this offer" — a WITHDRAWN one doesn't count, so a
-    // candidate who withdrew can apply again. Guarantees at most one non-withdrawn application per
-    // (offer, applicant); withdrawn rows are kept as history alongside the new one.
+    // Candidate dashboard stat counts.
+    long countByApplicant(CandidateProfile applicant);
+    long countByApplicantAndApplicationStatus(CandidateProfile applicant, ApplicationStatus status);
+    long countByApplicantAndApplicationStatusNotIn(CandidateProfile applicant, Collection<ApplicationStatus> statuses);
+
+
     boolean existsByJobOfferAndApplicantAndApplicationStatusNot(JobOffer jobOffer, CandidateProfile applicant,
                                                                 ApplicationStatus applicationStatus);
 

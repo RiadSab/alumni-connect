@@ -18,7 +18,6 @@ import java.util.Collection;
 // single-criterion lookups (own-company offers, status).
 @Repository
 public interface JobOfferRepository extends JpaRepository<JobOffer, Long>, JpaSpecificationExecutor<JobOffer> {
-    Page<JobOffer> findByStatus(JobStatus status, Pageable pageable);
     Page<JobOffer> findByCompany(Company company, Pageable pageable);
 
     // Skill-based recommendations: OPEN offers that share at least one skill with the given

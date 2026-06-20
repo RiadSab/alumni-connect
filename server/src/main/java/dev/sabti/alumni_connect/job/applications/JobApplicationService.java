@@ -30,6 +30,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -40,6 +41,10 @@ public class JobApplicationService {
     private final CandidateProfileRepository candidateProfileRepository;
     private final CompanyUserProfileRepository companyUserProfileRepository;
     private final StoredFileService storedFileService;
+
+    // An application is "active" until it reaches one of these.
+    private static final Set<ApplicationStatus> TERMINAL_STATUSES =
+            Set.of(ApplicationStatus.ACCEPTED, ApplicationStatus.REJECTED, ApplicationStatus.WITHDRAWN);
 
     // Applying requires: a real CandidateProfile behind the caller, an OPEN offer, no active
     // (non-withdrawn) application from this candidate to this offer — a withdrawn one doesn't block
@@ -138,6 +143,16 @@ public class JobApplicationService {
     public Page<JobApplicationDTO> getMyApplications(String applicantEmail, Pageable pageable) {
         CandidateProfile applicant = requireCandidate(applicantEmail, "Not a candidate");
         return jobApplicationRepository.findByApplicant(applicant, pageable).map(JobApplicationDTO::from);
+    }
+
+    // Candidate dashboard counts via aggregate queries (total / active / accepted).
+    @Transactional(readOnly = true)
+    public MyApplicationStatsDTO getMyApplicationStats(String applicantEmail) {
+        CandidateProfile applicant = requireCandidate(applicantEmail, "Not a candidate");
+        long total = jobApplicationRepository.countByApplicant(applicant);
+        long accepted = jobApplicationRepository.countByApplicantAndApplicationStatus(applicant, ApplicationStatus.ACCEPTED);
+        long active = jobApplicationRepository.countByApplicantAndApplicationStatusNotIn(applicant, TERMINAL_STATUSES);
+        return new MyApplicationStatsDTO(total, active, accepted);
     }
 
     // Listing applicants is restricted to the OWNER/RECRUITER of the company that
