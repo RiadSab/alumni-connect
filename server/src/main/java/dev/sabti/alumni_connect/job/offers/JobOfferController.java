@@ -75,6 +75,12 @@ public class JobOfferController {
         return jobOfferService.getMyCompanyJobOffers(principal.getUsername(), pageable);
     }
 
+    // Company dashboard counts — the aggregated companion to /me.
+    @GetMapping("/me/stats")
+    public CompanyOfferStatsDTO getMyCompanyStats(@AuthenticationPrincipal UserDetails principal) {
+        return jobOfferService.getMyCompanyStats(principal.getUsername());
+    }
+
     // "Recommended for you" — OPEN offers ranked by skill overlap with the candidate's
     // profile. Candidate-only (gated to ROLE CANDIDATE in SecurityConfig, declared before the
     // public /** GET so it isn't made public). Literal "/recommended" so it isn't parsed as an

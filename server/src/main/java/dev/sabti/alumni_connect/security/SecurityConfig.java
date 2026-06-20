@@ -49,7 +49,7 @@ public class SecurityConfig {
                     // Private, company-scoped views — before the broad job-offers GET so the wildcard
                     // doesn't expose them publicly.
                     .requestMatchers(HttpMethod.GET, "/api/job-offers/*/applications").authenticated()
-                    .requestMatchers(HttpMethod.GET, "/api/job-offers/me").authenticated()
+                    .requestMatchers(HttpMethod.GET, "/api/job-offers/me", "/api/job-offers/me/stats").authenticated()
                     .requestMatchers(HttpMethod.GET, "/api/job-offers/recommended").hasRole("CANDIDATE")
                     // Candidate self-profile — before the admin-only /api/candidates/* by-id matcher.
                     .requestMatchers(HttpMethod.GET, "/api/candidates/me").authenticated()

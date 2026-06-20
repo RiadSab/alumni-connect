@@ -20,6 +20,13 @@ import java.util.Collection;
 public interface JobOfferRepository extends JpaRepository<JobOffer, Long>, JpaSpecificationExecutor<JobOffer> {
     Page<JobOffer> findByCompany(Company company, Pageable pageable);
 
+    // Company dashboard stat counts. COALESCE so a company with no offers sums to 0, not null.
+    long countByCompany(Company company);
+    long countByCompanyAndStatus(Company company, JobStatus status);
+
+    @Query("SELECT COALESCE(SUM(o.currentApplicationCount), 0) FROM JobOffer o WHERE o.company = :company")
+    long sumApplicationCountByCompany(@Param("company") Company company);
+
     // Skill-based recommendations: OPEN offers that share at least one skill with the given
     // (already-lowercased) set, ranked by how many skills overlap (more matches first), newest
     // as tie-break. A Specification can filter but can't order by an aggregate, so this is a

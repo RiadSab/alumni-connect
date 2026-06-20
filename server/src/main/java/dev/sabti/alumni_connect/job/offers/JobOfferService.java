@@ -4,6 +4,7 @@ import dev.sabti.alumni_connect.candidate.CandidateProfile;
 import dev.sabti.alumni_connect.auth.entities.User;
 import dev.sabti.alumni_connect.candidate.CandidateProfileRepository;
 import dev.sabti.alumni_connect.auth.repositories.UserRepository;
+import dev.sabti.alumni_connect.company.entities.Company;
 import dev.sabti.alumni_connect.company.entities.CompanyRole;
 import dev.sabti.alumni_connect.company.entities.CompanyStatus;
 import dev.sabti.alumni_connect.company.entities.CompanyUserProfile;
@@ -196,6 +197,21 @@ public class JobOfferService {
                 .orElseThrow(() -> new ForbiddenException("Only a company owner or recruiter can do this"));
 
         return jobOfferRepository.findByCompany(profile.getCompany(), pageable).map(JobOfferDTO::from);
+    }
+
+    // Company dashboard counts via aggregate queries (postings / open / total applicants).
+    @Transactional(readOnly = true)
+    public CompanyOfferStatsDTO getMyCompanyStats(String callerEmail) {
+        CompanyUserProfile profile = userRepository.findByEmail(callerEmail)
+                .flatMap(companyUserProfileRepository::findByUser)
+                .filter(p -> p.getCompanyRole() == CompanyRole.OWNER || p.getCompanyRole() == CompanyRole.RECRUITER)
+                .orElseThrow(() -> new ForbiddenException("Only a company owner or recruiter can do this"));
+
+        Company company = profile.getCompany();
+        long totalPostings = jobOfferRepository.countByCompany(company);
+        long openPostings = jobOfferRepository.countByCompanyAndStatus(company, JobStatus.OPEN);
+        long totalApplicants = jobOfferRepository.sumApplicationCountByCompany(company);
+        return new CompanyOfferStatsDTO(totalPostings, openPostings, totalApplicants);
     }
 
     // Duplicated from JobApplicationService.resolveReviewerForCompany on purpose —

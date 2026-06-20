@@ -46,15 +46,6 @@ public class JobApplicationService {
     private static final Set<ApplicationStatus> TERMINAL_STATUSES =
             Set.of(ApplicationStatus.ACCEPTED, ApplicationStatus.REJECTED, ApplicationStatus.WITHDRAWN);
 
-    // Applying requires: a real CandidateProfile behind the caller, an OPEN offer, no active
-    // (non-withdrawn) application from this candidate to this offer — a withdrawn one doesn't block
-    // re-applying — and, if the offer caps applications, room left under that cap. Each failure now
-    // throws its own exception with a caller-facing reason (previously all collapsed to one empty
-    // 400): not a candidate -> 403, no such offer -> 404, offer not open / already applied / cap
-    // reached -> 409, asked to reuse a profile resume that doesn't exist -> 400.
-    // A resume is optional: the applicant either uploads one specific to this offer, or reuses
-    // their profile resume (which gets copied — see below). All the "can't apply" checks run
-    // before any file work, so we never store a resume for an application that won't be created.
     @Transactional
     public JobApplicationDTO apply(String applicantEmail, Long jobOfferId, ApplyToJobOfferDTO dto,
                                    MultipartFile resume, Boolean useProfileResume) {
@@ -103,14 +94,6 @@ public class JobApplicationService {
         return JobApplicationDTO.from(application);
     }
 
-    // A candidate withdraws their own application. Applicant-only: "not found" and "not yours" both
-    // collapse to empty -> 404, so a candidate can't probe other people's applications. Soft, not a
-    // delete: the row is kept with status WITHDRAWN, so the company sees the withdrawal (rather than
-    // it vanishing mid-review) and the resume snapshot is preserved. The offer's application count is
-    // decremented to free a slot under its cap. Idempotent: withdrawing an already-withdrawn
-    // application returns it unchanged with no count change. After withdrawing, the candidate can
-    // apply to the same offer again (apply()'s guard ignores withdrawn rows): that creates a new
-    // application, leaving this withdrawn one as history.
     @Transactional
     public JobApplicationDTO withdraw(String applicantEmail, Long applicationId) {
         JobApplication application = jobApplicationRepository.findById(applicationId)
@@ -136,9 +119,6 @@ public class JobApplicationService {
         return JobApplicationDTO.from(application);
     }
 
-    // The candidate's own application history, any status. ForbiddenException (403) if the caller has
-    // no CandidateProfile (this endpoint doesn't apply to them) — old code instead used messy
-    // instanceof-principal checks and silently returned an empty page for non-candidates.
     @Transactional(readOnly = true)
     public Page<JobApplicationDTO> getMyApplications(String applicantEmail, Pageable pageable) {
         CandidateProfile applicant = requireCandidate(applicantEmail, "Not a candidate");
@@ -155,11 +135,6 @@ public class JobApplicationService {
         return new MyApplicationStatsDTO(total, active, accepted);
     }
 
-    // Listing applicants is restricted to the OWNER/RECRUITER of the company that
-    // posted THIS specific offer — same authority boundary as reviewing (see review()).
-    // The optional triage filters (status / reviewed / minRating) only narrow within this
-    // offer's applicants: forOffer(...) is the non-optional base, ANDed with whatever the
-    // caller supplied. The authority check runs first, so filters never run for an outsider.
     @Transactional(readOnly = true)
     public Page<JobApplicationDTO> getApplicationsForOffer(String reviewerEmail, Long jobOfferId,
                                                            JobApplicationSearchCriteria criteria, Pageable pageable) {
@@ -185,11 +160,7 @@ public class JobApplicationService {
         return jobApplicationRepository.findAll(spec, pageable).map(JobApplicationDTO::from);
     }
 
-    // Reviewing requires the caller to be an OWNER/RECRUITER of the SAME company that
-    // posted the offer this application belongs to — the check the old updateJobApplication
-    // was missing (it let any COMPANYUSER review any application, regardless of company).
-    // Fields in the DTO are all nullable: null means "leave unchanged", letting the caller
-    // update just a status, just a note, etc. reviewedAt/reviewedBy are set server-side.
+
     @Transactional
     public JobApplicationDTO review(String reviewerEmail, Long applicationId, ReviewApplicationDTO dto) {
         JobApplication application = jobApplicationRepository.findById(applicationId)
@@ -210,11 +181,7 @@ public class JobApplicationService {
         return JobApplicationDTO.from(jobApplicationRepository.save(application));
     }
 
-    // Visible only to the applicant themselves or the posting company's own
-    // OWNER/RECRUITER — the old GET /{id} let any authenticated user (any role)
-    // read any application's cover letter/notes by guessing an id. "Doesn't exist"
-    // and "exists but not yours" both return empty -> 404, so the controller never
-    // confirms whether an application id you can't access exists.
+
     @Transactional(readOnly = true)
     public JobApplicationDTO getApplicationById(String callerEmail, Long applicationId) {
         JobApplication application = jobApplicationRepository.findById(applicationId)
@@ -225,11 +192,7 @@ public class JobApplicationService {
         return JobApplicationDTO.from(application);
     }
 
-    // Streams the resume PDF attached to an application, behind the same access gate as
-    // getApplicationById (the applicant, or the posting company's OWNER/RECRUITER). 404 for every
-    // miss — application doesn't exist, caller can't reach it, or it carries no resume — all sharing
-    // one message so an inaccessible id never leaks (a distinct "no resume" message would confirm the
-    // application exists).
+
     @Transactional(readOnly = true)
     public FileDownload getApplicationResume(String callerEmail, Long applicationId) {
         JobApplication application = jobApplicationRepository.findById(applicationId)
@@ -242,11 +205,6 @@ public class JobApplicationService {
                 .orElseThrow(() -> new NotFoundException("Application resume not found"));
     }
 
-    // The applicant's full candidate profile, for the posting company's OWNER/RECRUITER to review
-    // beyond the name shown on the applications list. Company-only (same gate as listing applicants),
-    // NOT the applicant-included gate the resume download uses: the resume is a per-application
-    // snapshot, but this just points at the live profile, which the applicant already reads via
-    // GET /api/candidates/me. Empty -> 404 for any miss, so an application id you can't reach never leaks.
     @Transactional(readOnly = true)
     public CandidateProfileDTO getApplicantProfile(String reviewerEmail, Long applicationId) {
         JobApplication application = jobApplicationRepository.findById(applicationId)
@@ -271,8 +229,6 @@ public class JobApplicationService {
                 .orElseThrow(() -> new ForbiddenException(denyMessage));
     }
 
-    // True only if the caller is the candidate who filed this application. Used by withdraw, where
-    // "not the applicant" is reported as 404 (not 403) so other people's applications aren't probeable.
     private boolean isApplicant(String callerEmail, JobApplication application) {
         return userRepository.findByEmail(callerEmail)
                 .flatMap(candidateProfileRepository::findByUser)
@@ -280,10 +236,6 @@ public class JobApplicationService {
                 .orElse(false);
     }
 
-    // Shared read-access gate for a single application: the candidate who filed it, or an
-    // OWNER/RECRUITER of the company that posted its offer. Used wherever "not yours" must be
-    // indistinguishable from "doesn't exist" (both -> 404). Distinct from resolveReviewerForCompany,
-    // which is the company-only authority used by listing/reviewing.
     private boolean canAccessApplication(String callerEmail, JobApplication application) {
         if (isApplicant(callerEmail, application)) return true;
 
@@ -291,9 +243,6 @@ public class JobApplicationService {
         return resolveReviewerForCompany(callerEmail, postingCompanyId).isPresent();
     }
 
-    // Shared authority check for both listing and reviewing: caller must be a real
-    // CompanyUserProfile, OWNER or RECRUITER, AND belong to the exact company that
-    // owns the offer/application in question — not just "some COMPANYUSER somewhere".
     private Optional<CompanyUserProfile> resolveReviewerForCompany(String email, Long companyId) {
         return userRepository.findByEmail(email)
                 .flatMap(companyUserProfileRepository::findByUser)
