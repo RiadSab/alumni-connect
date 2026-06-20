@@ -24,6 +24,7 @@ import { CompanyApplicationReviewPage } from "@/pages/CompanyApplicationReviewPa
 import { CompanyTeamPage } from "@/pages/CompanyTeamPage";
 import { AdminPendingPage } from "@/pages/AdminPendingPage";
 import { AdminUsersPage } from "@/pages/AdminUsersPage";
+import { AdminCompaniesPage } from "@/pages/AdminCompaniesPage";
 import { NotFoundPage } from "@/pages/NotFoundPage";
 
 function App() {
@@ -60,6 +61,7 @@ function App() {
             <Route element={<RequireAdmin />}>
               <Route path="admin/pending" element={<AdminPendingPage />} />
               <Route path="admin/users" element={<AdminUsersPage />} />
+              <Route path="admin/companies" element={<AdminCompaniesPage />} />
             </Route>
           </Route>
 
