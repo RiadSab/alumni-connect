@@ -4,3 +4,6 @@ node_modules/
 *credentials*.json
 client_secret*.json
 tokens/
+server/API_REFERENCE.md
+server/KNOWN_ISSUES.md
+server/docs/
