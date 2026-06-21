@@ -13,6 +13,17 @@ spring:
     multipart:
       max-file-size: 5MB
       max-request-size: 5MB
+  mail:
+    host: ${MAIL_HOST:smtp.resend.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:resend}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
 
 jwt:
   secret: ${JWT_SECRET}
@@ -24,4 +35,11 @@ jwt:
 storage:
   local:
     dir: ${STORAGE_DIR:./uploads}
+
+# Outbound email. provider=log (default) uses LoggingEmailSender; set MAIL_PROVIDER=smtp to send
+# via spring.mail.* (Resend). MAIL_FROM must be an address on the verified domain.
+app:
+  mail:
+    provider: ${MAIL_PROVIDER:log}
+    from: ${MAIL_FROM:noreply@example.com}
 
