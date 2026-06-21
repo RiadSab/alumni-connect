@@ -3,11 +3,13 @@
 import { http } from "@/lib/http";
 import type {
   ChangePasswordDTO,
+  ForgotPasswordDTO,
   LoginRequestDTO,
   LoginResponseDTO,
   RegisterCandidateDTO,
   RegisterCompanyDTO,
   RegisterCompanyMemberDTO,
+  ResetPasswordDTO,
 } from "@/types/auth";
 
 export const authApi = {
@@ -24,4 +26,10 @@ export const authApi = {
 
   changePassword: (body: ChangePasswordDTO) =>
     http.post<void>("/auth/change-password", { json: body }),
+
+  forgotPassword: (body: ForgotPasswordDTO) =>
+    http.post<void>("/auth/forgot-password", { json: body }),
+
+  resetPassword: (body: ResetPasswordDTO) =>
+    http.post<void>("/auth/reset-password", { json: body }),
 };

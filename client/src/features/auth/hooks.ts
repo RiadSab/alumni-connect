@@ -6,10 +6,12 @@ import { useMutation } from "@tanstack/react-query";
 import { authApi } from "@/api/auth";
 import type {
   ChangePasswordDTO,
+  ForgotPasswordDTO,
   LoginRequestDTO,
   RegisterCandidateDTO,
   RegisterCompanyDTO,
   RegisterCompanyMemberDTO,
+  ResetPasswordDTO,
 } from "@/types/auth";
 
 // Just calls the API and returns the LoginResponseDTO. The login page passes
@@ -41,5 +43,17 @@ export function useRegisterCompanyMember() {
 export function useChangePassword() {
   return useMutation({
     mutationFn: (body: ChangePasswordDTO) => authApi.changePassword(body),
+  });
+}
+
+export function useForgotPassword() {
+  return useMutation({
+    mutationFn: (body: ForgotPasswordDTO) => authApi.forgotPassword(body),
+  });
+}
+
+export function useResetPassword() {
+  return useMutation({
+    mutationFn: (body: ResetPasswordDTO) => authApi.resetPassword(body),
   });
 }

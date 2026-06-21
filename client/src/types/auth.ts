@@ -77,6 +77,20 @@ export const changePasswordSchema = z.object({
 });
 export type ChangePasswordDTO = z.infer<typeof changePasswordSchema>;
 
+// POST /api/auth/forgot-password
+export const forgotPasswordSchema = z.object({
+  email: z.email(),
+});
+export type ForgotPasswordDTO = z.infer<typeof forgotPasswordSchema>;
+
+// POST /api/auth/reset-password
+export const resetPasswordSchema = z.object({
+  email: z.email(),
+  code: nonBlank(),
+  newPassword: nonBlank(),
+});
+export type ResetPasswordDTO = z.infer<typeof resetPasswordSchema>;
+
 // Response of POST /api/auth/login
 export interface LoginResponseDTO {
   token: string;

@@ -10,6 +10,7 @@ import { RequireCandidate } from "@/routes/RequireCandidate";
 import { HomePage } from "@/pages/HomePage";
 import { JobDetailPage } from "@/pages/JobDetailPage";
 import { LoginPage } from "@/pages/LoginPage";
+import { ForgotPasswordPage } from "@/pages/ForgotPasswordPage";
 import { RegisterCandidatePage } from "@/pages/RegisterCandidatePage";
 import { RegisterCompanyPage } from "@/pages/RegisterCompanyPage";
 import { DashboardPage } from "@/pages/DashboardPage";
@@ -38,6 +39,7 @@ function App() {
           <Route index element={<HomePage />} />
           <Route path="jobs/:id" element={<JobDetailPage />} />
           <Route path="login" element={<LoginPage />} />
+          <Route path="forgot-password" element={<ForgotPasswordPage />} />
           <Route path="register/candidate" element={<RegisterCandidatePage />} />
           <Route path="register/company" element={<RegisterCompanyPage />} />
 

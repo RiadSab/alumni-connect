@@ -123,6 +123,13 @@ export function LoginPage() {
               {login.isPending ? "Logging in..." : "Log in"}
             </Button>
 
+            <Link
+              to="/forgot-password"
+              className="text-center text-sm text-muted-foreground underline"
+            >
+              Forgot password?
+            </Link>
+
             <p className="text-center text-sm text-muted-foreground">
               No account?{" "}
               <Link to="/register/candidate" className="underline">
