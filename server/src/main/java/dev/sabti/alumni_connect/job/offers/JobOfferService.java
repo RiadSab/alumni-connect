@@ -14,6 +14,7 @@ import dev.sabti.alumni_connect.job.entities.JobOffer;
 import dev.sabti.alumni_connect.job.entities.JobStatus;
 import dev.sabti.alumni_connect.job.repositories.JobApplicationRepository;
 import dev.sabti.alumni_connect.job.repositories.JobOfferRepository;
+import dev.sabti.alumni_connect.job.repositories.SavedJobRepository;
 import dev.sabti.alumni_connect.shared.exception.ForbiddenException;
 import dev.sabti.alumni_connect.shared.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -32,6 +33,7 @@ import java.util.Set;
 public class JobOfferService {
     private final JobOfferRepository jobOfferRepository;
     private final JobApplicationRepository jobApplicationRepository;
+    private final SavedJobRepository savedJobRepository;
     private final UserRepository userRepository;
     private final CompanyUserProfileRepository companyUserProfileRepository;
     private final CandidateProfileRepository candidateProfileRepository;
@@ -148,19 +150,19 @@ public class JobOfferService {
         }
 
         JobOfferDTO dto = JobOfferDTO.from(offer);
-        dto.setHasApplied(hasApplied(callerEmail, offer));
+        CandidateProfile candidate = callerEmail == null ? null
+                : userRepository.findByEmail(callerEmail).flatMap(candidateProfileRepository::findByUser).orElse(null);
+        dto.setHasApplied(hasApplied(candidate, offer));
+        dto.setIsSaved(candidate != null && savedJobRepository.existsByCandidateAndJobOffer(candidate, offer));
         return dto;
     }
 
     // True if a candidate caller already has an active (non-withdrawn) application to this offer —
     // the same condition apply() enforces, so a withdrawn one reads false and re-applying is allowed.
-    private boolean hasApplied(String callerEmail, JobOffer offer) {
-        if (callerEmail == null) return false;
-        return userRepository.findByEmail(callerEmail)
-                .flatMap(candidateProfileRepository::findByUser)
-                .map(candidate -> jobApplicationRepository
-                        .existsByJobOfferAndApplicantAndApplicationStatusNot(offer, candidate, ApplicationStatus.WITHDRAWN))
-                .orElse(false);
+    private boolean hasApplied(CandidateProfile candidate, JobOffer offer) {
+        if (candidate == null) return false;
+        return jobApplicationRepository
+                .existsByJobOfferAndApplicantAndApplicationStatusNot(offer, candidate, ApplicationStatus.WITHDRAWN);
     }
 
     // Editing (including closing/reopening via status) is restricted to the posting company's own

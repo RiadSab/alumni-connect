@@ -51,6 +51,7 @@ public class SecurityConfig {
                     .requestMatchers(HttpMethod.GET, "/api/job-offers/*/applications").authenticated()
                     .requestMatchers(HttpMethod.GET, "/api/job-offers/me", "/api/job-offers/me/stats").authenticated()
                     .requestMatchers(HttpMethod.GET, "/api/job-offers/recommended").hasRole("CANDIDATE")
+                    .requestMatchers("/api/saved-jobs/**").hasRole("CANDIDATE")
                     // Candidate self-profile — before the admin-only /api/candidates/* by-id matcher.
                     .requestMatchers(HttpMethod.GET, "/api/candidates/me").authenticated()
                     .requestMatchers(HttpMethod.PATCH, "/api/candidates/me").authenticated()

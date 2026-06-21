@@ -37,7 +37,8 @@ public class JobOfferDTO {
     private String contactEmail;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
-    private Boolean hasApplied;
+    private Boolean hasApplied; // for the candidate
+    private Boolean isSaved;    // for the candidate
 
     public static JobOfferDTO from(JobOffer offer) {
         JobOfferDTO dto = new JobOfferDTO();
