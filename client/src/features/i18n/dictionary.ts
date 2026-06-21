@@ -11,6 +11,7 @@ export const en = {
   "nav.jobs": "Jobs",
   "nav.dashboard": "Dashboard",
   "nav.myApplications": "My applications",
+  "nav.saved": "Saved",
   "nav.companyJobs": "Company board",
   "nav.companyTeam": "Team",
   "nav.moderate": "Moderate",
@@ -61,6 +62,7 @@ export const en = {
   "card.more": "+{n} more",
   "card.apply": "Apply",
   "card.save": "Save job",
+  "card.saved": "Saved",
   // job detail
   "detail.back": "Back to jobs",
   "detail.notFound.title": "Offer not found",
@@ -86,6 +88,8 @@ export const en = {
   "detail.alreadyApplied": "Already applied",
   "detail.applyHint": "Applies with the CV on your profile.",
   "detail.applyError": "Couldn't submit your application. Please try again.",
+  "detail.save": "Save job",
+  "detail.saved": "Saved",
   // my applications
   "apps.title": "My Applications",
   "apps.subtitle": "Track the status of every job you've applied to.",
@@ -95,6 +99,14 @@ export const en = {
   "apps.empty.body": "When you apply to a job, it'll show up here.",
   "apps.empty.cta": "Browse jobs",
   "apps.applied": "Applied {date}",
+  // saved jobs
+  "saved.title": "Saved Jobs",
+  "saved.subtitle": "Offers you've bookmarked to revisit later.",
+  "saved.count.one": "{n} saved job",
+  "saved.count.other": "{n} saved jobs",
+  "saved.empty.title": "No saved jobs yet",
+  "saved.empty.body": "Tap the bookmark on any job to save it here for later.",
+  "saved.empty.cta": "Browse jobs",
   // candidate profile
   "profile.contact": "Contact",
   "profile.email": "Email",
@@ -261,6 +273,7 @@ export const fr: Record<TKey, string> = {
   "nav.jobs": "Offres",
   "nav.dashboard": "Tableau de bord",
   "nav.myApplications": "Mes candidatures",
+  "nav.saved": "Enregistrés",
   "nav.companyJobs": "Espace entreprise",
   "nav.companyTeam": "Équipe",
   "nav.moderate": "Modérer",
@@ -311,6 +324,7 @@ export const fr: Record<TKey, string> = {
   "card.more": "+{n} de plus",
   "card.apply": "Postuler",
   "card.save": "Enregistrer l'offre",
+  "card.saved": "Enregistrée",
   // job detail
   "detail.back": "Retour aux offres",
   "detail.notFound.title": "Offre introuvable",
@@ -336,6 +350,8 @@ export const fr: Record<TKey, string> = {
   "detail.alreadyApplied": "Déjà postulé",
   "detail.applyHint": "Postule avec le CV de votre profil.",
   "detail.applyError": "Impossible d'envoyer votre candidature. Veuillez réessayer.",
+  "detail.save": "Enregistrer l'offre",
+  "detail.saved": "Enregistrée",
   // my applications
   "apps.title": "Mes candidatures",
   "apps.subtitle": "Suivez le statut de chaque poste auquel vous avez postulé.",
@@ -345,6 +361,14 @@ export const fr: Record<TKey, string> = {
   "apps.empty.body": "Lorsque vous postulez à une offre, elle apparaît ici.",
   "apps.empty.cta": "Parcourir les offres",
   "apps.applied": "Postulé le {date}",
+  // saved jobs
+  "saved.title": "Offres enregistrées",
+  "saved.subtitle": "Les offres que vous avez mises de côté pour plus tard.",
+  "saved.count.one": "{n} offre enregistrée",
+  "saved.count.other": "{n} offres enregistrées",
+  "saved.empty.title": "Aucune offre enregistrée",
+  "saved.empty.body": "Touchez le signet d'une offre pour l'enregistrer ici.",
+  "saved.empty.cta": "Parcourir les offres",
   // candidate profile
   "profile.contact": "Contact",
   "profile.email": "E-mail",

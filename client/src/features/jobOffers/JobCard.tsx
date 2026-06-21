@@ -1,11 +1,12 @@
-// One job offer, rendered to match the Job Board design. Presentational only —
-// it takes a JobOfferDTO and shows it. Apply/save are wired in a later phase.
+// One job offer, rendered to match the Job Board design. Takes a JobOfferDTO and
+// shows it, plus a candidate Save/Apply side column.
 
 import { Link } from "react-router-dom";
 import { Bookmark, Calendar, Clock, MapPin, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useT } from "@/features/i18n/lang-context";
 import { useAuth } from "@/features/auth/auth-context";
+import { useSavedJobIds, useSaveJob, useUnsaveJob } from "@/features/savedJobs/hooks";
 import { cn } from "@/lib/utils";
 import { daysFromNow, formatMoney, humanizeType, logoColor } from "@/features/jobOffers/format";
 import type { JobOfferDTO } from "@/types/jobOffer";
@@ -131,18 +132,50 @@ export function JobCard({ job }: { job: JobOfferDTO }) {
       {/* Side actions — candidates and logged-out visitors only */}
       {canApply && (
         <div className="flex flex-col items-end justify-between gap-3.5">
-          <button
-            type="button"
-            aria-label={t("card.save")}
-            className="grid size-9 place-items-center rounded-md border border-[var(--color-hairline-strong)] text-[var(--color-steel)] hover:border-[var(--color-stone)] hover:text-[var(--color-charcoal)]"
-          >
-            <Bookmark className="size-4" />
-          </button>
+          <SaveButton jobId={job.id} />
           <Button asChild>
             <Link to={`/jobs/${job.id}`}>{t("card.apply")}</Link>
           </Button>
         </div>
       )}
     </article>
+  );
+}
+
+// Bookmark toggle. Candidates toggle the saved state (filled when saved); logged-out
+// visitors are funnelled to login, same as the Apply path.
+function SaveButton({ jobId }: { jobId: number }) {
+  const { t } = useT();
+  const { isAuthenticated, user } = useAuth();
+  const isCandidate = isAuthenticated && user?.userType === "CANDIDATE";
+
+  const { data: savedIds } = useSavedJobIds();
+  const save = useSaveJob();
+  const unsave = useUnsaveJob();
+
+  const btnClass =
+    "grid size-9 place-items-center rounded-md border border-[var(--color-hairline-strong)] text-[var(--color-steel)] hover:border-[var(--color-stone)] hover:text-[var(--color-charcoal)]";
+
+  if (!isCandidate) {
+    return (
+      <Link to="/login" state={{ from: `/jobs/${jobId}` }} aria-label={t("card.save")} className={btnClass}>
+        <Bookmark className="size-4" />
+      </Link>
+    );
+  }
+
+  const isSaved = savedIds?.includes(jobId) ?? false;
+  const pending = save.isPending || unsave.isPending;
+
+  return (
+    <button
+      type="button"
+      aria-label={isSaved ? t("card.saved") : t("card.save")}
+      disabled={pending}
+      onClick={() => (isSaved ? unsave : save).mutate(jobId)}
+      className={cn(btnClass, isSaved && "border-primary text-primary")}
+    >
+      <Bookmark className={cn("size-4", isSaved && "fill-current")} />
+    </button>
   );
 }

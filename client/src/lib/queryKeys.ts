@@ -39,6 +39,12 @@ export const queryKeys = {
       ["jobOffers", "byId", id, "applications", filters] as const,
   },
 
+  savedJobs: {
+    all: () => ["savedJobs"] as const,
+    list: (params?: PageParams) => ["savedJobs", "list", params] as const,
+    ids: () => ["savedJobs", "ids"] as const,
+  },
+
   jobApplications: {
     all: () => ["jobApplications"] as const,
     mine: (params?: PageParams) => ["jobApplications", "mine", params] as const,

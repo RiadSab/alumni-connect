@@ -14,6 +14,7 @@ import { RegisterCandidatePage } from "@/pages/RegisterCandidatePage";
 import { RegisterCompanyPage } from "@/pages/RegisterCompanyPage";
 import { DashboardPage } from "@/pages/DashboardPage";
 import { MyApplicationsPage } from "@/pages/MyApplicationsPage";
+import { SavedJobsPage } from "@/pages/SavedJobsPage";
 import { ProfilePage } from "@/pages/ProfilePage";
 import { ProfileEditPage } from "@/pages/ProfileEditPage";
 import { ChangePasswordPage } from "@/pages/ChangePasswordPage";
@@ -52,6 +53,7 @@ function App() {
             {/* Candidates only */}
             <Route element={<RequireCandidate />}>
               <Route path="applications" element={<MyApplicationsPage />} />
+              <Route path="saved" element={<SavedJobsPage />} />
             </Route>
 
             {/* Company users only */}

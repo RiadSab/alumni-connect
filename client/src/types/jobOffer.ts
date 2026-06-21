@@ -29,6 +29,7 @@ export interface JobOfferDTO extends AuditFields {
   currentApplicationCount: number;
   contactEmail: string | null;
   hasApplied: boolean | null; // detail view only; null in list responses
+  isSaved: boolean | null; // detail view + saved-jobs list; null elsewhere
 }
 
 // GET /api/job-offers/me/stats — company dashboard counts.

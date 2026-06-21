@@ -5,6 +5,7 @@
 import { Link, useParams } from "react-router-dom";
 import {
   ArrowLeft,
+  Bookmark,
   Briefcase,
   Calendar,
   CheckCircle2,
@@ -15,6 +16,8 @@ import {
   Users,
 } from "lucide-react";
 import { useJobOffer, useApplyToJobOffer } from "@/features/jobOffers/hooks";
+import { useSaveJob, useUnsaveJob } from "@/features/savedJobs/hooks";
+import { cn } from "@/lib/utils";
 import { daysFromNow, formatMoney, humanizeType, logoColor } from "@/features/jobOffers/format";
 import { useT } from "@/features/i18n/lang-context";
 import { useAuth } from "@/features/auth/auth-context";
@@ -239,6 +242,7 @@ function Sidebar({ job }: { job: JobOfferDTO }) {
       )}
 
       <ApplyAction job={job} />
+      <SaveAction job={job} />
     </aside>
   );
 }
@@ -300,5 +304,31 @@ function ApplyAction({ job }: { job: JobOfferDTO }) {
         </p>
       )}
     </div>
+  );
+}
+
+// Bookmark toggle, candidates only (relies on the offer's isSaved flag).
+function SaveAction({ job }: { job: JobOfferDTO }) {
+  const { t } = useT();
+  const { isAuthenticated, user } = useAuth();
+  const isCandidate = isAuthenticated && user?.userType === "CANDIDATE";
+  const save = useSaveJob();
+  const unsave = useUnsaveJob();
+
+  if (!isCandidate) return null;
+
+  const isSaved = job.isSaved ?? false;
+  const pending = save.isPending || unsave.isPending;
+
+  return (
+    <Button
+      variant="outline"
+      className="w-full"
+      disabled={pending}
+      onClick={() => (isSaved ? unsave : save).mutate(job.id)}
+    >
+      <Bookmark className={cn("size-4", isSaved && "fill-current")} />
+      {isSaved ? t("detail.saved") : t("detail.save")}
+    </Button>
   );
 }

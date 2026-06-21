@@ -66,6 +66,11 @@ export function RootLayout() {
                   {t("nav.myApplications")}
                 </NavLink>
               )}
+              {isCandidate && (
+                <NavLink to="/saved" className={navLinkClass}>
+                  {t("nav.saved")}
+                </NavLink>
+              )}
               {isCompany && (
                 <NavLink to="/company/jobs" className={navLinkClass}>
                   {t("nav.companyJobs")}
