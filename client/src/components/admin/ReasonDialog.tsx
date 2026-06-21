@@ -24,9 +24,11 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 
-// Every approve/reject/suspend/reactivate hook returns exactly this shape.
-export type StatusChangeAction = UseMutationResult<
-  string,
+// Every status-change hook returns this shape. Generic over the result type so it fits
+// both the admin actions (which return a string message) and the owner member actions
+// (which return the updated DTO) — the dialog only ever uses mutate/isPending/error/reset.
+export type StatusChangeAction<TData = unknown> = UseMutationResult<
+  TData,
   Error,
   { id: number; body: StatusChangeDTO },
   unknown
@@ -34,7 +36,7 @@ export type StatusChangeAction = UseMutationResult<
 
 type Variant = "default" | "outline" | "destructive";
 
-export function ReasonDialog({
+export function ReasonDialog<TData>({
   id,
   action,
   triggerLabel,
@@ -44,7 +46,7 @@ export function ReasonDialog({
   confirmVariant = "default",
 }: {
   id: number;
-  action: StatusChangeAction;
+  action: StatusChangeAction<TData>;
   triggerLabel: string;
   triggerVariant?: Variant;
   title: string;

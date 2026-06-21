@@ -5,9 +5,17 @@
 
 import { useState } from "react";
 import { CloudOff, RefreshCw } from "lucide-react";
-import { useCompanyRoster, useMyCompanyUserProfile, useChangeMemberRole } from "@/features/companyUsers/hooks";
+import {
+  useCompanyRoster,
+  useMyCompanyUserProfile,
+  useChangeMemberRole,
+  usePendingMembers,
+  useApproveMember,
+  useRejectMember,
+} from "@/features/companyUsers/hooks";
 import { useT } from "@/features/i18n/lang-context";
 import { isApiError } from "@/lib/http";
+import { ReasonDialog } from "@/components/admin/ReasonDialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -46,6 +54,8 @@ export function CompanyTeamPage() {
         <h1 className="text-2xl font-semibold text-foreground">{t("team.title")}</h1>
         <p className="mt-1 text-sm text-[var(--color-slate)]">{t("team.subtitle")}</p>
       </div>
+
+      {isOwner && <PendingRequests />}
 
       {roster.isLoading ? (
         <div className="space-y-3">
@@ -94,6 +104,84 @@ export function CompanyTeamPage() {
         </>
       )}
     </div>
+  );
+}
+
+// Owner-only: members who registered to join this company and are awaiting approval.
+// Hidden entirely when there are none, so it doesn't clutter the page.
+function PendingRequests() {
+  const { t, tn } = useT();
+  const [page, setPage] = useState(0);
+  const pending = usePendingMembers({ page });
+
+  if (!pending.data || pending.data.empty) return null;
+
+  return (
+    <section className="mb-8">
+      <h2 className="mb-1 text-base font-semibold text-foreground">{t("team.pending.title")}</h2>
+      <p className="mb-3 text-sm text-[var(--color-steel)]">
+        {tn(pending.data.totalElements, "team.pending.count.one", "team.pending.count.other")}
+      </p>
+      <div className="space-y-3">
+        {pending.data.content.map((member) => (
+          <PendingRow key={member.id} member={member} />
+        ))}
+      </div>
+
+      {pending.data.totalPages > 1 && (
+        <nav className="mt-4 flex items-center justify-center gap-3">
+          <Button variant="outline" size="sm" disabled={pending.data.first} onClick={() => setPage(page - 1)}>
+            {t("pager.prev")}
+          </Button>
+          <span className="text-sm text-[var(--color-steel)]">
+            {t("pager.page", { n: pending.data.number + 1, total: pending.data.totalPages })}
+          </span>
+          <Button variant="outline" size="sm" disabled={pending.data.last} onClick={() => setPage(page + 1)}>
+            {t("pager.next")}
+          </Button>
+        </nav>
+      )}
+    </section>
+  );
+}
+
+function PendingRow({ member }: { member: CompanyUserProfileDTO }) {
+  const { t } = useT();
+  const approve = useApproveMember();
+  const reject = useRejectMember();
+  const position =
+    companyUserPositionOptions.find((o) => o.value === member.position)?.label ?? member.position;
+
+  return (
+    <article className="flex items-start justify-between gap-4 rounded-lg border border-[var(--color-hairline-strong)] bg-[var(--color-surface)] p-5">
+      <div className="min-w-0">
+        <h3 className="text-base font-semibold leading-tight text-foreground">
+          {member.firstName} {member.lastName}
+        </h3>
+        <div className="mt-1.5 flex flex-wrap items-center gap-2.5 text-sm text-[var(--color-slate)]">
+          <a className="hover:underline" href={`mailto:${member.email}`}>{member.email}</a>
+          <span>{position}</span>
+        </div>
+      </div>
+      <div className="flex shrink-0 gap-2">
+        <ReasonDialog
+          id={member.id}
+          action={approve}
+          triggerLabel={t("team.pending.approve")}
+          title={t("team.pending.approveTitle")}
+          confirmLabel={t("team.pending.approve")}
+        />
+        <ReasonDialog
+          id={member.id}
+          action={reject}
+          triggerLabel={t("team.pending.reject")}
+          triggerVariant="outline"
+          title={t("team.pending.rejectTitle")}
+          confirmLabel={t("team.pending.reject")}
+          confirmVariant="destructive"
+        />
+      </div>
+    </article>
   );
 }
 

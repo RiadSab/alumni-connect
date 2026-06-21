@@ -7,11 +7,22 @@ import type {
   CompanyUserProfileDTO,
   UpdateCompanyUserProfileDTO,
 } from "@/types/companyUser";
+import type { StatusChangeDTO } from "@/types/admin";
 
 export const companyUsersApi = {
   // Caller's own company roster.
   roster: (params?: PageParams) =>
     http.get<Page<CompanyUserProfileDTO>>("/company-users", { query: params }),
+
+  // OWNER only — members of the caller's company awaiting approval.
+  pending: (params?: PageParams) =>
+    http.get<Page<CompanyUserProfileDTO>>("/company-users/pending", { query: params }),
+
+  // OWNER only — approve / reject a pending member.
+  approve: (id: number, body: StatusChangeDTO) =>
+    http.post<CompanyUserProfileDTO>(`/company-users/${id}/approve`, { json: body }),
+  reject: (id: number, body: StatusChangeDTO) =>
+    http.post<CompanyUserProfileDTO>(`/company-users/${id}/reject`, { json: body }),
 
   me: () => http.get<CompanyUserProfileDTO>("/company-users/me"),
 

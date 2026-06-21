@@ -25,6 +25,7 @@ export const queryKeys = {
   companyUsers: {
     all: () => ["companyUsers"] as const,
     roster: (params?: PageParams) => ["companyUsers", "roster", params] as const,
+    pending: (params?: PageParams) => ["companyUsers", "pending", params] as const,
     me: () => ["companyUsers", "me"] as const,
     byId: (id: number) => ["companyUsers", "byId", id] as const,
   },
