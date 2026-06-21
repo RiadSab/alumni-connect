@@ -2,12 +2,12 @@
 
 import { http, apiUrl } from "@/lib/http";
 import { singleFileForm } from "@/lib/form";
-import type { Page, PageParams, StoredFileDTO } from "@/types/common";
-import type { CompanyDTO, UpdateCompanyDTO } from "@/types/company";
+import type { Page, StoredFileDTO } from "@/types/common";
+import type { CompanyDTO, CompanyListParams, UpdateCompanyDTO } from "@/types/company";
 
 export const companiesApi = {
-  // Public — active companies only.
-  list: (params?: PageParams) => http.get<Page<CompanyDTO>>("/companies", { query: params }),
+  // Public — active companies only, optional ?q= name search.
+  list: (params?: CompanyListParams) => http.get<Page<CompanyDTO>>("/companies", { query: params }),
 
   // Public.
   byId: (id: number) => http.get<CompanyDTO>(`/companies/${id}`),

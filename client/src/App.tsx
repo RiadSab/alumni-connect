@@ -13,6 +13,7 @@ import { LoginPage } from "@/pages/LoginPage";
 import { ForgotPasswordPage } from "@/pages/ForgotPasswordPage";
 import { RegisterCandidatePage } from "@/pages/RegisterCandidatePage";
 import { RegisterCompanyPage } from "@/pages/RegisterCompanyPage";
+import { RegisterCompanyMemberPage } from "@/pages/RegisterCompanyMemberPage";
 import { DashboardPage } from "@/pages/DashboardPage";
 import { MyApplicationsPage } from "@/pages/MyApplicationsPage";
 import { SavedJobsPage } from "@/pages/SavedJobsPage";
@@ -42,6 +43,7 @@ function App() {
           <Route path="forgot-password" element={<ForgotPasswordPage />} />
           <Route path="register/candidate" element={<RegisterCandidatePage />} />
           <Route path="register/company" element={<RegisterCompanyPage />} />
+          <Route path="register/company-member" element={<RegisterCompanyMemberPage />} />
 
           {/* Logged-in only */}
           <Route element={<RequireAuth />}>

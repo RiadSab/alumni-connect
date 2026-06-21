@@ -238,6 +238,12 @@ export function RegisterCompanyPage() {
             </Button>
 
             <p className="text-center text-sm text-muted-foreground">
+              Joining a company already here?{" "}
+              <Link to="/register/company-member" className="underline">
+                Join it instead
+              </Link>
+            </p>
+            <p className="text-center text-sm text-muted-foreground">
               Already have an account?{" "}
               <Link to="/login" className="underline">
                 Log in

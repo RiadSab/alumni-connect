@@ -2,8 +2,13 @@
 
 import { z } from "zod";
 import { CompanySize, Fields, type CompanyStatus } from "@/types/enums";
-import type { AuditFields } from "@/types/common";
+import type { AuditFields, PageParams } from "@/types/common";
 import { nonBlank } from "@/lib/validation";
+
+// GET /api/companies — paginated browse with an optional name search (q).
+export interface CompanyListParams extends PageParams {
+  q?: string;
+}
 
 // Public company view — output of GET /api/companies, GET /api/companies/{id},
 // PATCH /api/companies/me.

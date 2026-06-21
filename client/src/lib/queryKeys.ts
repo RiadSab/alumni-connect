@@ -3,6 +3,7 @@
 // prefix, which invalidates every query under that feature at once.
 
 import type { PageParams } from "@/types/common";
+import type { CompanyListParams } from "@/types/company";
 import type { JobOfferFilters } from "@/types/jobOffer";
 import type { ApplicationFilters } from "@/types/jobApplication";
 import type { AdminUserFilters, AdminCompanyFilters } from "@/types/admin";
@@ -17,7 +18,7 @@ export const queryKeys = {
 
   companies: {
     all: () => ["companies"] as const,
-    list: (params?: PageParams) => ["companies", "list", params] as const,
+    list: (params?: CompanyListParams) => ["companies", "list", params] as const,
     byId: (id: number) => ["companies", "byId", id] as const,
   },
 
