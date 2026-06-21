@@ -73,13 +73,15 @@ export function HomePage() {
     employmentType:
       values.employmentType === "ALL" ? undefined : (values.employmentType as EmploymentType),
     isRemote: values.isRemote || undefined,
+    skills: values.skills.length ? values.skills : undefined,
   };
 
   const hasActiveFilters =
     filters.q !== undefined ||
     filters.city !== undefined ||
     filters.employmentType !== undefined ||
-    filters.isRemote !== undefined;
+    filters.isRemote !== undefined ||
+    filters.skills !== undefined;
 
   const { data, isLoading, isError, refetch } = useJobOffers({ ...filters, page });
 

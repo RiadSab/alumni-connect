@@ -1,8 +1,8 @@
-// Job board filter sidebar. Holds no state of its own — the page owns the values
-// and this renders the controls. Skills filter is deferred until there's a real
-// source for the skill list.
+// Job board filter sidebar. The page owns the filter values; the only local state
+// is the in-progress skill text before it's committed to a chip.
 
-import { Search, SlidersHorizontal } from "lucide-react";
+import { useState } from "react";
+import { Search, SlidersHorizontal, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -24,6 +24,19 @@ interface FilterSidebarProps {
 
 export function FilterSidebar({ values, onChange, onClear }: FilterSidebarProps) {
   const { t } = useT();
+  const [skillDraft, setSkillDraft] = useState("");
+
+  function addSkill() {
+    const skill = skillDraft.trim();
+    setSkillDraft("");
+    if (!skill || values.skills.some((s) => s.toLowerCase() === skill.toLowerCase())) return;
+    onChange({ skills: [...values.skills, skill] });
+  }
+
+  function removeSkill(skill: string) {
+    onChange({ skills: values.skills.filter((s) => s !== skill) });
+  }
+
   return (
     <aside className="sticky top-6 rounded-lg border border-border bg-card p-5">
       <div className="mb-4 flex items-center justify-between">
@@ -94,6 +107,45 @@ export function FilterSidebar({ values, onChange, onClear }: FilterSidebarProps)
             ))}
           </SelectContent>
         </Select>
+      </div>
+
+      <div className="mb-4">
+        <label htmlFor="skill" className="mb-2 block text-[11px] font-semibold uppercase tracking-wider text-[var(--color-stone)]">
+          {t("filters.skills")}
+        </label>
+        <Input
+          id="skill"
+          placeholder={t("filters.skillsPlaceholder")}
+          value={skillDraft}
+          onChange={(event) => setSkillDraft(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" || event.key === ",") {
+              event.preventDefault();
+              addSkill();
+            }
+          }}
+          onBlur={addSkill}
+        />
+        {values.skills.length > 0 && (
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {values.skills.map((skill) => (
+              <span
+                key={skill}
+                className="inline-flex items-center gap-1 rounded-sm bg-[var(--color-tint-lavender)] px-2 py-[3px] text-[12.5px] font-medium text-[var(--color-brand-purple-800)]"
+              >
+                {skill}
+                <button
+                  type="button"
+                  aria-label={t("filters.removeSkill", { skill })}
+                  onClick={() => removeSkill(skill)}
+                  className="text-[var(--color-brand-purple-800)] hover:text-[var(--color-charcoal)]"
+                >
+                  <X className="size-3" />
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="flex items-center justify-between">

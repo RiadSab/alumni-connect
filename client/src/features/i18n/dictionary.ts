@@ -47,6 +47,9 @@ export const en = {
   "filters.allCities": "All cities",
   "filters.type": "Employment type",
   "filters.allTypes": "All types",
+  "filters.skills": "Skills",
+  "filters.skillsPlaceholder": "Type a skill, press Enter",
+  "filters.removeSkill": "Remove {skill}",
   "filters.remoteOnly": "Remote only",
   // job card
   "card.remote": "Remote",
@@ -309,6 +312,9 @@ export const fr: Record<TKey, string> = {
   "filters.allCities": "Toutes les villes",
   "filters.type": "Type de contrat",
   "filters.allTypes": "Tous les types",
+  "filters.skills": "Compétences",
+  "filters.skillsPlaceholder": "Saisissez une compétence, Entrée",
+  "filters.removeSkill": "Retirer {skill}",
   "filters.remoteOnly": "Télétravail uniquement",
   // job card
   "card.remote": "Télétravail",

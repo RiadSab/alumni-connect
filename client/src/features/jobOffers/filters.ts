@@ -7,6 +7,7 @@ export interface JobFilterValues {
   city: string;
   employmentType: string;
   isRemote: boolean;
+  skills: string[];
 }
 
 export const EMPTY_FILTERS: JobFilterValues = {
@@ -14,4 +15,5 @@ export const EMPTY_FILTERS: JobFilterValues = {
   city: "ALL",
   employmentType: "ALL",
   isRemote: false,
+  skills: [],
 };
