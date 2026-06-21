@@ -38,8 +38,9 @@ public class CompanyController {
             MediaType.IMAGE_PNG_VALUE, MediaType.IMAGE_JPEG_VALUE, "image/webp");
 
     @GetMapping
-    public ResponseEntity<Page<CompanyDTO>> getActiveCompanies(@PageableDefault Pageable pageable) {
-        return ResponseEntity.ok(companyService.getActiveCompanies(pageable));
+    public ResponseEntity<Page<CompanyDTO>> getActiveCompanies(@RequestParam(required = false) String q,
+                                                               @PageableDefault Pageable pageable) {
+        return ResponseEntity.ok(companyService.getActiveCompanies(q, pageable));
     }
 
     // Public single-company profile — the company page a candidate reaches by clicking the

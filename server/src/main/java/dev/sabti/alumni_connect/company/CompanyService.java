@@ -40,9 +40,12 @@ public class CompanyService {
 
     // Only ACTIVE companies are discoverable here — this list feeds the "join an existing
     // company" registration flow, and PENDING/REJECTED/SUSPENDED companies must stay invisible
-    // to people who aren't members yet.
-    public Page<CompanyDTO> getActiveCompanies(Pageable pageable) {
-        return companyRepository.findByStatus(CompanyStatus.ACTIVE, pageable).map(CompanyDTO::from);
+    // to people who aren't members yet. Optional name search (q) powers the join-flow picker.
+    public Page<CompanyDTO> getActiveCompanies(String q, Pageable pageable) {
+        Page<Company> companies = (q == null || q.isBlank())
+                ? companyRepository.findByStatus(CompanyStatus.ACTIVE, pageable)
+                : companyRepository.findByStatusAndNameContainingIgnoreCase(CompanyStatus.ACTIVE, q.trim(), pageable);
+        return companies.map(CompanyDTO::from);
     }
 
     // Public single-company profile (the company page reached from a job offer / directory).

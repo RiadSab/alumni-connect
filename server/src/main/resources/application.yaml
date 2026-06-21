@@ -2,7 +2,7 @@ spring:
   application:
     name: alumni-connect
   datasource:
-    url: jdbc:postgresql://localhost:5432/alumni_fresh
+    url: jdbc:postgresql://localhost:5432/alumni_connect
     username: alumni
     password: ${DB_PASSWORD}
   jpa:
