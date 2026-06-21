@@ -2,13 +2,20 @@ spring:
   application:
     name: alumni-connect
   datasource:
-    url: jdbc:postgresql://localhost:5432/alumni_connect
+    url: jdbc:postgresql://localhost:5432/alumni_fresh
     username: alumni
     password: ${DB_PASSWORD}
   jpa:
     hibernate:
-      ddl-auto: update
+      # Flyway owns the schema now; Hibernate only checks entities match it (never edits).
+      ddl-auto: validate
     show-sql: true
+  flyway:
+    enabled: true
+    # The existing DB already has the schema, so baseline it at V1 (skip running V1 there) and
+    # apply V2+ onward. A fresh empty DB has nothing to baseline, so it runs V1 and builds it.
+    baseline-on-migrate: true
+    baseline-version: 1
   servlet:
     multipart:
       max-file-size: 5MB
