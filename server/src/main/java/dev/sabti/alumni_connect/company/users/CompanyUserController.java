@@ -1,5 +1,6 @@
 package dev.sabti.alumni_connect.company.users;
 
+import dev.sabti.alumni_connect.shared.StatusChangeDTO;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -10,6 +11,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -40,6 +42,32 @@ public class CompanyUserController {
     public CompanyUserProfileDTO updateMyProfile(@AuthenticationPrincipal UserDetails principal,
                                                  @RequestBody @Valid UpdateCompanyUserProfileDTO dto) {
         return companyUserService.updateMyProfile(principal.getUsername(), dto);
+    }
+
+    // A company OWNER's pending join requests — members of their company awaiting approval.
+    // Literal "/pending" (declared before /{id}) and matched as authenticated in SecurityConfig
+    // ahead of the admin-only /* matcher. The service throws 403 if the caller isn't an OWNER.
+    @GetMapping("/pending")
+    public Page<CompanyUserProfileDTO> getPendingMembers(@AuthenticationPrincipal UserDetails principal,
+                                                         @PageableDefault Pageable pageable) {
+        return companyUserService.getPendingMembers(principal.getUsername(), pageable);
+    }
+
+    // OWNER approves/rejects a pending member of their own company (sets the account ACTIVE/REJECTED).
+    // {id} is the target member's User id. Authority is decided in the service: 403 (not the owner),
+    // 404 (target not in the actor's company), 409 (not pending). Reason is optional.
+    @PostMapping("/{id}/approve")
+    public CompanyUserProfileDTO approveMember(@AuthenticationPrincipal UserDetails principal,
+                                               @PathVariable Long id,
+                                               @RequestBody @Valid StatusChangeDTO dto) {
+        return companyUserService.approveMember(principal.getUsername(), id, dto.getReason());
+    }
+
+    @PostMapping("/{id}/reject")
+    public CompanyUserProfileDTO rejectMember(@AuthenticationPrincipal UserDetails principal,
+                                              @PathVariable Long id,
+                                              @RequestBody @Valid StatusChangeDTO dto) {
+        return companyUserService.rejectMember(principal.getUsername(), id, dto.getReason());
     }
 
     // Admin-only: lookup by User id, e.g. reviewing a pending company-user from

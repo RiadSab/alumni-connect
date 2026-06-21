@@ -1,10 +1,12 @@
 package dev.sabti.alumni_connect.company.users;
 
 import dev.sabti.alumni_connect.auth.entities.User;
+import dev.sabti.alumni_connect.auth.entities.UserStatus;
 import dev.sabti.alumni_connect.auth.repositories.UserRepository;
 import dev.sabti.alumni_connect.company.entities.CompanyRole;
 import dev.sabti.alumni_connect.company.entities.CompanyUserProfile;
 import dev.sabti.alumni_connect.company.repositories.CompanyUserProfileRepository;
+import dev.sabti.alumni_connect.shared.exception.ConflictException;
 import dev.sabti.alumni_connect.shared.exception.ForbiddenException;
 import dev.sabti.alumni_connect.shared.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -111,6 +113,56 @@ public class CompanyUserService {
         target.setCompanyRole(newRole);
         companyUserProfileRepository.save(target);
         return CompanyUserProfileDTO.from(targetUser, target);
+    }
+
+    // A company OWNER's pending join requests — members of their own company whose account is still
+    // PENDING. 403 if the caller isn't an OWNER. Scoped by identity, not a path id.
+    @Transactional(readOnly = true)
+    public Page<CompanyUserProfileDTO> getPendingMembers(String ownerEmail, Pageable pageable) {
+        CompanyUserProfile owner = requireOwner(ownerEmail);
+        return companyUserProfileRepository
+                .findByCompanyAndUser_UserStatus(owner.getCompany(), UserStatus.PENDING, pageable)
+                .map(member -> CompanyUserProfileDTO.from(member.getUser(), member));
+    }
+
+    @Transactional
+    public CompanyUserProfileDTO approveMember(String ownerEmail, Long targetUserId, String reason) {
+        return setMemberStatus(ownerEmail, targetUserId, UserStatus.ACTIVE, reason);
+    }
+
+    @Transactional
+    public CompanyUserProfileDTO rejectMember(String ownerEmail, Long targetUserId, String reason) {
+        return setMemberStatus(ownerEmail, targetUserId, UserStatus.REJECTED, reason);
+    }
+
+    // An OWNER approves/rejects a PENDING member of their own company. 404 if the target isn't a
+    // member of the actor's company (not probeable); 409 if they aren't PENDING (already decided).
+    private CompanyUserProfileDTO setMemberStatus(String ownerEmail, Long targetUserId, UserStatus newStatus, String reason) {
+        CompanyUserProfile owner = requireOwner(ownerEmail);
+
+        User targetUser = userRepository.findById(targetUserId)
+                .orElseThrow(() -> new NotFoundException("Member not found"));
+        CompanyUserProfile target = companyUserProfileRepository.findByUser(targetUser)
+                .orElseThrow(() -> new NotFoundException("Member not found"));
+        if (!target.getCompany().getId().equals(owner.getCompany().getId())) {
+            throw new NotFoundException("Member not found");
+        }
+        if (targetUser.getUserStatus() != UserStatus.PENDING) {
+            throw new ConflictException("This member is not awaiting approval");
+        }
+
+        targetUser.setUserStatus(newStatus);
+        targetUser.setStatusChangeReason(reason);
+        userRepository.save(targetUser);
+        return CompanyUserProfileDTO.from(targetUser, target);
+    }
+
+    private CompanyUserProfile requireOwner(String email) {
+        CompanyUserProfile profile = requireCompanyUser(requireUser(email));
+        if (profile.getCompanyRole() != CompanyRole.OWNER) {
+            throw new ForbiddenException("Only the company owner can do this");
+        }
+        return profile;
     }
 
     // The /me endpoints require a real user behind the email and a CompanyUserProfile behind that

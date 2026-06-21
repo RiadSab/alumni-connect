@@ -65,6 +65,9 @@ public class SecurityConfig {
                     .requestMatchers(HttpMethod.GET, "/api/company-users/me").authenticated()
                     .requestMatchers(HttpMethod.PATCH, "/api/company-users/me").authenticated()
                     .requestMatchers(HttpMethod.PATCH, "/api/company-users/*/role").authenticated()
+                    // Owner-managed member approval — before the admin-only /* matcher; authority is in the service.
+                    .requestMatchers(HttpMethod.GET, "/api/company-users/pending").authenticated()
+                    .requestMatchers(HttpMethod.POST, "/api/company-users/*/approve", "/api/company-users/*/reject").authenticated()
                     .requestMatchers(HttpMethod.GET, "/api/company-users/*").hasRole("ADMINISTRATOR")
                     // Public job-offer browse; POST stays authenticated (authority in JobOfferService).
                     .requestMatchers(HttpMethod.GET, "/api/job-offers", "/api/job-offers/**").permitAll()
