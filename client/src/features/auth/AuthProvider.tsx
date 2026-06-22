@@ -13,6 +13,7 @@ import {
 } from "@/lib/auth";
 import type { AuthUser } from "@/lib/auth";
 import type { LoginResponseDTO } from "@/types/auth";
+import { queryClient } from "@/lib/queryClient";
 import { AuthContext } from "@/features/auth/auth-context";
 import type { AuthContextValue } from "@/features/auth/auth-context";
 
@@ -36,6 +37,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     clearToken();
     clearStoredUser();
     setUser(null);
+    // Drop every cached query so the next account doesn't inherit this user's data
+    // (e.g. a member seeing the previous owner's cached /company-users/me → role toggle).
+    queryClient.clear();
   }
 
   const value: AuthContextValue = {
