@@ -210,13 +210,13 @@ public class JobOfferService {
         return jobOfferRepository.findByCompany(profile.getCompany(), pageable).map(JobOfferDTO::from);
     }
 
-    // Company dashboard counts via aggregate queries (postings / open / total applicants).
+    // Company dashboard counts via aggregate queries (postings / open / total applicants) —
+    // viewable by any company user, same as the offers listing. 403 if not a company user.
     @Transactional(readOnly = true)
     public CompanyOfferStatsDTO getMyCompanyStats(String callerEmail) {
         CompanyUserProfile profile = userRepository.findByEmail(callerEmail)
                 .flatMap(companyUserProfileRepository::findByUser)
-                .filter(p -> p.getCompanyRole() == CompanyRole.OWNER || p.getCompanyRole() == CompanyRole.RECRUITER)
-                .orElseThrow(() -> new ForbiddenException("Only a company owner or recruiter can do this"));
+                .orElseThrow(() -> new ForbiddenException("Only a company user can do this"));
 
         Company company = profile.getCompany();
         long totalPostings = jobOfferRepository.countByCompany(company);
