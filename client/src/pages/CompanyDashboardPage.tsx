@@ -29,6 +29,7 @@ export function CompanyDashboardPage() {
   const stats = useMyCompanyStats();
   const offers = useMyJobOffers({ size: 5 });
   const recent = offers.data?.content ?? [];
+  const canManage = me.data?.companyRole === "OWNER" || me.data?.companyRole === "RECRUITER";
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
@@ -51,11 +52,13 @@ export function CompanyDashboardPage() {
 
       {/* Quick actions */}
       <div className="flex flex-wrap gap-3">
-        <Button asChild>
-          <Link to="/company/jobs/new">
-            <FilePlus2 className="size-4" /> {t("myJobs.post")}
-          </Link>
-        </Button>
+        {canManage && (
+          <Button asChild>
+            <Link to="/company/jobs/new">
+              <FilePlus2 className="size-4" /> {t("myJobs.post")}
+            </Link>
+          </Button>
+        )}
         <Button variant="outline" asChild>
           <Link to="/company/jobs">
             <Briefcase className="size-4" /> {t("dash.managePostings")}
@@ -93,7 +96,7 @@ export function CompanyDashboardPage() {
         ) : (
           <div className="space-y-3">
             {recent.map((offer) => (
-              <RecentRow key={offer.id} offer={offer} />
+              <RecentRow key={offer.id} offer={offer} canManage={canManage} />
             ))}
           </div>
         )}
@@ -117,25 +120,33 @@ function StatCard({ label, value, loading }: { label: string; value: number | st
   );
 }
 
-function RecentRow({ offer }: { offer: JobOfferDTO }) {
+function RecentRow({ offer, canManage }: { offer: JobOfferDTO; canManage: boolean }) {
   const { tn } = useT();
   const status = jobStatusOptions.find((o) => o.value === offer.status)?.label ?? offer.status;
+  // Managers edit the offer and open its applicants; members just view the public posting.
+  const titleTo = canManage ? `/company/jobs/${offer.id}/edit` : `/jobs/${offer.id}`;
+  const applicants = tn(offer.currentApplicationCount, "card.applicants.one", "card.applicants.other");
 
   return (
     <article className="flex items-center justify-between gap-4 rounded-lg border border-border bg-card p-4">
       <div className="flex min-w-0 items-center gap-2">
-        <Link to={`/company/jobs/${offer.id}/edit`} className="truncate text-sm font-semibold text-foreground hover:text-primary">
+        <Link to={titleTo} className="truncate text-sm font-semibold text-foreground hover:text-primary">
           {offer.title}
         </Link>
         <Badge variant={statusVariant(offer.status)}>{status}</Badge>
       </div>
-      <Link
-        to={`/company/jobs/${offer.id}/applications`}
-        className="inline-flex shrink-0 items-center gap-1.5 text-sm text-[var(--color-slate)] hover:text-foreground hover:underline"
-      >
-        <Users className="size-3.5" />
-        {tn(offer.currentApplicationCount, "card.applicants.one", "card.applicants.other")}
-      </Link>
+      {canManage ? (
+        <Link
+          to={`/company/jobs/${offer.id}/applications`}
+          className="inline-flex shrink-0 items-center gap-1.5 text-sm text-[var(--color-slate)] hover:text-foreground hover:underline"
+        >
+          <Users className="size-3.5" /> {applicants}
+        </Link>
+      ) : (
+        <span className="inline-flex shrink-0 items-center gap-1.5 text-sm text-[var(--color-slate)]">
+          <Users className="size-3.5" /> {applicants}
+        </span>
+      )}
     </article>
   );
 }

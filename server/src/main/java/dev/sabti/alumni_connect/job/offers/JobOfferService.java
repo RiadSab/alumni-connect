@@ -198,17 +198,14 @@ public class JobOfferService {
         return JobOfferDTO.from(jobOfferRepository.save(offer));
     }
 
-    // All offers belonging to the caller's own company (any status), regardless of who posted them —
-    // matches the company-wide authority already enforced by resolvePosterForCompany (an
-    // OWNER/RECRUITER can edit/review any of their company's offers, not just ones they personally
-    // posted), so this listing is the discovery entry point for that same authority. 403 if the
-    // caller isn't a company OWNER/RECRUITER.
+    // All offers of the caller's own company (any status) — viewable by any of its members, so a
+    // plain MEMBER can see what the company has posted. Posting/editing stay OWNER/RECRUITER
+    // (enforced in postJobOffer/updateJobOffer). 403 if the caller isn't a company user at all.
     @Transactional(readOnly = true)
     public Page<JobOfferDTO> getMyCompanyJobOffers(String callerEmail, Pageable pageable) {
         CompanyUserProfile profile = userRepository.findByEmail(callerEmail)
                 .flatMap(companyUserProfileRepository::findByUser)
-                .filter(p -> p.getCompanyRole() == CompanyRole.OWNER || p.getCompanyRole() == CompanyRole.RECRUITER)
-                .orElseThrow(() -> new ForbiddenException("Only a company owner or recruiter can do this"));
+                .orElseThrow(() -> new ForbiddenException("Only a company user can do this"));
 
         return jobOfferRepository.findByCompany(profile.getCompany(), pageable).map(JobOfferDTO::from);
     }

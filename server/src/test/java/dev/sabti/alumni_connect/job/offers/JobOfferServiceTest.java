@@ -152,7 +152,7 @@ class JobOfferServiceTest {
 
         assertThatThrownBy(() -> service.getMyCompanyJobOffers(EMAIL, PageRequest.of(0, 10)))
                 .isInstanceOf(ForbiddenException.class)
-                .hasMessage("Only a company owner or recruiter can do this");
+                .hasMessage("Only a company user can do this");
     }
 
     // --- getRecommendedOffers() ----------------------------------------------

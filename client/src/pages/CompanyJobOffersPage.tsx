@@ -1,12 +1,12 @@
-// A company's "manage my postings" screen. Lists the caller's own company's job
-// offers (any status) via /job-offers/me — OWNER/RECRUITER only, so a MEMBER who
-// reaches this URL gets the error card (the backend 403s). Posting a new offer and
-// editing/closing existing ones land in the next commits (/company/jobs/new,
-// /company/jobs/:id/edit).
+// A company's postings screen at /company/jobs. Lists the caller's own company's job
+// offers (any status) via /job-offers/me. Any company user can view it; only an
+// OWNER/RECRUITER sees the post / manage / applicants controls (a MEMBER gets a
+// read-only list, since those backend actions are 403 for them anyway).
 
 import { Link } from "react-router-dom";
 import { Briefcase, CloudOff, Plus, RefreshCw, Users } from "lucide-react";
 import { useMyJobOffers } from "@/features/jobOffers/hooks";
+import { useMyCompanyUserProfile } from "@/features/companyUsers/hooks";
 import { useT } from "@/features/i18n/lang-context";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -27,6 +27,8 @@ function statusVariant(status: JobStatus): "default" | "secondary" | "destructiv
 export function CompanyJobOffersPage() {
   const { t, tn } = useT();
   const { data, isLoading, isError, refetch } = useMyJobOffers();
+  const me = useMyCompanyUserProfile();
+  const canManage = me.data?.companyRole === "OWNER" || me.data?.companyRole === "RECRUITER";
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -35,11 +37,13 @@ export function CompanyJobOffersPage() {
           <h1 className="text-2xl font-semibold text-foreground">{t("myJobs.title")}</h1>
           <p className="mt-1 text-sm text-[var(--color-slate)]">{t("myJobs.subtitle")}</p>
         </div>
-        <Button asChild>
-          <Link to="/company/jobs/new">
-            <Plus className="size-4" /> {t("myJobs.post")}
-          </Link>
-        </Button>
+        {canManage && (
+          <Button asChild>
+            <Link to="/company/jobs/new">
+              <Plus className="size-4" /> {t("myJobs.post")}
+            </Link>
+          </Button>
+        )}
       </div>
 
       {isLoading ? (
@@ -65,11 +69,13 @@ export function CompanyJobOffersPage() {
           </div>
           <h3 className="text-lg font-semibold text-foreground">{t("myJobs.empty.title")}</h3>
           <p className="mt-2 max-w-sm text-sm text-[var(--color-steel)]">{t("myJobs.empty.body")}</p>
-          <Button className="mt-5" asChild>
-            <Link to="/company/jobs/new">
-              <Plus className="size-4" /> {t("myJobs.post")}
-            </Link>
-          </Button>
+          {canManage && (
+            <Button className="mt-5" asChild>
+              <Link to="/company/jobs/new">
+                <Plus className="size-4" /> {t("myJobs.post")}
+              </Link>
+            </Button>
+          )}
         </div>
       ) : (
         <>
@@ -78,7 +84,7 @@ export function CompanyJobOffersPage() {
           </p>
           <div className="space-y-3">
             {data.content.map((offer) => (
-              <OfferRow key={offer.id} offer={offer} />
+              <OfferRow key={offer.id} offer={offer} canManage={canManage} />
             ))}
           </div>
         </>
@@ -87,7 +93,7 @@ export function CompanyJobOffersPage() {
   );
 }
 
-function OfferRow({ offer }: { offer: JobOfferDTO }) {
+function OfferRow({ offer, canManage }: { offer: JobOfferDTO; canManage: boolean }) {
   const { t, tn } = useT();
   const status = jobStatusOptions.find((o) => o.value === offer.status)?.label ?? offer.status;
   const postedDaysAgo = Math.max(0, -daysFromNow(offer.createdAt));
@@ -109,13 +115,20 @@ function OfferRow({ offer }: { offer: JobOfferDTO }) {
         </div>
         <div className="mt-1.5 flex flex-wrap items-center gap-2.5 text-sm text-[var(--color-slate)]">
           {offer.employmentType && <span>{humanizeType(offer.employmentType)}</span>}
-          {/* The applicant count doubles as the link into the applicants screen. */}
-          <Link
-            to={`/company/jobs/${offer.id}/applications`}
-            className="inline-flex items-center gap-1.5 hover:text-foreground hover:underline"
-          >
-            <Users className="size-3.5" /> {applicants}
-          </Link>
+          {/* Managers get the applicant count as a link into the applicants screen; members
+              (who can't review) just see the count. */}
+          {canManage ? (
+            <Link
+              to={`/company/jobs/${offer.id}/applications`}
+              className="inline-flex items-center gap-1.5 hover:text-foreground hover:underline"
+            >
+              <Users className="size-3.5" /> {applicants}
+            </Link>
+          ) : (
+            <span className="inline-flex items-center gap-1.5">
+              <Users className="size-3.5" /> {applicants}
+            </span>
+          )}
           <span>{tn(postedDaysAgo, "card.posted.one", "card.posted.other")}</span>
         </div>
       </div>
@@ -123,9 +136,11 @@ function OfferRow({ offer }: { offer: JobOfferDTO }) {
         <Button variant="ghost" size="sm" asChild>
           <Link to={`/jobs/${offer.id}`}>{t("myJobs.view")}</Link>
         </Button>
-        <Button variant="outline" size="sm" asChild>
-          <Link to={`/company/jobs/${offer.id}/edit`}>{t("myJobs.manage")}</Link>
-        </Button>
+        {canManage && (
+          <Button variant="outline" size="sm" asChild>
+            <Link to={`/company/jobs/${offer.id}/edit`}>{t("myJobs.manage")}</Link>
+          </Button>
+        )}
       </div>
     </article>
   );
