@@ -2,18 +2,15 @@ spring:
   application:
     name: alumni-connect
   datasource:
-    url: jdbc:postgresql://localhost:5432/alumni_connect
-    username: alumni
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/alumni_connect}
+    username: ${DB_USERNAME:alumni}
     password: ${DB_PASSWORD}
   jpa:
     hibernate:
-      # Flyway owns the schema now; Hibernate only checks entities match it (never edits).
       ddl-auto: validate
     show-sql: true
   flyway:
     enabled: true
-    # The existing DB already has the schema, so baseline it at V1 (skip running V1 there) and
-    # apply V2+ onward. A fresh empty DB has nothing to baseline, so it runs V1 and builds it.
     baseline-on-migrate: true
     baseline-version: 1
   servlet:
@@ -37,16 +34,21 @@ jwt:
   expirationMs: 3600000
   issuer: alumni-connect
 
-# Local filesystem storage backend (LocalStorageService). Override STORAGE_DIR in prod, or swap
-# the StorageService implementation entirely (e.g. S3) without touching this beyond the path.
 storage:
   local:
     dir: ${STORAGE_DIR:./uploads}
 
-# Outbound email. provider=log (default) uses LoggingEmailSender; set MAIL_PROVIDER=smtp to send
-# via spring.mail.* (Resend). MAIL_FROM must be an address on the verified domain.
 app:
+  storage:
+    provider: ${STORAGE_PROVIDER:local}
+    r2:
+      endpoint: ${R2_ENDPOINT:}
+      bucket: ${R2_BUCKET:}
+      access-key: ${R2_ACCESS_KEY:}
+      secret-key: ${R2_SECRET_KEY:}
   mail:
     provider: ${MAIL_PROVIDER:log}
     from: ${MAIL_FROM:noreply@example.com}
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:}
 
