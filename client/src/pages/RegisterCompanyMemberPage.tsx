@@ -1,23 +1,20 @@
-// Join an existing company: registers a new COMPANY_USER as a MEMBER of a company that
-// already exists (the owner registered it earlier). Same await-approval flow as the other
-// sign-ups. English labels, matching the other auth forms.
+// Join an existing company: registers a new COMPANY_USER as a MEMBER of a company
+// that already exists (the owner registered it earlier). Same await-approval flow
+// as the other sign-ups.
 
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Search, X } from "lucide-react";
+import { Mail, Phone, Search, User, X } from "lucide-react";
 import { useRegisterCompanyMember } from "@/features/auth/hooks";
 import { useCompanySearch } from "@/features/companies/hooks";
+import { AuthScreen } from "@/features/auth/AuthScreen";
+import { AuthBrand, AuthField, AuthPasswordField } from "@/features/auth/fields";
+import { useT } from "@/features/i18n/lang-context";
 import { registerCompanyMemberSchema } from "@/types/auth";
 import { companyUserPositionOptions, fieldsOptions } from "@/types/enums";
 import { isApiError } from "@/lib/http";
 import type { CompanyDTO } from "@/types/company";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -39,6 +36,7 @@ const emptyForm = {
 };
 
 export function RegisterCompanyMemberPage() {
+  const { t } = useT();
   const register = useRegisterCompanyMember();
   const navigate = useNavigate();
 
@@ -74,7 +72,7 @@ export function RegisterCompanyMemberPage() {
           errors[field] = issue.message;
         }
       }
-      if (!company) errors.companyId = "Select your company from the list above.";
+      if (!company) errors.companyId = t("auth.member.selectCompany");
       setFieldErrors(errors);
       return;
     }
@@ -86,42 +84,42 @@ export function RegisterCompanyMemberPage() {
       onError: (error) => {
         setFormError(
           isApiError(error) && error.status === 400
-            ? "That company can't be joined right now. Pick another, or check with your company owner."
+            ? t("auth.member.cantJoin")
             : isApiError(error)
               ? error.message
-              : "Something went wrong. Please try again.",
+              : t("auth.error.generic"),
         );
       },
     });
   }
 
   return (
-    <div className="mx-auto max-w-lg">
-      <Card>
-        <CardHeader>
-          <CardTitle>Join your company</CardTitle>
-          <CardDescription>
-            For employees of a company already on Alumni Connect. Your account awaits admin approval.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+    <AuthScreen>
+      <Card className="w-full max-w-lg bg-card/95 shadow-[var(--shadow-2)] backdrop-blur-sm">
+        <CardContent className="flex flex-col gap-6 p-7">
+          <AuthBrand title={t("auth.member.title")} subtitle={t("auth.member.subtitle")} />
+
           <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
-            <h2 className="text-sm font-semibold text-muted-foreground">Your company</h2>
+            <h2 className="text-sm font-semibold text-muted-foreground">
+              {t("auth.company.yourCompany")}
+            </h2>
             <CompanyPicker selected={company} onSelect={setCompany} error={fieldErrors.companyId} />
 
-            <h2 className="mt-2 text-sm font-semibold text-muted-foreground">Your account</h2>
+            <h2 className="mt-2 text-sm font-semibold text-muted-foreground">
+              {t("auth.company.yourAccount")}
+            </h2>
 
-            <Field id="firstName" label="First name" value={form.firstName} onChange={(v) => setField("firstName", v)} error={fieldErrors.firstName} />
-            <Field id="lastName" label="Last name" value={form.lastName} onChange={(v) => setField("lastName", v)} error={fieldErrors.lastName} />
-            <Field id="email" label="Email" type="email" value={form.email} onChange={(v) => setField("email", v)} error={fieldErrors.email} />
-            <Field id="password" label="Password" type="password" value={form.password} onChange={(v) => setField("password", v)} error={fieldErrors.password} />
-            <Field id="phoneNumber" label="Phone (optional)" value={form.phoneNumber} onChange={(v) => setField("phoneNumber", v)} error={fieldErrors.phoneNumber} />
+            <AuthField id="firstName" label={t("auth.field.firstName")} icon={User} value={form.firstName} onChange={(e) => setField("firstName", e.target.value)} error={fieldErrors.firstName} />
+            <AuthField id="lastName" label={t("auth.field.lastName")} icon={User} value={form.lastName} onChange={(e) => setField("lastName", e.target.value)} error={fieldErrors.lastName} />
+            <AuthField id="email" label={t("auth.field.email")} icon={Mail} type="email" value={form.email} onChange={(e) => setField("email", e.target.value)} error={fieldErrors.email} />
+            <AuthPasswordField id="password" label={t("auth.field.password")} value={form.password} onChange={(e) => setField("password", e.target.value)} error={fieldErrors.password} />
+            <AuthField id="phoneNumber" label={t("auth.field.phoneOptional")} icon={Phone} value={form.phoneNumber} onChange={(e) => setField("phoneNumber", e.target.value)} error={fieldErrors.phoneNumber} />
 
-            <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium">Your position</label>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-medium">{t("auth.field.position")}</label>
               <Select value={form.position} onValueChange={(value) => setField("position", value)}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select your position" />
+                  <SelectValue placeholder={t("auth.placeholder.selectPosition")} />
                 </SelectTrigger>
                 <SelectContent>
                   {companyUserPositionOptions.map((option) => (
@@ -136,52 +134,25 @@ export function RegisterCompanyMemberPage() {
 
             {formError && <p className="text-sm text-destructive">{formError}</p>}
 
-            <Button type="submit" disabled={register.isPending}>
-              {register.isPending ? "Joining..." : "Join company"}
+            <Button type="submit" className="h-10" disabled={register.isPending}>
+              {register.isPending ? t("auth.member.joining") : t("auth.member.submit")}
             </Button>
-
-            <p className="text-center text-sm text-muted-foreground">
-              Registering a new company?{" "}
-              <Link to="/register/company" className="underline">
-                Create one
-              </Link>
-            </p>
           </form>
+
+          <div className="border-t border-border pt-4 text-center text-sm text-muted-foreground">
+            {t("auth.member.registeringNew")}{" "}
+            <Link to="/register/company" className="font-medium text-primary underline-offset-4 hover:underline">
+              {t("auth.member.createOne")}
+            </Link>
+          </div>
         </CardContent>
       </Card>
-    </div>
+    </AuthScreen>
   );
 }
 
-// Label + input + error trio (the form's repeated text-field shape).
-function Field({
-  id,
-  label,
-  value,
-  onChange,
-  error,
-  type = "text",
-}: {
-  id: string;
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  error?: string;
-  type?: string;
-}) {
-  return (
-    <div className="flex flex-col gap-2">
-      <label htmlFor={id} className="text-sm font-medium">
-        {label}
-      </label>
-      <Input id={id} type={type} value={value} onChange={(event) => onChange(event.target.value)} aria-invalid={error !== undefined} />
-      {error && <p className="text-sm text-destructive">{error}</p>}
-    </div>
-  );
-}
-
-// Search-and-select for an existing active company. Once one is chosen it collapses to a
-// chip with a "Change" button; selecting supplies the companyId the form submits.
+// Search-and-select for an existing active company. Once one is chosen it collapses
+// to a chip with a "Change" button; selecting supplies the companyId the form submits.
 function CompanyPicker({
   selected,
   onSelect,
@@ -191,6 +162,7 @@ function CompanyPicker({
   onSelect: (company: CompanyDTO | null) => void;
   error?: string;
 }) {
+  const { t } = useT();
   const [term, setTerm] = useState("");
   const debounced = useDebounced(term);
   const { data, isFetching } = useCompanySearch(debounced);
@@ -204,7 +176,7 @@ function CompanyPicker({
           <div className="text-xs text-muted-foreground">{fieldLabel(selected.field)}</div>
         </div>
         <Button type="button" variant="ghost" size="sm" onClick={() => onSelect(null)}>
-          <X className="size-4" /> Change
+          <X className="size-4" /> {t("auth.member.change")}
         </Button>
       </div>
     );
@@ -215,8 +187,8 @@ function CompanyPicker({
       <div className="relative">
         <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
         <Input
-          className="pl-9"
-          placeholder="Search your company by name"
+          className="h-10 pl-9"
+          placeholder={t("auth.member.searchPlaceholder")}
           value={term}
           onChange={(event) => setTerm(event.target.value)}
           aria-invalid={error !== undefined}
@@ -227,7 +199,7 @@ function CompanyPicker({
         <div className="rounded-lg border border-border">
           {isFetching && !data && <Skeleton className="m-2 h-9" />}
           {data && data.empty && (
-            <p className="px-3 py-3 text-sm text-muted-foreground">No active companies match.</p>
+            <p className="px-3 py-3 text-sm text-muted-foreground">{t("auth.member.noMatch")}</p>
           )}
           {data &&
             data.content.map((c) => (

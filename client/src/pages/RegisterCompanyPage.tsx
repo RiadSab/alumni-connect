@@ -1,21 +1,17 @@
-// Company sign-up: registers the owner account and the company together. Required
-// fields only; the rest of the company profile (description, website, address,
-// size, logo) is filled in later from the company settings screen.
+// Company sign-up: registers the owner account and the company together.
+// Required fields only; the rest of the company profile is filled in later.
 
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { Building2, Mail, User } from "lucide-react";
 import { useRegisterCompany } from "@/features/auth/hooks";
+import { AuthScreen } from "@/features/auth/AuthScreen";
+import { AuthBrand, AuthField, AuthPasswordField } from "@/features/auth/fields";
+import { useT } from "@/features/i18n/lang-context";
 import { registerCompanySchema } from "@/types/auth";
 import { companyUserPositionOptions, fieldsOptions } from "@/types/enums";
 import { isApiError } from "@/lib/http";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -37,6 +33,7 @@ const emptyForm = {
 };
 
 export function RegisterCompanyPage() {
+  const { t } = useT();
   const register = useRegisterCompany();
   const navigate = useNavigate();
 
@@ -80,90 +77,60 @@ export function RegisterCompanyPage() {
     register.mutate(result.data, {
       onSuccess: () => navigate("/login", { state: { justRegistered: true } }),
       onError: (error) => {
-        setFormError(
-          isApiError(error) ? error.message : "Something went wrong. Please try again.",
-        );
+        setFormError(isApiError(error) ? error.message : t("auth.error.generic"));
       },
     });
   }
 
   return (
-    <div className="mx-auto max-w-lg">
-      <Card>
-        <CardHeader>
-          <CardTitle>Register your company</CardTitle>
-          <CardDescription>
-            This creates your owner account and the company. Both await admin approval.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+    <AuthScreen>
+      <Card className="w-full max-w-lg bg-card/95 shadow-[var(--shadow-2)] backdrop-blur-sm">
+        <CardContent className="flex flex-col gap-6 p-7">
+          <AuthBrand title={t("auth.company.title")} subtitle={t("auth.company.subtitle")} />
+
           <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
-            <h2 className="text-sm font-semibold text-muted-foreground">Your account</h2>
+            <h2 className="text-sm font-semibold text-muted-foreground">
+              {t("auth.company.yourAccount")}
+            </h2>
 
-            <div className="flex flex-col gap-2">
-              <label htmlFor="firstName" className="text-sm font-medium">
-                First name
-              </label>
-              <Input
-                id="firstName"
-                value={form.firstName}
-                onChange={(event) => setField("firstName", event.target.value)}
-              />
-              {fieldErrors.firstName && (
-                <p className="text-sm text-destructive">{fieldErrors.firstName}</p>
-              )}
-            </div>
+            <AuthField
+              id="firstName"
+              label={t("auth.field.firstName")}
+              icon={User}
+              value={form.firstName}
+              onChange={(event) => setField("firstName", event.target.value)}
+              error={fieldErrors.firstName}
+            />
+            <AuthField
+              id="lastName"
+              label={t("auth.field.lastName")}
+              icon={User}
+              value={form.lastName}
+              onChange={(event) => setField("lastName", event.target.value)}
+              error={fieldErrors.lastName}
+            />
+            <AuthField
+              id="email"
+              label={t("auth.field.email")}
+              icon={Mail}
+              type="email"
+              value={form.email}
+              onChange={(event) => setField("email", event.target.value)}
+              error={fieldErrors.email}
+            />
+            <AuthPasswordField
+              id="password"
+              label={t("auth.field.password")}
+              value={form.password}
+              onChange={(event) => setField("password", event.target.value)}
+              error={fieldErrors.password}
+            />
 
-            <div className="flex flex-col gap-2">
-              <label htmlFor="lastName" className="text-sm font-medium">
-                Last name
-              </label>
-              <Input
-                id="lastName"
-                value={form.lastName}
-                onChange={(event) => setField("lastName", event.target.value)}
-              />
-              {fieldErrors.lastName && (
-                <p className="text-sm text-destructive">{fieldErrors.lastName}</p>
-              )}
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <label htmlFor="email" className="text-sm font-medium">
-                Email
-              </label>
-              <Input
-                id="email"
-                type="email"
-                value={form.email}
-                onChange={(event) => setField("email", event.target.value)}
-              />
-              {fieldErrors.email && <p className="text-sm text-destructive">{fieldErrors.email}</p>}
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <label htmlFor="password" className="text-sm font-medium">
-                Password
-              </label>
-              <Input
-                id="password"
-                type="password"
-                value={form.password}
-                onChange={(event) => setField("password", event.target.value)}
-              />
-              {fieldErrors.password && (
-                <p className="text-sm text-destructive">{fieldErrors.password}</p>
-              )}
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium">Your position</label>
-              <Select
-                value={form.position}
-                onValueChange={(value) => setField("position", value)}
-              >
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-medium">{t("auth.field.position")}</label>
+              <Select value={form.position} onValueChange={(value) => setField("position", value)}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select your position" />
+                  <SelectValue placeholder={t("auth.placeholder.selectPosition")} />
                 </SelectTrigger>
                 <SelectContent>
                   {companyUserPositionOptions.map((option) => (
@@ -178,45 +145,36 @@ export function RegisterCompanyPage() {
               )}
             </div>
 
-            <h2 className="mt-2 text-sm font-semibold text-muted-foreground">Your company</h2>
+            <h2 className="mt-2 text-sm font-semibold text-muted-foreground">
+              {t("auth.company.yourCompany")}
+            </h2>
 
-            <div className="flex flex-col gap-2">
-              <label htmlFor="companyName" className="text-sm font-medium">
-                Company name
-              </label>
-              <Input
-                id="companyName"
-                value={form.companyName}
-                onChange={(event) => setField("companyName", event.target.value)}
-              />
-              {fieldErrors.companyName && (
-                <p className="text-sm text-destructive">{fieldErrors.companyName}</p>
-              )}
-            </div>
+            <AuthField
+              id="companyName"
+              label={t("auth.field.companyName")}
+              icon={Building2}
+              value={form.companyName}
+              onChange={(event) => setField("companyName", event.target.value)}
+              error={fieldErrors.companyName}
+            />
+            <AuthField
+              id="companyEmail"
+              label={t("auth.field.companyEmail")}
+              icon={Mail}
+              type="email"
+              value={form.companyEmail}
+              onChange={(event) => setField("companyEmail", event.target.value)}
+              error={fieldErrors.companyEmail}
+            />
 
-            <div className="flex flex-col gap-2">
-              <label htmlFor="companyEmail" className="text-sm font-medium">
-                Company email
-              </label>
-              <Input
-                id="companyEmail"
-                type="email"
-                value={form.companyEmail}
-                onChange={(event) => setField("companyEmail", event.target.value)}
-              />
-              {fieldErrors.companyEmail && (
-                <p className="text-sm text-destructive">{fieldErrors.companyEmail}</p>
-              )}
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium">Company field</label>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-medium">{t("auth.field.companyField")}</label>
               <Select
                 value={form.companyField}
                 onValueChange={(value) => setField("companyField", value)}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select a field" />
+                  <SelectValue placeholder={t("auth.placeholder.selectField")} />
                 </SelectTrigger>
                 <SelectContent>
                   {fieldsOptions.map((option) => (
@@ -233,25 +191,27 @@ export function RegisterCompanyPage() {
 
             {formError && <p className="text-sm text-destructive">{formError}</p>}
 
-            <Button type="submit" disabled={register.isPending}>
-              {register.isPending ? "Creating..." : "Register company"}
+            <Button type="submit" className="h-10" disabled={register.isPending}>
+              {register.isPending ? t("auth.company.creating") : t("auth.company.submit")}
             </Button>
-
-            <p className="text-center text-sm text-muted-foreground">
-              Joining a company already here?{" "}
-              <Link to="/register/company-member" className="underline">
-                Join it instead
-              </Link>
-            </p>
-            <p className="text-center text-sm text-muted-foreground">
-              Already have an account?{" "}
-              <Link to="/login" className="underline">
-                Log in
-              </Link>
-            </p>
           </form>
+
+          <div className="space-y-1.5 border-t border-border pt-4 text-center text-sm text-muted-foreground">
+            <p>
+              {t("auth.company.joiningExisting")}{" "}
+              <Link to="/register/company-member" className="font-medium text-primary underline-offset-4 hover:underline">
+                {t("auth.company.joinInstead")}
+              </Link>
+            </p>
+            <p>
+              {t("auth.common.alreadyHaveAccount")}{" "}
+              <Link to="/login" className="font-medium text-primary underline-offset-4 hover:underline">
+                {t("auth.common.login")}
+              </Link>
+            </p>
+          </div>
         </CardContent>
       </Card>
-    </div>
+    </AuthScreen>
   );
 }

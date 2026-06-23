@@ -1,21 +1,18 @@
 // Candidate sign-up form. Collects the required fields only; optional profile
-// details (skills, links, bio) are added later from the profile screen. Plain
-// controlled inputs validated with registerCandidateSchema.
+// details are added later from the profile screen. Validated with
+// registerCandidateSchema.
 
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { Calendar, Hash, Mail, Phone, User } from "lucide-react";
 import { useRegisterCandidate } from "@/features/auth/hooks";
+import { AuthScreen } from "@/features/auth/AuthScreen";
+import { AuthBrand, AuthField, AuthPasswordField } from "@/features/auth/fields";
+import { useT } from "@/features/i18n/lang-context";
 import { registerCandidateSchema } from "@/types/auth";
 import { fieldsOptions } from "@/types/enums";
 import { isApiError } from "@/lib/http";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -39,6 +36,7 @@ const emptyForm = {
 };
 
 export function RegisterCandidatePage() {
+  const { t } = useT();
   const register = useRegisterCandidate();
   const navigate = useNavigate();
 
@@ -54,7 +52,6 @@ export function RegisterCandidatePage() {
     event.preventDefault();
     setFormError(null);
 
-    // Build the payload, turning the text inputs into the types the schema wants.
     const payload = {
       firstName: form.firstName,
       lastName: form.lastName,
@@ -84,93 +81,58 @@ export function RegisterCandidatePage() {
     register.mutate(result.data, {
       onSuccess: () => navigate("/login", { state: { justRegistered: true } }),
       onError: (error) => {
-        setFormError(
-          isApiError(error) ? error.message : "Something went wrong. Please try again.",
-        );
+        setFormError(isApiError(error) ? error.message : t("auth.error.generic"));
       },
     });
   }
 
   return (
-    <div className="mx-auto max-w-lg">
-      <Card>
-        <CardHeader>
-          <CardTitle>Create a candidate account</CardTitle>
-          <CardDescription>
-            New accounts await admin approval before you can log in.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+    <AuthScreen>
+      <Card className="w-full max-w-lg bg-card/95 shadow-[var(--shadow-2)] backdrop-blur-sm">
+        <CardContent className="flex flex-col gap-6 p-7">
+          <AuthBrand title={t("auth.candidate.title")} subtitle={t("auth.candidate.subtitle")} />
+
           <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
-            <div className="flex flex-col gap-2">
-              <label htmlFor="firstName" className="text-sm font-medium">
-                First name
-              </label>
-              <Input
-                id="firstName"
-                value={form.firstName}
-                onChange={(event) => setField("firstName", event.target.value)}
-              />
-              {fieldErrors.firstName && (
-                <p className="text-sm text-destructive">{fieldErrors.firstName}</p>
-              )}
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <label htmlFor="lastName" className="text-sm font-medium">
-                Last name
-              </label>
-              <Input
-                id="lastName"
-                value={form.lastName}
-                onChange={(event) => setField("lastName", event.target.value)}
-              />
-              {fieldErrors.lastName && (
-                <p className="text-sm text-destructive">{fieldErrors.lastName}</p>
-              )}
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <label htmlFor="email" className="text-sm font-medium">
-                Email
-              </label>
-              <Input
-                id="email"
-                type="email"
-                value={form.email}
-                onChange={(event) => setField("email", event.target.value)}
-              />
-              {fieldErrors.email && <p className="text-sm text-destructive">{fieldErrors.email}</p>}
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <label htmlFor="password" className="text-sm font-medium">
-                Password
-              </label>
-              <Input
-                id="password"
-                type="password"
-                value={form.password}
-                onChange={(event) => setField("password", event.target.value)}
-              />
-              {fieldErrors.password && (
-                <p className="text-sm text-destructive">{fieldErrors.password}</p>
-              )}
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <label htmlFor="phoneNumber" className="text-sm font-medium">
-                Phone number
-              </label>
-              <Input
-                id="phoneNumber"
-                value={form.phoneNumber}
-                onChange={(event) => setField("phoneNumber", event.target.value)}
-              />
-              {fieldErrors.phoneNumber && (
-                <p className="text-sm text-destructive">{fieldErrors.phoneNumber}</p>
-              )}
-            </div>
+            <AuthField
+              id="firstName"
+              label={t("auth.field.firstName")}
+              icon={User}
+              value={form.firstName}
+              onChange={(event) => setField("firstName", event.target.value)}
+              error={fieldErrors.firstName}
+            />
+            <AuthField
+              id="lastName"
+              label={t("auth.field.lastName")}
+              icon={User}
+              value={form.lastName}
+              onChange={(event) => setField("lastName", event.target.value)}
+              error={fieldErrors.lastName}
+            />
+            <AuthField
+              id="email"
+              label={t("auth.field.email")}
+              icon={Mail}
+              type="email"
+              value={form.email}
+              onChange={(event) => setField("email", event.target.value)}
+              error={fieldErrors.email}
+            />
+            <AuthPasswordField
+              id="password"
+              label={t("auth.field.password")}
+              value={form.password}
+              onChange={(event) => setField("password", event.target.value)}
+              error={fieldErrors.password}
+            />
+            <AuthField
+              id="phoneNumber"
+              label={t("auth.field.phone")}
+              icon={Phone}
+              value={form.phoneNumber}
+              onChange={(event) => setField("phoneNumber", event.target.value)}
+              error={fieldErrors.phoneNumber}
+            />
 
             <div className="flex items-center gap-3">
               <Switch
@@ -179,34 +141,29 @@ export function RegisterCandidatePage() {
                 onCheckedChange={(checked) => setField("isStudent", checked)}
               />
               <label htmlFor="isStudent" className="text-sm font-medium">
-                I am currently a student
+                {t("auth.candidate.isStudent")}
               </label>
             </div>
 
             {form.isStudent && (
-              <div className="flex flex-col gap-2">
-                <label htmlFor="studentId" className="text-sm font-medium">
-                  Student ID
-                </label>
-                <Input
-                  id="studentId"
-                  value={form.studentId}
-                  onChange={(event) => setField("studentId", event.target.value)}
-                />
-                {fieldErrors.studentId && (
-                  <p className="text-sm text-destructive">{fieldErrors.studentId}</p>
-                )}
-              </div>
+              <AuthField
+                id="studentId"
+                label={t("auth.field.studentId")}
+                icon={Hash}
+                value={form.studentId}
+                onChange={(event) => setField("studentId", event.target.value)}
+                error={fieldErrors.studentId}
+              />
             )}
 
-            <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium">Field of study</label>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-medium">{t("auth.field.fieldOfStudy")}</label>
               <Select
                 value={form.fieldOfStudy}
                 onValueChange={(value) => setField("fieldOfStudy", value)}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select a field" />
+                  <SelectValue placeholder={t("auth.placeholder.selectField")} />
                 </SelectTrigger>
                 <SelectContent>
                   {fieldsOptions.map((option) => (
@@ -221,42 +178,39 @@ export function RegisterCandidatePage() {
               )}
             </div>
 
-            <div className="flex flex-col gap-2">
-              <label htmlFor="graduationYear" className="text-sm font-medium">
-                Graduation year
-              </label>
-              <Input
-                id="graduationYear"
-                type="number"
-                value={form.graduationYear}
-                onChange={(event) => setField("graduationYear", event.target.value)}
-              />
-              {fieldErrors.graduationYear && (
-                <p className="text-sm text-destructive">{fieldErrors.graduationYear}</p>
-              )}
-            </div>
+            <AuthField
+              id="graduationYear"
+              label={t("auth.field.graduationYear")}
+              icon={Calendar}
+              type="number"
+              value={form.graduationYear}
+              onChange={(event) => setField("graduationYear", event.target.value)}
+              error={fieldErrors.graduationYear}
+            />
 
             {formError && <p className="text-sm text-destructive">{formError}</p>}
 
-            <Button type="submit" disabled={register.isPending}>
-              {register.isPending ? "Creating account..." : "Create account"}
+            <Button type="submit" className="h-10" disabled={register.isPending}>
+              {register.isPending ? t("auth.candidate.creating") : t("auth.candidate.submit")}
             </Button>
-
-            <p className="text-center text-sm text-muted-foreground">
-              Already have an account?{" "}
-              <Link to="/login" className="underline">
-                Log in
-              </Link>
-            </p>
-            <p className="text-center text-sm text-muted-foreground">
-              Registering a company?{" "}
-              <Link to="/register/company" className="underline">
-                Register here
-              </Link>
-            </p>
           </form>
+
+          <div className="space-y-1.5 border-t border-border pt-4 text-center text-sm text-muted-foreground">
+            <p>
+              {t("auth.common.alreadyHaveAccount")}{" "}
+              <Link to="/login" className="font-medium text-primary underline-offset-4 hover:underline">
+                {t("auth.common.login")}
+              </Link>
+            </p>
+            <p>
+              {t("auth.candidate.registeringCompany")}{" "}
+              <Link to="/register/company" className="font-medium text-primary underline-offset-4 hover:underline">
+                {t("auth.candidate.registerHere")}
+              </Link>
+            </p>
+          </div>
         </CardContent>
       </Card>
-    </div>
+    </AuthScreen>
   );
 }

@@ -1,12 +1,11 @@
 // Change-password form, under /settings/password. Any logged-in user can change
-// their own password (candidate, company, member). Plain controlled inputs —
-// same pattern as LoginPage. The backend returns 400 if the current password is
-// wrong; that message is surfaced as the form error.
-//
-// English labels for now (form i18n is a later pass, same as login/register).
+// their own password. The backend returns 400 if the current password is wrong;
+// that message is surfaced as the form error.
 
 import { useState } from "react";
 import { useChangePassword } from "@/features/auth/hooks";
+import { AuthPasswordField } from "@/features/auth/fields";
+import { useT } from "@/features/i18n/lang-context";
 import { changePasswordSchema } from "@/types/auth";
 import { isApiError } from "@/lib/http";
 import {
@@ -16,10 +15,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
 export function ChangePasswordPage() {
+  const { t } = useT();
   const change = useChangePassword();
 
   const [oldPassword, setOldPassword] = useState("");
@@ -38,7 +37,6 @@ export function ChangePasswordPage() {
     setFormError(null);
     setSuccess(false);
 
-    // Validate old + new with the schema, then a client-only "confirm matches".
     const result = changePasswordSchema.safeParse({ oldPassword, newPassword });
     const errors: typeof fieldErrors = {};
     if (!result.success) {
@@ -49,7 +47,7 @@ export function ChangePasswordPage() {
       }
     }
     if (newPassword !== confirmPassword) {
-      errors.confirmPassword = "Passwords don't match.";
+      errors.confirmPassword = t("auth.common.passwordsDontMatch");
     }
     if (Object.keys(errors).length > 0) {
       setFieldErrors(errors);
@@ -67,9 +65,7 @@ export function ChangePasswordPage() {
           setConfirmPassword("");
         },
         onError: (error) => {
-          setFormError(
-            isApiError(error) ? error.message : "Something went wrong. Please try again.",
-          );
+          setFormError(isApiError(error) ? error.message : t("auth.error.generic"));
         },
       },
     );
@@ -79,79 +75,45 @@ export function ChangePasswordPage() {
     <div className="mx-auto max-w-sm">
       <Card>
         <CardHeader>
-          <CardTitle>Change password</CardTitle>
-          <CardDescription>Update the password you use to log in.</CardDescription>
+          <CardTitle>{t("auth.change.title")}</CardTitle>
+          <CardDescription>{t("auth.change.subtitle")}</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
-            <PasswordField
+            <AuthPasswordField
               id="oldPassword"
-              label="Current password"
+              label={t("auth.change.currentPassword")}
               value={oldPassword}
-              onChange={setOldPassword}
               autoComplete="current-password"
+              onChange={(event) => setOldPassword(event.target.value)}
               error={fieldErrors.oldPassword}
             />
-            <PasswordField
+            <AuthPasswordField
               id="newPassword"
-              label="New password"
+              label={t("auth.change.newPassword")}
               value={newPassword}
-              onChange={setNewPassword}
               autoComplete="new-password"
+              onChange={(event) => setNewPassword(event.target.value)}
               error={fieldErrors.newPassword}
             />
-            <PasswordField
+            <AuthPasswordField
               id="confirmPassword"
-              label="Confirm new password"
+              label={t("auth.change.confirmNewPassword")}
               value={confirmPassword}
-              onChange={setConfirmPassword}
               autoComplete="new-password"
+              onChange={(event) => setConfirmPassword(event.target.value)}
               error={fieldErrors.confirmPassword}
             />
 
             {formError && <p className="text-sm text-destructive">{formError}</p>}
-            {success && <p className="text-sm text-success">Password changed.</p>}
+            {success && <p className="text-sm text-success">{t("auth.change.changed")}</p>}
 
             <Button type="submit" disabled={change.isPending}>
-              {change.isPending ? "Saving..." : "Change password"}
+              {change.isPending ? t("auth.change.saving") : t("auth.change.submit")}
             </Button>
           </form>
         </CardContent>
       </Card>
-    </div>
-  );
-}
-
-// label + password input + error trio.
-function PasswordField({
-  id,
-  label,
-  value,
-  onChange,
-  autoComplete,
-  error,
-}: {
-  id: string;
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  autoComplete: string;
-  error?: string;
-}) {
-  return (
-    <div className="flex flex-col gap-2">
-      <label htmlFor={id} className="text-sm font-medium">
-        {label}
-      </label>
-      <Input
-        id={id}
-        type="password"
-        value={value}
-        autoComplete={autoComplete}
-        onChange={(event) => onChange(event.target.value)}
-        aria-invalid={error !== undefined}
-      />
-      {error && <p className="text-sm text-destructive">{error}</p>}
     </div>
   );
 }
