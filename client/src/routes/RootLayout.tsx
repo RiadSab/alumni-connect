@@ -46,9 +46,11 @@ export function RootLayout() {
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-6">
           <div className="flex items-center gap-6">
             <Link to="/" className="flex items-center gap-2">
-              <span className="grid size-8 place-items-center rounded-lg bg-primary text-sm font-bold text-primary-foreground">
-                AC
-              </span>
+              <img
+                src="/logo_blue_background.png"
+                alt="Alumni Connect"
+                className="size-8 rounded-lg object-cover"
+              />
               <span className="text-base font-semibold tracking-tight">Alumni Connect</span>
             </Link>
 

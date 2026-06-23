@@ -8,9 +8,11 @@ import { Input } from "@/components/ui/input";
 export function AuthBrand({ title, subtitle }: { title: string; subtitle: string }) {
   return (
     <div className="flex flex-col items-center gap-3 text-center">
-      <span className="grid size-12 place-items-center rounded-xl bg-primary text-base font-bold text-primary-foreground shadow-[var(--shadow-1)]">
-        AC
-      </span>
+      <img
+        src="/logo_blue_background.png"
+        alt="Alumni Connect"
+        className="size-12 rounded-xl object-cover shadow-[var(--shadow-1)]"
+      />
       <div className="space-y-1">
         <h1 className="text-xl font-semibold tracking-tight">{title}</h1>
         <p className="text-sm text-muted-foreground">{subtitle}</p>

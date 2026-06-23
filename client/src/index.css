@@ -4,6 +4,36 @@
 @import "shadcn/tailwind.css";
 @import "./tokens.css";
 
+/* Caudex: self-hosted serif used for headings (files in public/Caudex). */
+@font-face {
+  font-family: "Caudex";
+  src: url("/Caudex/Caudex-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Caudex";
+  src: url("/Caudex/Caudex-Bold.ttf") format("truetype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Caudex";
+  src: url("/Caudex/Caudex-Italic.ttf") format("truetype");
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Caudex";
+  src: url("/Caudex/Caudex-BoldItalic.ttf") format("truetype");
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+
 @custom-variant dark (&:is(.dark *));
 
 /* shadcn's semantic tokens, mapped onto the design tokens in tokens.css.
@@ -60,7 +90,7 @@
 
 @theme inline {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-heading: var(--font-sans);
+  --font-heading: "Caudex", Georgia, "Times New Roman", serif;
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -110,5 +140,8 @@
   body {
     @apply bg-background text-foreground font-sans;
     margin: 0;
+  }
+  h1, h2, h3 {
+    font-family: var(--font-heading);
   }
 }
