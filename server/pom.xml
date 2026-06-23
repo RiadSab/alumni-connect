@@ -111,6 +111,11 @@
 			<artifactId>springboot4-dotenv</artifactId>
 			<version>5.1.0</version>
 		</dependency>
+		<dependency>
+			<groupId>software.amazon.awssdk</groupId>
+			<artifactId>s3</artifactId>
+			<version>2.28.29</version>
+		</dependency>
 	</dependencies>
 
 	<build>
@@ -168,8 +173,6 @@
 				<artifactId>maven-dependency-plugin</artifactId>
 				<executions>
 					<execution>
-						<!-- Exposes ${org.mockito:mockito-core:jar} (the path to the jar on disk)
-						     so the surefire argLine below can load it as a -javaagent. -->
 						<goals><goal>properties</goal></goals>
 					</execution>
 				</executions>
