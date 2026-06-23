@@ -1,11 +1,3 @@
-/* Alumni Connect — design tokens.
-   Mirrored from the "Alumni Connect Design System" (Claude Design), kept 1:1 so it
-   stays easy to re-sync. These are the raw values; index.css maps shadcn's semantic
-   tokens (--primary, --background, ...) onto them. */
-
-/* Fonts. "Notion Sans" is proprietary; Inter is its documented fallback. */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-
 :root {
   /* ---- Colors -------------------------------------------------------- */
 
