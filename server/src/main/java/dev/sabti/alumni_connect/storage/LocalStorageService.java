@@ -2,6 +2,7 @@ package dev.sabti.alumni_connect.storage;
 
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
 import org.springframework.stereotype.Service;
@@ -16,12 +17,8 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.UUID;
 
-// Filesystem-backed StorageService: bytes are written to a single configured directory, each
-// file named by its (UUID) storageId. The storageId being a UUID means resume URLs aren't
-// enumerable, and that every resolve() lands on one flat directory — the parent-equals-root
-// guard rejects any storageId that tries to escape it (defence against path traversal if an id
-// ever arrives from an untrusted source).
 @Service
+@ConditionalOnProperty(name = "app.storage.provider", havingValue = "local", matchIfMissing = true)
 public class LocalStorageService implements StorageService {
 
     private final Path root;
