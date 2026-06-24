@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { ChevronDown, LogOut, Menu, Settings, User } from "lucide-react";
 import { useAuth } from "@/features/auth/auth-context";
+import { useMyPhotoUrl } from "@/features/candidates/hooks";
 import { useT, type Lang } from "@/features/i18n/lang-context";
 import type { AuthUser } from "@/lib/auth";
 import { cn } from "@/lib/utils";
@@ -180,6 +181,21 @@ export function RootLayout() {
   );
 }
 
+// The user's avatar: a candidate's own photo when set, otherwise their initials.
+// enabled is candidate-only, so company/admin users never hit the photo endpoint.
+function NavAvatar({ user }: { user: AuthUser }) {
+  const photoUrl = useMyPhotoUrl(user.userType === "CANDIDATE");
+  if (photoUrl) {
+    return <img src={photoUrl} alt="" className="size-7 rounded-full object-cover" />;
+  }
+  return (
+    <span className="grid size-7 place-items-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
+      {user.firstName.charAt(0)}
+      {user.lastName.charAt(0)}
+    </span>
+  );
+}
+
 function UserMenu({
   user,
   onLogout,
@@ -188,7 +204,6 @@ function UserMenu({
   onLogout: () => void;
 }) {
   const { t } = useT();
-  const initials = `${user.firstName.charAt(0)}${user.lastName.charAt(0)}`;
   // Both candidates and company users have a /profile (it dispatches by type).
   const showProfile = user.userType === "CANDIDATE" || user.userType === "COMPANY_USER";
 
@@ -199,9 +214,7 @@ function UserMenu({
           type="button"
           className="flex items-center gap-2 rounded-full border border-border bg-card py-1 pl-1 pr-2.5 text-sm transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
-          <span className="grid size-7 place-items-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
-            {initials}
-          </span>
+          <NavAvatar user={user} />
           <span className="hidden font-medium sm:inline">{user.firstName}</span>
           <ChevronDown className="size-4 text-muted-foreground" />
         </button>

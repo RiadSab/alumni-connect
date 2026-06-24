@@ -1,13 +1,11 @@
-// Candidate's own profile. Fetches /candidates/me and lays it out as cards, with
-// résumé and profile-photo upload. Reached via /profile when a CANDIDATE is logged
-// in (ProfilePage dispatches by user type).
+// Candidate's own profile (/candidates/me) as cards, with résumé and photo upload.
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Camera, CloudOff, ExternalLink, FileText, Loader2, RefreshCw, Upload } from "lucide-react";
 import {
   useMyCandidateProfile,
-  useMyPhoto,
+  useMyPhotoUrl,
   useMyResume,
   useUploadProfilePhoto,
   useUploadResume,
@@ -59,27 +57,6 @@ export function CandidateProfilePage() {
       {profile.bio && <About profile={profile} />}
     </div>
   );
-}
-
-// Turn the authenticated photo blob into an object URL for <img>, gated on
-// whether the profile actually has a photo. Revokes the URL on change/unmount.
-function useMyPhotoUrl(enabled: boolean): string | null {
-  const photo = useMyPhoto(enabled);
-  const blob = photo.data;
-  const [url, setUrl] = useState<string | null>(null);
-  // Mint a fresh object URL whenever the blob changes, and revoke it on the next
-  // change/unmount. This MUST create the URL inside the effect (not useMemo): in
-  // Strict Mode the effect runs setup→cleanup→setup, so a memoized URL would get
-  // revoked while still rendered (blank photo after navigating back with the blob
-  // already cached). Re-minting each setup keeps the URL in state valid.
-  useEffect(() => {
-    const objectUrl = blob ? URL.createObjectURL(blob) : null;
-    setUrl(objectUrl); // eslint-disable-line react-hooks/set-state-in-effect -- syncing an external blob to a renderable URL; the extra render is intended
-    return () => {
-      if (objectUrl) URL.revokeObjectURL(objectUrl);
-    };
-  }, [blob]);
-  return url;
 }
 
 function ProfileHeader({ profile }: { profile: CandidateProfileDTO }) {
@@ -163,9 +140,7 @@ function ProfileHeader({ profile }: { profile: CandidateProfileDTO }) {
   );
 }
 
-// Résumé upload/replace. The CV is what the Apply button reuses (useProfileResume),
-// so without one here, applying fails. Presence comes from useMyResume: success =
-// on file (and we can open the blob), a 404 = none yet.
+// Résumé upload/replace; the Apply button reuses the CV, presence comes from useMyResume (404 = none).
 function Resume() {
   const { t } = useT();
   const resume = useMyResume();

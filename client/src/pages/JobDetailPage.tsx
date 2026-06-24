@@ -1,6 +1,4 @@
-// Single job offer detail. Public read-only view of one OPEN offer, with a gated
-// Apply action: logged-out visitors are sent to login, candidates apply with their
-// profile CV in one click, companies/admins see no apply button.
+// Single job-offer detail: public read-only view with a gated Apply action.
 
 import { Link, useParams } from "react-router-dom";
 import {

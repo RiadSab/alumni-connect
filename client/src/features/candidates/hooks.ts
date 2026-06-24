@@ -1,5 +1,6 @@
 // React Query hooks for the candidate's own profile (§2).
 
+import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { candidatesApi } from "@/api/candidates";
 import { queryKeys } from "@/lib/queryKeys";
@@ -20,9 +21,7 @@ export function useUpdateMyCandidateProfile() {
   });
 }
 
-// Presence + content of the candidate's own CV. The profile DTO has no résumé
-// field, so "do I have one?" comes from this download: success = on file, a 404
-// ApiError = none yet. retry:false so a 404 doesn't get retried.
+// The candidate's own CV blob; success = on file, a 404 = none yet (retry:false).
 export function useMyResume() {
   return useQuery({
     queryKey: queryKeys.candidate.resume(),
@@ -41,9 +40,7 @@ export function useUploadResume() {
   });
 }
 
-// The photo endpoint is authenticated, so the image can't go straight in an
-// <img src> — we download the blob and turn it into an object URL. Gated on
-// `enabled` so we only fetch when the profile says a photo exists.
+// Authenticated photo blob (can't go straight in an <img>); enabled only when a photo exists.
 export function useMyPhoto(enabled: boolean) {
   return useQuery({
     queryKey: queryKeys.candidate.photo(),
@@ -52,6 +49,21 @@ export function useMyPhoto(enabled: boolean) {
     retry: false,
     staleTime: Infinity, // only changes when we upload a new one
   });
+}
+
+// Photo blob → object URL, minted in the effect (not useMemo) so Strict Mode doesn't revoke a live URL.
+export function useMyPhotoUrl(enabled: boolean): string | null {
+  const photo = useMyPhoto(enabled);
+  const blob = photo.data;
+  const [url, setUrl] = useState<string | null>(null);
+  useEffect(() => {
+    const objectUrl = blob ? URL.createObjectURL(blob) : null;
+    setUrl(objectUrl); // eslint-disable-line react-hooks/set-state-in-effect -- syncing an external blob to a renderable URL; the extra render is intended
+    return () => {
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [blob]);
+  return url;
 }
 
 export function useUploadProfilePhoto() {
