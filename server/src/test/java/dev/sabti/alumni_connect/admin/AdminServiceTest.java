@@ -139,4 +139,23 @@ class AdminServiceTest {
         assertThat(owner.getUserStatus()).isEqualTo(UserStatus.ACTIVE);
         verify(userRepository).save(owner);
     }
+
+    @Test
+    void changeCompanyStatus_reject_rejectsPendingOwner() {
+        Company company = new Company();
+        company.setStatus(CompanyStatus.PENDING);
+        User owner = new User();
+        owner.setUserStatus(UserStatus.PENDING);
+        CompanyUserProfile ownerProfile = new CompanyUserProfile();
+        ownerProfile.setUser(owner);
+        ownerProfile.setCompanyRole(CompanyRole.OWNER);
+        when(companyRepository.findById(1L)).thenReturn(Optional.of(company));
+        when(companyUserProfileRepository.findByCompanyAndCompanyRole(company, CompanyRole.OWNER))
+                .thenReturn(List.of(ownerProfile));
+
+        service.changeCompanyStatus(1L, "incomplete details", CompanyStatus.REJECTED);
+
+        assertThat(owner.getUserStatus()).isEqualTo(UserStatus.REJECTED);
+        verify(userRepository).save(owner);
+    }
 }

@@ -108,12 +108,14 @@ public class AdminService {
         company.setStatusChangeReason(reason);
         companyRepository.save(company);
 
-        // Approving the company activates its still-pending owner
-        if (newStatus == CompanyStatus.ACTIVE) {
+        // Approving or rejecting the company applies the same decision to its still-pending owner.
+        if (newStatus == CompanyStatus.ACTIVE || newStatus == CompanyStatus.REJECTED) {
             CompanyUserProfile owner = findOwner(company);
             if (owner != null && owner.getUser().getUserStatus() == UserStatus.PENDING) {
-                owner.getUser().setUserStatus(UserStatus.ACTIVE);
-                userRepository.save(owner.getUser());
+                User ownerUser = owner.getUser();
+                ownerUser.setUserStatus(newStatus == CompanyStatus.ACTIVE ? UserStatus.ACTIVE : UserStatus.REJECTED);
+                ownerUser.setStatusChangeReason(reason);
+                userRepository.save(ownerUser);
             }
         }
     }
