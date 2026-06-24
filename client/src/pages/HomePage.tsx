@@ -159,7 +159,7 @@ export function HomePage() {
                     disabled={data.first}
                     onClick={() => setPage(page - 1)}
                   >
-                    Prev
+                    {t("pager.prev")}
                   </Button>
                   {pageWindow(data.number, data.totalPages).map((p, i) =>
                     p === "…" ? (
@@ -183,7 +183,7 @@ export function HomePage() {
                     disabled={data.last}
                     onClick={() => setPage(page + 1)}
                   >
-                    Next
+                    {t("pager.next")}
                   </Button>
                 </nav>
               )}
