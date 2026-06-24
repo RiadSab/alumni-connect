@@ -24,6 +24,8 @@ export const authApi = {
 
   login: (body: LoginRequestDTO) => http.post<LoginResponseDTO>("/auth/login", { json: body }),
 
+  logout: () => http.post<void>("/auth/logout"),
+
   changePassword: (body: ChangePasswordDTO) =>
     http.post<void>("/auth/change-password", { json: body }),
 

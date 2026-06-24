@@ -6,8 +6,7 @@ import org.springframework.stereotype.Component;
 
 import java.time.Duration;
 
-// Builds the httpOnly refresh-token cookie. Scoped to /api/auth so it's only sent to the auth
-// endpoints; SameSite=Lax keeps it off cross-site requests; Secure is off only for local http dev.
+// Builds the httpOnly, SameSite=Lax refresh cookie scoped to /api/auth (Secure off only for local http dev).
 @Component
 public class RefreshCookies {
     public static final String COOKIE_NAME = "refreshToken";

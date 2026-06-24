@@ -1,14 +1,6 @@
-// Single HTTP chokepoint for the whole client.
-//
-//  - Prefixes every path with the API base ("/api" by default; override with
-//    VITE_API_BASE_URL).
-//  - Injects the JWT as `Authorization: Bearer <token>`.
-//  - Serializes query params (arrays repeat the key: ?skills=a&skills=b).
-//  - Sends JSON or multipart bodies; reads JSON, text, or binary responses.
-//  - Normalizes every failure into a typed `ApiError` matching the backend's
-//    error envelope (shared/exception/ApiError.java).
+// Single HTTP chokepoint: adds the API base + Bearer token, sends/reads JSON/form/blob, normalizes errors to ApiError, and silently refreshes the access token on expiry.
 
-import { getToken } from "@/lib/auth";
+import { clearStoredUser, clearToken, getToken, setToken } from "@/lib/auth";
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "/api";
 
@@ -90,7 +82,7 @@ function buildUrl(path: string, query?: Record<string, QueryValue>): string {
   return qs ? `${url}?${qs}` : url;
 }
 
-async function send(path: string, options: FullOptions): Promise<Response> {
+async function send(path: string, options: FullOptions, retry = true): Promise<Response> {
   const headers: Record<string, string> = { ...options.headers };
 
   const token = getToken();
@@ -109,10 +101,50 @@ async function send(path: string, options: FullOptions): Promise<Response> {
     headers,
     body,
     signal: options.signal,
+    credentials: "include",
   });
 
-  if (!res.ok) throw await toApiError(res);
-  return res;
+  if (res.ok) return res;
+
+  const error = await toApiError(res);
+  // Access token expired: refresh once (shared across concurrent calls) and retry the request.
+  if (retry && error.code === "TOKEN_EXPIRED") {
+    const refreshed = await refreshAccessToken();
+    if (refreshed) return send(path, options, false);
+    handleAuthExpired();
+  }
+  throw error;
+}
+
+// One shared refresh in flight, so a burst of 401s triggers a single /refresh call.
+let refreshing: Promise<boolean> | null = null;
+
+function refreshAccessToken(): Promise<boolean> {
+  refreshing ??= doRefresh().finally(() => {
+    refreshing = null;
+  });
+  return refreshing;
+}
+
+async function doRefresh(): Promise<boolean> {
+  try {
+    const res = await fetch(buildUrl("/auth/refresh"), { method: "POST", credentials: "include" });
+    if (!res.ok) return false;
+    const data = (await res.json()) as { token: string };
+    setToken(data.token);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// Refresh failed (refresh token missing/expired/reused) → end the session and go to login.
+function handleAuthExpired(): void {
+  clearToken();
+  clearStoredUser();
+  if (window.location.pathname !== "/login") {
+    window.location.href = "/login";
+  }
 }
 
 async function toApiError(res: Response): Promise<ApiError> {
@@ -128,7 +160,6 @@ async function toApiError(res: Response): Promise<ApiError> {
   return new ApiError(res.status, message, body);
 }
 
-/** Parse a JSON response; tolerate empty bodies (e.g. 201/200 with no content). */
 async function parseJson<T>(res: Response): Promise<T> {
   if (res.status === 204) return undefined as T;
   const text = await res.text();

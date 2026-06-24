@@ -33,8 +33,7 @@ public class LoginController {
                 .orElseGet(() -> ResponseEntity.status(HttpStatus.UNAUTHORIZED).build());
     }
 
-    // Exchanges the refresh-token cookie for a new access token (and rotates the cookie). 401 +
-    // cleared cookie when the token is missing, expired, or reused — the client then logs out.
+    // Exchanges the refresh cookie for a new access token (rotating the cookie); 401 + cleared cookie on failure.
     @PostMapping("/refresh")
     public ResponseEntity<LoginResponseDTO> refresh(
             @CookieValue(name = RefreshCookies.COOKIE_NAME, required = false) String refreshToken) {

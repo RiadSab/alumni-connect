@@ -17,8 +17,7 @@ import java.util.Base64;
 import java.util.HexFormat;
 import java.util.Optional;
 
-// Issues, rotates, and revokes stateful refresh tokens. The raw token is returned to the caller once
-// (to set as a cookie) and only its SHA-256 hash is stored, so a DB leak can't be replayed.
+// Issues, rotates, and revokes stateful refresh tokens; only the SHA-256 hash is stored.
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -42,8 +41,7 @@ public class RefreshTokenService {
         return raw;
     }
 
-    // Validates the presented token and rotates it: the old one is revoked and a fresh one issued.
-    // Empty = caller should be treated as logged out (unknown, expired, or reused token).
+    // Validates and rotates the token (revoke old, issue new); empty = treat the caller as logged out.
     @Transactional
     public Optional<Rotation> rotate(String rawToken) {
         RefreshToken token = repository.findByTokenHash(hash(rawToken)).orElse(null);

@@ -1,7 +1,3 @@
-// Holds "who is logged in" for the whole app. Reads the saved user from storage
-// on startup (so a refresh keeps you logged in), and exposes login/logout that
-// write the token + user and update the in-memory state.
-
 import { useState } from "react";
 import type { ReactNode } from "react";
 import {
@@ -14,6 +10,7 @@ import {
 import type { AuthUser } from "@/lib/auth";
 import type { LoginResponseDTO } from "@/types/auth";
 import { queryClient } from "@/lib/queryClient";
+import { authApi } from "@/api/auth";
 import { AuthContext } from "@/features/auth/auth-context";
 import type { AuthContextValue } from "@/features/auth/auth-context";
 
@@ -34,11 +31,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   function logout() {
+    authApi.logout().catch(() => {});
     clearToken();
     clearStoredUser();
     setUser(null);
-    // Drop every cached query so the next account doesn't inherit this user's data
-    // (e.g. a member seeing the previous owner's cached /company-users/me → role toggle).
+    // Drop every cached query so the next account doesn't inherit this user's data.
     queryClient.clear();
   }
 
