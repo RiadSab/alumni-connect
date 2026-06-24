@@ -138,6 +138,7 @@ export const en = {
   "filters.skillsPlaceholder": "Type a skill, press Enter",
   "filters.removeSkill": "Remove {skill}",
   "filters.remoteOnly": "Remote only",
+  "filters.showResults": "Show results",
   // job card
   "card.remote": "Remote",
   "card.urgent": "Urgent",
@@ -508,6 +509,7 @@ export const fr: Record<TKey, string> = {
   "filters.skillsPlaceholder": "Saisissez une compétence, Entrée",
   "filters.removeSkill": "Retirer {skill}",
   "filters.remoteOnly": "Télétravail uniquement",
+  "filters.showResults": "Voir les résultats",
   // job card
   "card.remote": "Télétravail",
   "card.urgent": "Urgent",

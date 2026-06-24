@@ -1,10 +1,10 @@
-// Job board filter sidebar. The page owns the filter values; the only local state
-// is the in-progress skill text before it's committed to a chip.
+// Job board filters: an inline sticky sidebar on desktop, a slide-in sheet on mobile.
 
 import { useState } from "react";
 import { Search, SlidersHorizontal, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -12,8 +12,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetDescription,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { jobCityOptions, employmentTypeOptions } from "@/types/enums";
 import { useT } from "@/features/i18n/lang-context";
+import { cn } from "@/lib/utils";
 import type { JobFilterValues } from "@/features/jobOffers/filters";
 
 interface FilterSidebarProps {
@@ -22,9 +31,49 @@ interface FilterSidebarProps {
   onClear: () => void;
 }
 
-export function FilterSidebar({ values, onChange, onClear }: FilterSidebarProps) {
+export function FilterSidebar(props: FilterSidebarProps) {
+  const { t } = useT();
+  const [open, setOpen] = useState(false);
+
+  return (
+    <>
+      <aside className="sticky top-6 hidden rounded-lg border border-border bg-card p-5 lg:block">
+        <FilterControls {...props} instanceId="desk" />
+      </aside>
+
+      <div className="lg:hidden">
+        <Sheet open={open} onOpenChange={setOpen}>
+          <SheetTrigger asChild>
+            <Button variant="outline" className="w-full justify-center">
+              <SlidersHorizontal className="size-4" /> {t("filters.title")}
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="left" className="overflow-y-auto">
+            <SheetTitle className="sr-only">{t("filters.title")}</SheetTitle>
+            <SheetDescription className="sr-only">{t("filters.title")}</SheetDescription>
+            <FilterControls {...props} instanceId="mob" headerClassName="pr-9" />
+            <SheetClose asChild>
+              <Button className="mt-2 w-full">{t("filters.showResults")}</Button>
+            </SheetClose>
+          </SheetContent>
+        </Sheet>
+      </div>
+    </>
+  );
+}
+
+// The filter form, shared by both layouts. instanceId keeps input ids unique across the two copies.
+function FilterControls({
+  values,
+  onChange,
+  onClear,
+  instanceId,
+  headerClassName,
+}: FilterSidebarProps & { instanceId: string; headerClassName?: string }) {
   const { t } = useT();
   const [skillDraft, setSkillDraft] = useState("");
+  const kwId = `${instanceId}-kw`;
+  const skillId = `${instanceId}-skill`;
 
   function addSkill() {
     const skill = skillDraft.trim();
@@ -38,8 +87,8 @@ export function FilterSidebar({ values, onChange, onClear }: FilterSidebarProps)
   }
 
   return (
-    <aside className="sticky top-6 rounded-lg border border-border bg-card p-5">
-      <div className="mb-4 flex items-center justify-between">
+    <>
+      <div className={cn("mb-4 flex items-center justify-between", headerClassName)}>
         <h2 className="flex items-center gap-2 text-sm font-semibold text-foreground">
           <SlidersHorizontal className="size-4 text-[var(--color-steel)]" /> {t("filters.title")}
         </h2>
@@ -53,13 +102,13 @@ export function FilterSidebar({ values, onChange, onClear }: FilterSidebarProps)
       </div>
 
       <div className="mb-4">
-        <label htmlFor="kw" className="mb-2 block text-[11px] font-semibold uppercase tracking-wider text-[var(--color-stone)]">
+        <label htmlFor={kwId} className="mb-2 block text-[11px] font-semibold uppercase tracking-wider text-[var(--color-stone)]">
           {t("filters.keyword")}
         </label>
         <div className="relative">
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[var(--color-steel)]" />
           <Input
-            id="kw"
+            id={kwId}
             className="pl-9"
             placeholder={t("filters.keywordPlaceholder")}
             value={values.q}
@@ -110,11 +159,11 @@ export function FilterSidebar({ values, onChange, onClear }: FilterSidebarProps)
       </div>
 
       <div className="mb-4">
-        <label htmlFor="skill" className="mb-2 block text-[11px] font-semibold uppercase tracking-wider text-[var(--color-stone)]">
+        <label htmlFor={skillId} className="mb-2 block text-[11px] font-semibold uppercase tracking-wider text-[var(--color-stone)]">
           {t("filters.skills")}
         </label>
         <Input
-          id="skill"
+          id={skillId}
           placeholder={t("filters.skillsPlaceholder")}
           value={skillDraft}
           onChange={(event) => setSkillDraft(event.target.value)}
@@ -157,6 +206,6 @@ export function FilterSidebar({ values, onChange, onClear }: FilterSidebarProps)
           onCheckedChange={(isRemote) => onChange({ isRemote })}
         />
       </div>
-    </aside>
+    </>
   );
 }
