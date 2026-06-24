@@ -1,5 +1,4 @@
-// One job offer, rendered to match the Job Board design. Takes a JobOfferDTO and
-// shows it, plus a candidate Save/Apply side column.
+// One job offer row for the board / saved list, with candidate Save/Apply actions.
 
 import { Link } from "react-router-dom";
 import { Bookmark, Calendar, Clock, MapPin, Users } from "lucide-react";
@@ -33,12 +32,7 @@ export function JobCard({ job }: { job: JobOfferDTO }) {
       : tn(job.currentApplicationCount, "card.applicants.one", "card.applicants.other");
 
   return (
-    <article
-      className={cn(
-        "grid gap-4 rounded-lg border border-border bg-card p-5 transition-shadow hover:shadow-md",
-        canApply ? "grid-cols-[48px_1fr_auto]" : "grid-cols-[48px_1fr]",
-      )}
-    >
+    <article className="grid grid-cols-[48px_1fr] gap-4 rounded-lg border border-border bg-card p-5 transition-shadow hover:shadow-md sm:grid-cols-[48px_1fr_auto]">
       {/* Logo */}
       <div
         className="grid size-12 place-items-center rounded-md text-lg font-bold text-white"
@@ -129,11 +123,11 @@ export function JobCard({ job }: { job: JobOfferDTO }) {
         </div>
       </div>
 
-      {/* Side actions — candidates and logged-out visitors only */}
+      {/* Actions: a full-width row below on mobile, a side column from sm up. */}
       {canApply && (
-        <div className="flex flex-col items-end justify-between gap-3.5">
+        <div className="col-span-2 flex items-center gap-3 sm:col-span-1 sm:col-start-3 sm:row-start-1 sm:flex-col sm:items-end sm:justify-between sm:gap-3.5">
           <SaveButton jobId={job.id} />
-          <Button asChild>
+          <Button asChild className="flex-1 sm:flex-none">
             <Link to={`/jobs/${job.id}`}>{t("card.apply")}</Link>
           </Button>
         </div>
@@ -142,8 +136,7 @@ export function JobCard({ job }: { job: JobOfferDTO }) {
   );
 }
 
-// Bookmark toggle. Candidates toggle the saved state (filled when saved); logged-out
-// visitors are funnelled to login, same as the Apply path.
+// Bookmark toggle: candidates toggle saved state; logged-out visitors go to login.
 function SaveButton({ jobId }: { jobId: number }) {
   const { t } = useT();
   const { isAuthenticated, user } = useAuth();
