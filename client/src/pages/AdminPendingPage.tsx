@@ -62,6 +62,7 @@ function PendingCompanies() {
       title={t("admin.pending.companies")}
       query={query}
       count={(n) => tn(n, "admin.pending.companies.count.one", "admin.pending.companies.count.other")}
+      note={t("admin.pending.company.cascadeNote")}
       empty={t("admin.pending.companies.empty")}
       page={page}
       onPageChange={setPage}
@@ -75,6 +76,7 @@ function Section<T>({
   title,
   query,
   count,
+  note,
   empty,
   page,
   onPageChange,
@@ -95,6 +97,7 @@ function Section<T>({
     refetch: () => void;
   };
   count: (n: number) => string;
+  note?: string;
   empty: string;
   page: number;
   onPageChange: (page: number) => void;
@@ -104,9 +107,12 @@ function Section<T>({
 
   return (
     <section>
-      <h2 className="mb-3 text-sm font-semibold uppercase tracking-wider text-[var(--color-stone)]">
-        {title}
-      </h2>
+      <div className="mb-3">
+        <h2 className="text-sm font-semibold uppercase tracking-wider text-[var(--color-stone)]">
+          {title}
+        </h2>
+        {note && <p className="mt-1 text-sm text-[var(--color-steel)]">{note}</p>}
+      </div>
 
       {query.isLoading ? (
         <div className="space-y-3">
@@ -216,15 +222,22 @@ function PendingCompanyRow({ company }: { company: AdminCompanyDTO }) {
         </div>
 
         {company.owner && (
-          <div className="mt-3 rounded-md border border-border bg-muted/40 px-3 py-2 text-sm">
-            <span className="font-medium text-foreground">{t("admin.pending.company.owner")}: </span>
-            <span className="text-[var(--color-slate)]">
-              {company.owner.firstName} {company.owner.lastName}
+          <div className="mt-3 flex items-center gap-3 rounded-md border border-border bg-muted/40 px-3 py-2">
+            <span className="grid size-9 shrink-0 place-items-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
+              {company.owner.firstName.charAt(0)}
+              {company.owner.lastName.charAt(0)}
             </span>
-            <a className="ml-1 text-[var(--color-slate)] hover:underline" href={`mailto:${company.owner.email}`}>
-              · {company.owner.email}
-            </a>
-            <p className="mt-1 text-xs text-[var(--color-steel)]">{t("admin.pending.company.ownerNote")}</p>
+            <div className="min-w-0">
+              <p className="text-xs font-medium uppercase tracking-wider text-[var(--color-stone)]">
+                {t("admin.pending.company.owner")}
+              </p>
+              <p className="truncate text-sm font-medium text-foreground">
+                {company.owner.firstName} {company.owner.lastName}
+              </p>
+              <a className="block truncate text-sm text-[var(--color-slate)] hover:underline" href={`mailto:${company.owner.email}`}>
+                {company.owner.email}
+              </a>
+            </div>
           </div>
         )}
       </div>

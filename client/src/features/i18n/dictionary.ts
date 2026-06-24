@@ -1,11 +1,3 @@
-// UI string dictionaries. English is the source of truth: `fr` is typed as
-// Record<TKey, string>, so every English key MUST have a French translation or
-// it's a compile error (no silent missing-string fallback). Keys are added per
-// surface as pages get translated — start small, grow as needed.
-//
-// `{name}` placeholders are filled by t(key, vars). Plural keys come in pairs
-// (.one / .other) chosen by tn(n, ...) — see LangProvider.
-
 export const en = {
   // nav
   "nav.jobs": "Jobs",
@@ -326,7 +318,7 @@ export const en = {
   "admin.pending.companies.count.other": "{n} companies awaiting approval",
   "admin.pending.companies.empty": "No companies awaiting approval.",
   "admin.pending.company.owner": "Owner",
-  "admin.pending.company.ownerNote": "Approving this company also activates the owner's account.",
+  "admin.pending.company.cascadeNote": "Approving or rejecting a company also decides its owner's account.",
   // admin — lifecycle actions + reason dialog
   "admin.approve": "Approve",
   "admin.reject": "Reject",
@@ -694,7 +686,7 @@ export const fr: Record<TKey, string> = {
   "admin.pending.companies.count.other": "{n} entreprises en attente",
   "admin.pending.companies.empty": "Aucune entreprise en attente.",
   "admin.pending.company.owner": "Propriétaire",
-  "admin.pending.company.ownerNote": "Approuver cette entreprise active aussi le compte du propriétaire.",
+  "admin.pending.company.cascadeNote": "Approuver ou rejeter une entreprise décide aussi du compte de son propriétaire.",
   // admin — lifecycle actions + reason dialog
   "admin.approve": "Approuver",
   "admin.reject": "Rejeter",
