@@ -1,9 +1,8 @@
-// App shell: a sticky header with the primary nav links, the language toggle,
-// and a user dropdown (profile / settings / log out). An <Outlet /> renders the
-// current page below.
+// App shell: a sticky header (nav links, language toggle, user menu) over the routed page.
 
+import { useState } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { ChevronDown, LogOut, Settings, User } from "lucide-react";
+import { ChevronDown, LogOut, Menu, Settings, User } from "lucide-react";
 import { useAuth } from "@/features/auth/auth-context";
 import { useT, type Lang } from "@/features/i18n/lang-context";
 import type { AuthUser } from "@/lib/auth";
@@ -17,6 +16,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetDescription,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 
 function navLinkClass({ isActive }: { isActive: boolean }) {
   return cn(
@@ -31,6 +38,7 @@ export function RootLayout() {
   const { user, isAuthenticated, logout } = useAuth();
   const { t } = useT();
   const navigate = useNavigate();
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const isCandidate = user?.userType === "CANDIDATE";
   const isCompany = user?.userType === "COMPANY_USER";
@@ -40,10 +48,20 @@ export function RootLayout() {
     navigate("/");
   }
 
+  // Primary nav links, shared by the desktop bar and the mobile sheet.
+  const navItems = [
+    { to: "/", label: t("nav.jobs"), end: true },
+    ...(isAuthenticated ? [{ to: "/dashboard", label: t("nav.dashboard") }] : []),
+    ...(isCandidate ? [{ to: "/applications", label: t("nav.myApplications") }] : []),
+    ...(isCandidate ? [{ to: "/saved", label: t("nav.saved") }] : []),
+    ...(isCompany ? [{ to: "/company/jobs", label: t("nav.companyJobs") }] : []),
+    ...(isCompany ? [{ to: "/company/team", label: t("nav.companyTeam") }] : []),
+  ];
+
   return (
     <div className="min-h-screen">
       <header className="sticky top-0 z-40 border-b border-border bg-card/80 backdrop-blur">
-        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-6">
+        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
           <div className="flex items-center gap-6">
             <Link to="/" className="flex items-center gap-2">
               <img
@@ -54,40 +72,17 @@ export function RootLayout() {
               <span className="text-base font-semibold tracking-tight">Alumni Connect</span>
             </Link>
 
-            <nav className="flex items-center gap-1">
-              <NavLink to="/" end className={navLinkClass}>
-                {t("nav.jobs")}
-              </NavLink>
-              {isAuthenticated && (
-                <NavLink to="/dashboard" className={navLinkClass}>
-                  {t("nav.dashboard")}
+            <nav className="hidden items-center gap-1 md:flex">
+              {navItems.map((item) => (
+                <NavLink key={item.to} to={item.to} end={item.end} className={navLinkClass}>
+                  {item.label}
                 </NavLink>
-              )}
-              {isCandidate && (
-                <NavLink to="/applications" className={navLinkClass}>
-                  {t("nav.myApplications")}
-                </NavLink>
-              )}
-              {isCandidate && (
-                <NavLink to="/saved" className={navLinkClass}>
-                  {t("nav.saved")}
-                </NavLink>
-              )}
-              {isCompany && (
-                <NavLink to="/company/jobs" className={navLinkClass}>
-                  {t("nav.companyJobs")}
-                </NavLink>
-              )}
-              {isCompany && (
-                <NavLink to="/company/team" className={navLinkClass}>
-                  {t("nav.companyTeam")}
-                </NavLink>
-              )}
+              ))}
               {isAdmin && <ModerateMenu />}
             </nav>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="hidden items-center gap-3 md:flex">
             <LangToggle />
             {isAuthenticated && user ? (
               <UserMenu user={user} onLogout={handleLogout} />
@@ -97,10 +92,88 @@ export function RootLayout() {
               </Button>
             )}
           </div>
+
+          <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
+            <SheetTrigger asChild>
+              <button
+                type="button"
+                aria-label={t("nav.menu")}
+                className="rounded-md p-2 text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground md:hidden"
+              >
+                <Menu className="size-5" />
+              </button>
+            </SheetTrigger>
+            <SheetContent side="right">
+              <SheetTitle>Alumni Connect</SheetTitle>
+              <SheetDescription className="sr-only">{t("nav.menu")}</SheetDescription>
+
+              <nav className="flex flex-col gap-1">
+                {navItems.map((item) => (
+                  <NavLink
+                    key={item.to}
+                    to={item.to}
+                    end={item.end}
+                    className={navLinkClass}
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    {item.label}
+                  </NavLink>
+                ))}
+                {isAdmin && (
+                  <>
+                    <p className="mt-3 px-3 text-xs font-medium uppercase tracking-wider text-[var(--color-stone)]">
+                      {t("nav.moderate")}
+                    </p>
+                    <NavLink to="/admin/pending" className={navLinkClass} onClick={() => setMenuOpen(false)}>
+                      {t("nav.moderate.pending")}
+                    </NavLink>
+                    <NavLink to="/admin/users" className={navLinkClass} onClick={() => setMenuOpen(false)}>
+                      {t("nav.moderate.users")}
+                    </NavLink>
+                    <NavLink to="/admin/companies" className={navLinkClass} onClick={() => setMenuOpen(false)}>
+                      {t("nav.moderate.companies")}
+                    </NavLink>
+                  </>
+                )}
+              </nav>
+
+              <div className="mt-auto flex flex-col gap-3 border-t border-border pt-4">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-sm font-medium text-foreground">{t("nav.language")}</span>
+                  <LangToggle />
+                </div>
+                {isAuthenticated && user ? (
+                  <>
+                    {(isCandidate || isCompany) && (
+                      <SheetClose asChild>
+                        <Link to="/profile" className={navLinkClass({ isActive: false })}>
+                          {t("nav.profile")}
+                        </Link>
+                      </SheetClose>
+                    )}
+                    <SheetClose asChild>
+                      <Link to="/settings/password" className={navLinkClass({ isActive: false })}>
+                        {t("nav.settings")}
+                      </Link>
+                    </SheetClose>
+                    <Button variant="outline" onClick={() => { setMenuOpen(false); handleLogout(); }}>
+                      <LogOut className="size-4" /> {t("nav.logout")}
+                    </Button>
+                  </>
+                ) : (
+                  <SheetClose asChild>
+                    <Button asChild>
+                      <Link to="/login">{t("nav.login")}</Link>
+                    </Button>
+                  </SheetClose>
+                )}
+              </div>
+            </SheetContent>
+          </Sheet>
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl px-6 py-8">
+      <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
         <Outlet />
       </main>
     </div>

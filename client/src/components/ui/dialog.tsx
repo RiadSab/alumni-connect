@@ -4,10 +4,7 @@ import { X } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
-// Control it either way:
-//   <Dialog><DialogTrigger>…</DialogTrigger><DialogContent>…</DialogContent></Dialog>
-//   <Dialog open={open} onOpenChange={setOpen}><DialogContent>…</DialogContent></Dialog>
-
+// Controlled (open/onOpenChange) or uncontrolled (DialogTrigger) — both work.
 function Dialog(props: React.ComponentProps<typeof DialogPrimitive.Root>) {
   return <DialogPrimitive.Root data-slot="dialog" {...props} />
 }

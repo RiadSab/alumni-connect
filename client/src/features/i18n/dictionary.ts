@@ -14,6 +14,8 @@ export const en = {
   "nav.settings": "Settings",
   "nav.login": "Login",
   "nav.logout": "Log out",
+  "nav.menu": "Menu",
+  "nav.language": "Language",
   // auth
   "auth.login.title": "Log in",
   "auth.login.subtitle": "Welcome back to Alumni Connect.",
@@ -381,6 +383,8 @@ export const fr: Record<TKey, string> = {
   "nav.settings": "Paramètres",
   "nav.login": "Connexion",
   "nav.logout": "Déconnexion",
+  "nav.menu": "Menu",
+  "nav.language": "Langue",
   // auth
   "auth.login.title": "Connexion",
   "auth.login.subtitle": "Bon retour sur Alumni Connect.",
