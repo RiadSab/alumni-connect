@@ -18,7 +18,8 @@ import {
 import { useJobOffer, useApplyToJobOffer } from "@/features/jobOffers/hooks";
 import { useSaveJob, useUnsaveJob } from "@/features/savedJobs/hooks";
 import { cn } from "@/lib/utils";
-import { daysFromNow, formatMoney, humanizeType, logoColor } from "@/features/jobOffers/format";
+import { daysFromNow, formatMoney, humanizeType } from "@/features/jobOffers/format";
+import { CompanyLogo } from "@/features/jobOffers/CompanyLogo";
 import { useT } from "@/features/i18n/lang-context";
 import { useAuth } from "@/features/auth/auth-context";
 import { Button } from "@/components/ui/button";
@@ -103,12 +104,13 @@ function Header({ job }: { job: JobOfferDTO }) {
   return (
     <div className="rounded-lg border border-border bg-card p-6">
       <div className="flex gap-4">
-        <div
-          className="grid size-14 shrink-0 place-items-center rounded-lg text-xl font-bold text-white"
-          style={{ background: logoColor(job.companyId) }}
-        >
-          {job.companyName.charAt(0)}
-        </div>
+        <CompanyLogo
+          companyId={job.companyId}
+          companyName={job.companyName}
+          logoId={job.logoId}
+          className="size-14 rounded-lg"
+          textClassName="text-xl"
+        />
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <h1 className="text-2xl font-semibold leading-tight text-foreground">{job.title}</h1>

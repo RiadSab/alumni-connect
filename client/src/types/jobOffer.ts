@@ -13,6 +13,7 @@ export interface JobOfferDTO extends AuditFields {
   requirements: string[];
   companyId: number;
   companyName: string;
+  logoId: string | null;
   postedById: number;
   postedByName: string;
   city: JobCity | null;

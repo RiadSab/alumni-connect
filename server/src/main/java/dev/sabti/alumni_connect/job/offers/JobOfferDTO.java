@@ -20,6 +20,7 @@ public class JobOfferDTO {
     private List<String> requirements;
     private Long companyId;
     private String companyName;
+    private String logoId;
     private Long postedById;
     private String postedByName;
     private JobCity city;
@@ -48,6 +49,7 @@ public class JobOfferDTO {
         dto.requirements = offer.getRequirements();
         dto.companyId = offer.getCompany().getId();
         dto.companyName = offer.getCompany().getName();
+        dto.logoId = offer.getCompany().getLogoId();
         dto.postedById = offer.getPostedBy().getId();
         dto.postedByName = offer.getPostedBy().getUser().getFirstName() + " " + offer.getPostedBy().getUser().getLastName();
         dto.city = offer.getCity();

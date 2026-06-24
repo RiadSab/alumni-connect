@@ -7,7 +7,8 @@ import { useT } from "@/features/i18n/lang-context";
 import { useAuth } from "@/features/auth/auth-context";
 import { useSavedJobIds, useSaveJob, useUnsaveJob } from "@/features/savedJobs/hooks";
 import { cn } from "@/lib/utils";
-import { daysFromNow, formatMoney, humanizeType, logoColor } from "@/features/jobOffers/format";
+import { daysFromNow, formatMoney, humanizeType } from "@/features/jobOffers/format";
+import { CompanyLogo } from "@/features/jobOffers/CompanyLogo";
 import type { JobOfferDTO } from "@/types/jobOffer";
 
 export function JobCard({ job }: { job: JobOfferDTO }) {
@@ -34,12 +35,13 @@ export function JobCard({ job }: { job: JobOfferDTO }) {
   return (
     <article className="grid grid-cols-[48px_1fr] gap-4 rounded-lg border border-border bg-card p-5 transition-shadow hover:shadow-md sm:grid-cols-[48px_1fr_auto]">
       {/* Logo */}
-      <div
-        className="grid size-12 place-items-center rounded-md text-lg font-bold text-white"
-        style={{ background: logoColor(job.companyId) }}
-      >
-        {job.companyName.charAt(0)}
-      </div>
+      <CompanyLogo
+        companyId={job.companyId}
+        companyName={job.companyName}
+        logoId={job.logoId}
+        className="size-12 rounded-md"
+        textClassName="text-lg"
+      />
 
       {/* Main */}
       <div className="min-w-0">
