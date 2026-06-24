@@ -3,6 +3,7 @@ package dev.sabti.alumni_connect.auth.login;
 import dev.sabti.alumni_connect.auth.entities.User;
 import dev.sabti.alumni_connect.auth.entities.UserStatus;
 import dev.sabti.alumni_connect.auth.repositories.UserRepository;
+import dev.sabti.alumni_connect.auth.token.RefreshTokenService;
 import dev.sabti.alumni_connect.security.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -18,8 +19,12 @@ public class LoginService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
+    private final RefreshTokenService refreshTokenService;
 
-    public Optional<LoginResponseDTO> login(LoginRequestDTO dto) {
+    // The access-token body plus the raw refresh token the controller sets as an httpOnly cookie.
+    public record LoginResult(LoginResponseDTO response, String refreshToken) {}
+
+    public Optional<LoginResult> login(LoginRequestDTO dto) {
         User user = userRepository.findByEmail(dto.getEmail()).orElse(null);
         if (user == null) {
             log.warn("Login failed: no user found with email {}", dto.getEmail());
@@ -35,13 +40,7 @@ public class LoginService {
         }
 
         String token = jwtUtil.generateToken(user.getEmail());
-        return Optional.of(new LoginResponseDTO(
-                token,
-                user.getId(),
-                user.getEmail(),
-                user.getFirstName(),
-                user.getLastName(),
-                user.getUserType()
-        ));
+        String refreshToken = refreshTokenService.issue(user);
+        return Optional.of(new LoginResult(LoginResponseDTO.of(token, user), refreshToken));
     }
 }
