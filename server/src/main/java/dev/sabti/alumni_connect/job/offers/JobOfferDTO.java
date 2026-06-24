@@ -9,9 +9,7 @@ import lombok.Data;
 import java.time.LocalDateTime;
 import java.util.List;
 
-// Flattens company/postedBy down to id + display name — callers never need the full
-// nested Company/CompanyUserProfile/User graph (and never get a Hibernate lazy-proxy
-// or passwordHash leaking through it). One shape for both list and detail views.
+// Flattens company/postedBy to id + display name; one shape for both list and detail views.
 @Data
 public class JobOfferDTO {
     private Long id;

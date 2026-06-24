@@ -66,7 +66,7 @@ export function RootLayout() {
           <div className="flex items-center gap-6">
             <Link to="/" className="flex items-center gap-2">
               <img
-                src="/logo_blue_background.png"
+                src="/logo_blue_background_cmp.png"
                 alt="Alumni Connect"
                 className="size-8 rounded-lg object-cover"
               />

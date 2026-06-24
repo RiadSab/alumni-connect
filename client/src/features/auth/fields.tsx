@@ -9,7 +9,7 @@ export function AuthBrand({ title, subtitle }: { title: string; subtitle: string
   return (
     <div className="flex flex-col items-center gap-3 text-center">
       <img
-        src="/logo_blue_background.png"
+        src="/logo_blue_background_cmp.png"
         alt="Alumni Connect"
         className="size-12 rounded-xl object-cover shadow-[var(--shadow-1)]"
       />
