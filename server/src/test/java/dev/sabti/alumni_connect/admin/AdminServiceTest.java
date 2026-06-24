@@ -4,8 +4,11 @@ import dev.sabti.alumni_connect.auth.entities.User;
 import dev.sabti.alumni_connect.auth.entities.UserStatus;
 import dev.sabti.alumni_connect.auth.repositories.UserRepository;
 import dev.sabti.alumni_connect.company.entities.Company;
+import dev.sabti.alumni_connect.company.entities.CompanyRole;
 import dev.sabti.alumni_connect.company.entities.CompanyStatus;
+import dev.sabti.alumni_connect.company.entities.CompanyUserProfile;
 import dev.sabti.alumni_connect.company.repositories.CompanyRepository;
+import dev.sabti.alumni_connect.company.repositories.CompanyUserProfileRepository;
 import dev.sabti.alumni_connect.shared.exception.ConflictException;
 import dev.sabti.alumni_connect.shared.exception.NotFoundException;
 import org.junit.jupiter.api.Test;
@@ -14,6 +17,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -26,6 +30,7 @@ class AdminServiceTest {
 
     @Mock private UserRepository userRepository;
     @Mock private CompanyRepository companyRepository;
+    @Mock private CompanyUserProfileRepository companyUserProfileRepository;
     @InjectMocks private AdminService service;
 
     // --- changeUserStatus() --------------------------------------------------
@@ -63,6 +68,24 @@ class AdminServiceTest {
         verify(userRepository).save(user);
     }
 
+    @Test
+    void changeUserStatus_activateOwnerOfPendingCompany_throwsConflict() {
+        User user = new User();
+        user.setUserStatus(UserStatus.PENDING);
+        Company company = new Company();
+        company.setStatus(CompanyStatus.PENDING);
+        CompanyUserProfile profile = new CompanyUserProfile();
+        profile.setUser(user);
+        profile.setCompany(company);
+        profile.setCompanyRole(CompanyRole.OWNER);
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(companyUserProfileRepository.findByUser(user)).thenReturn(Optional.of(profile));
+
+        assertThatThrownBy(() -> service.changeUserStatus(1L, "reason", UserStatus.ACTIVE))
+                .isInstanceOf(ConflictException.class)
+                .hasMessage("Approve the company before activating its owner");
+    }
+
     // --- changeCompanyStatus() -----------------------------------------------
 
     @Test
@@ -96,5 +119,24 @@ class AdminServiceTest {
         assertThat(company.getStatus()).isEqualTo(CompanyStatus.ACTIVE);
         assertThat(company.getStatusChangeReason()).isEqualTo("approved");
         verify(companyRepository).save(company);
+    }
+
+    @Test
+    void changeCompanyStatus_approve_activatesPendingOwner() {
+        Company company = new Company();
+        company.setStatus(CompanyStatus.PENDING);
+        User owner = new User();
+        owner.setUserStatus(UserStatus.PENDING);
+        CompanyUserProfile ownerProfile = new CompanyUserProfile();
+        ownerProfile.setUser(owner);
+        ownerProfile.setCompanyRole(CompanyRole.OWNER);
+        when(companyRepository.findById(1L)).thenReturn(Optional.of(company));
+        when(companyUserProfileRepository.findByCompanyAndCompanyRole(company, CompanyRole.OWNER))
+                .thenReturn(List.of(ownerProfile));
+
+        service.changeCompanyStatus(1L, "approved", CompanyStatus.ACTIVE);
+
+        assertThat(owner.getUserStatus()).isEqualTo(UserStatus.ACTIVE);
+        verify(userRepository).save(owner);
     }
 }

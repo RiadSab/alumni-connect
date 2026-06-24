@@ -29,9 +29,7 @@ public class AdminController {
         return ResponseEntity.ok(adminService.getPendingUsers(pageable));
     }
 
-    // Moderation browse over every user, optionally filtered by status and/or type (no filter =
-    // all). Lets the admin find an already-active account (e.g. a scammer) to suspend — the
-    // suspend/profile endpoints already exist, this is the missing "find the target" step.
+    // Moderation browse over every user, optionally filtered by status and/or type (no filter = all).
     @GetMapping("/users")
     public ResponseEntity<Page<AdminUserDTO>> getUsers(@RequestParam(required = false) UserStatus status,
                                                        @RequestParam(required = false) UserType type,
@@ -44,8 +42,7 @@ public class AdminController {
         return ResponseEntity.ok(adminService.getPendingCompanies(pageable));
     }
 
-    // Moderation browse over every company, optionally filtered by status (no filter = all) —
-    // the company counterpart to GET /users, surfacing already-active companies to suspend.
+    // Moderation browse over every company, optionally filtered by status (no filter = all).
     @GetMapping("/companies")
     public ResponseEntity<Page<AdminCompanyDTO>> getCompanies(@RequestParam(required = false) CompanyStatus status,
                                                               @PageableDefault Pageable pageable) {
@@ -62,10 +59,7 @@ public class AdminController {
         return changeUserStatus(id, dto, UserStatus.REJECTED, "rejected");
     }
 
-    // Suspend/reactivate are post-approval lifecycle actions (acting on an already-ACTIVE
-    // account), distinct from approve/reject which act on a PENDING one. Both reuse the same
-    // generic changeUserStatus path — reactivate targets ACTIVE just like approve, but stays
-    // a separate endpoint so the admin's intent (un-suspending) reads clearly.
+    // Suspend/reactivate act on an already-ACTIVE account, kept separate so the admin's intent reads clearly.
     @PostMapping("/users/{id}/suspend")
     public ResponseEntity<?> suspendUser(@PathVariable Long id, @RequestBody @Valid StatusChangeDTO dto) {
         return changeUserStatus(id, dto, UserStatus.SUSPENDED, "suspended");
@@ -96,8 +90,7 @@ public class AdminController {
         return changeCompanyStatus(id, dto, CompanyStatus.ACTIVE, "reactivated");
     }
 
-    // The service throws on failure (404 no such user, 409 already in the target status); reaching
-    // here means it succeeded, so we just confirm the action.
+    // The service throws on failure; reaching here means success, so we just confirm the action.
     private ResponseEntity<?> changeUserStatus(Long id, StatusChangeDTO dto, UserStatus newStatus, String action) {
         adminService.changeUserStatus(id, dto.getReason(), newStatus);
         return ResponseEntity.ok("User " + action + " successfully");

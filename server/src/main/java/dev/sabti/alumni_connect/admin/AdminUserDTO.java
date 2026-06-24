@@ -7,10 +7,7 @@ import lombok.Data;
 
 import java.time.LocalDateTime;
 
-// Admin-facing view of a User for the moderation browse. Unlike the public profile DTOs, this
-// deliberately exposes the moderation fields they hide — userStatus, statusChangeReason,
-// emailVerified, createdAt — since the admin needs them to decide who to suspend/reactivate.
-// passwordHash is simply never mapped here.
+// Admin-facing view of a User for the moderation browse — exposes the moderation fields the public profile DTOs hide.
 @Data
 public class AdminUserDTO {
     private Long id;

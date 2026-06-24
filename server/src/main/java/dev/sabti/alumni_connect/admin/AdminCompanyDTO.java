@@ -1,17 +1,16 @@
 package dev.sabti.alumni_connect.admin;
 
 import dev.sabti.alumni_connect.auth.entities.Fields;
+import dev.sabti.alumni_connect.auth.entities.User;
 import dev.sabti.alumni_connect.company.entities.Company;
 import dev.sabti.alumni_connect.company.entities.CompanySize;
 import dev.sabti.alumni_connect.company.entities.CompanyStatus;
+import dev.sabti.alumni_connect.company.entities.CompanyUserProfile;
 import lombok.Data;
 
 import java.time.LocalDateTime;
 
-// Admin-facing view of a Company for the moderation browse. Unlike the public CompanyDTO (which
-// is visibility-gated and omits status/statusChangeReason), this exposes those moderation fields
-// — the admin must see PENDING/REJECTED/SUSPENDED companies and the reason behind a status.
-// logoId/videoPresentationId stay omitted until the file-storage phase, as elsewhere.
+// Admin-facing view of a Company for the moderation browse — exposes the moderation fields the public CompanyDTO hides (status, statusChangeReason).
 @Data
 public class AdminCompanyDTO {
     private Long id;
@@ -27,8 +26,16 @@ public class AdminCompanyDTO {
     private String statusChangeReason;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    // The company's owner, resolved for the pending queue; null on the browse-all list.
+    private OwnerSummary owner;
+
+    public record OwnerSummary(String firstName, String lastName, String email) {}
 
     public static AdminCompanyDTO from(Company company) {
+        return from(company, null);
+    }
+
+    public static AdminCompanyDTO from(Company company, CompanyUserProfile owner) {
         AdminCompanyDTO dto = new AdminCompanyDTO();
         dto.id = company.getId();
         dto.name = company.getName();
@@ -43,6 +50,10 @@ public class AdminCompanyDTO {
         dto.statusChangeReason = company.getStatusChangeReason();
         dto.createdAt = company.getCreatedAt();
         dto.updatedAt = company.getUpdatedAt();
+        if (owner != null) {
+            User user = owner.getUser();
+            dto.owner = new OwnerSummary(user.getFirstName(), user.getLastName(), user.getEmail());
+        }
         return dto;
     }
 }

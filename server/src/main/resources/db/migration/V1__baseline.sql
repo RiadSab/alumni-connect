@@ -1,7 +1,6 @@
 -- V1 baseline: the schema exactly as Hibernate (ddl-auto: update) had built it when
 -- Flyway was introduced, captured via pg_dump --schema-only. Fresh databases are built
 -- from this file; the pre-existing dev/prod DB is baselined at V1 and skips it.
--- See docs/migrations.md.
 
 --
 -- PostgreSQL database dump
