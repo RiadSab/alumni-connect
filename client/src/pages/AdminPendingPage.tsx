@@ -1,6 +1,4 @@
-// Admin moderation queue: users and companies awaiting approval, each with
-// Approve / Reject actions that open the reason dialog. Reached at /admin/pending.
-// Approving or rejecting invalidates the admin lists, so the row drops out here.
+// Admin moderation queue (/admin/pending): users and companies awaiting approval, with Approve / Reject actions.
 
 import { useState, type ReactNode } from "react";
 import { CloudOff, RefreshCw } from "lucide-react";
@@ -72,8 +70,7 @@ function PendingCompanies() {
   );
 }
 
-// Shared section shell: heading + loading / error / empty / list states. Kept
-// generic over the row type so both queues reuse it.
+// Shared section shell (heading + loading / error / empty / list states), generic over the row type.
 function Section<T>({
   title,
   query,
@@ -217,6 +214,19 @@ function PendingCompanyRow({ company }: { company: AdminCompanyDTO }) {
           <a className="hover:underline" href={`mailto:${company.email}`}>{company.email}</a>
           {size && <span>{size}</span>}
         </div>
+
+        {company.owner && (
+          <div className="mt-3 rounded-md border border-border bg-muted/40 px-3 py-2 text-sm">
+            <span className="font-medium text-foreground">{t("admin.pending.company.owner")}: </span>
+            <span className="text-[var(--color-slate)]">
+              {company.owner.firstName} {company.owner.lastName}
+            </span>
+            <a className="ml-1 text-[var(--color-slate)] hover:underline" href={`mailto:${company.owner.email}`}>
+              · {company.owner.email}
+            </a>
+            <p className="mt-1 text-xs text-[var(--color-steel)]">{t("admin.pending.company.ownerNote")}</p>
+          </div>
+        )}
       </div>
 
       <div className="flex shrink-0 gap-2">

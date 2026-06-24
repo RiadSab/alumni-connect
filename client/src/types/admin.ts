@@ -37,11 +37,11 @@ export interface AdminCompanyDTO extends AuditFields {
   size: CompanySize | null;
   status: CompanyStatus;
   statusChangeReason: string | null;
+  // The company's owner — present on the pending queue, null on the browse-all list.
+  owner: { firstName: string; lastName: string; email: string } | null;
 }
 
-// NOTE: GET /api/admin/pending-users & /pending-companies used to serialize the raw
-// JPA entities; the backend now maps them through AdminUserDTO / AdminCompanyDTO, so
-// the pending and browse-all endpoints share one shape (above) — no entity types needed.
+// The pending and browse-all endpoints share these shapes; no entity types needed.
 
 // Body for all 8 user/company lifecycle actions.
 export const statusChangeSchema = z.object({

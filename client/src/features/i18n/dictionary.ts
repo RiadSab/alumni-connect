@@ -325,6 +325,8 @@ export const en = {
   "admin.pending.companies.count.one": "{n} company awaiting approval",
   "admin.pending.companies.count.other": "{n} companies awaiting approval",
   "admin.pending.companies.empty": "No companies awaiting approval.",
+  "admin.pending.company.owner": "Owner",
+  "admin.pending.company.ownerNote": "Approving this company also activates the owner's account.",
   // admin — lifecycle actions + reason dialog
   "admin.approve": "Approve",
   "admin.reject": "Reject",
@@ -691,6 +693,8 @@ export const fr: Record<TKey, string> = {
   "admin.pending.companies.count.one": "{n} entreprise en attente",
   "admin.pending.companies.count.other": "{n} entreprises en attente",
   "admin.pending.companies.empty": "Aucune entreprise en attente.",
+  "admin.pending.company.owner": "Propriétaire",
+  "admin.pending.company.ownerNote": "Approuver cette entreprise active aussi le compte du propriétaire.",
   // admin — lifecycle actions + reason dialog
   "admin.approve": "Approuver",
   "admin.reject": "Rejeter",
