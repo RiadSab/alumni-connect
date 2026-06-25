@@ -1,6 +1,5 @@
 name: Deploy backend
 
-# Build the backend image on GitHub, push to GHCR, then tell the VM to pull + restart.
 on:
   push:
     branches: [main]
@@ -40,21 +39,12 @@ jobs:
     needs: build-and-push
     runs-on: ubuntu-latest
     steps:
-      - name: Pull image on VM and restart
+      - name: Run deploy script on VM
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
-          envs: GHCR_USER,GHCR_TOKEN
-          script: |
-            set -e
-            echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
-            cd ~/alumni-connect/server
-            git pull
-            docker compose --env-file .env.prod -f compose.prod.yml pull app
-            docker compose --env-file .env.prod -f compose.prod.yml up -d
-            docker image prune -f
-        env:
-          GHCR_USER: ${{ github.actor }}
-          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Key is locked to /home/deploy/deploy.sh via authorized_keys
+          # (restrict,command=...), so sshd runs that and ignores this line.
+          script: /home/deploy/deploy.sh

@@ -8,3 +8,4 @@ tokens/
 server/API_REFERENCE.md
 server/KNOWN_ISSUES.md
 server/docs/
+seed_demo.sql
