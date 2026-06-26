@@ -5,11 +5,24 @@ import { Link } from "react-router-dom";
 import { CloudOff, FileText, RefreshCw } from "lucide-react";
 import { useMyApplications } from "@/features/jobApplications/hooks";
 import { useT } from "@/features/i18n/lang-context";
+import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { applicationStatusOptions, type ApplicationStatus } from "@/types/enums";
 import type { JobApplicationDTO } from "@/types/jobApplication";
 import { useState } from "react";
+
+// Status-filter tabs. "Active" groups the in-flight statuses; the rest are single-status.
+// `undefined` statuses means "no filter" (the All tab).
+const TABS = [
+  { key: "all", statuses: undefined },
+  { key: "active", statuses: ["APPLIED", "UNDER_REVIEW", "SCHEDULED_INTERVIEW", "INTERVIEWED"] },
+  { key: "accepted", statuses: ["ACCEPTED"] },
+  { key: "rejected", statuses: ["REJECTED"] },
+  { key: "withdrawn", statuses: ["WITHDRAWN"] },
+] as const satisfies readonly { key: string; statuses?: readonly ApplicationStatus[] }[];
+
+type TabKey = (typeof TABS)[number]["key"];
 
 // Badge colour per status. Labels stay English (enum-label translation deferred,
 // same as employment types) via applicationStatusOptions.
@@ -29,14 +42,40 @@ function statusLabel(status: ApplicationStatus): string {
 
 export function MyApplicationsPage() {
   const { t, tn, lang } = useT();
+  const [tab, setTab] = useState<TabKey>("all");
   const [page, setPage] = useState(0);
-  const { data, isLoading, isError, refetch } = useMyApplications({ page });
+  const statuses = TABS.find((tb) => tb.key === tab)?.statuses;
+  const { data, isLoading, isError, refetch } = useMyApplications({
+    page,
+    status: statuses ? [...statuses] : undefined,
+  });
 
   return (
     <div className="mx-auto max-w-3xl">
       <div className="mb-6">
         <h1 className="text-3xl font-semibold tracking-tight text-foreground">{t("apps.title")}</h1>
         <p className="mt-1.5 text-[15px] text-[var(--color-steel)]">{t("apps.subtitle")}</p>
+      </div>
+
+      <div className="mb-5 flex flex-wrap gap-1.5">
+        {TABS.map((tb) => (
+          <button
+            key={tb.key}
+            type="button"
+            onClick={() => {
+              setTab(tb.key);
+              setPage(0);
+            }}
+            className={cn(
+              "rounded-full px-3 py-1.5 text-sm font-medium transition-colors",
+              tab === tb.key
+                ? "bg-primary text-primary-foreground"
+                : "bg-[var(--color-surface)] text-[var(--color-steel)] hover:text-foreground",
+            )}
+          >
+            {t(`apps.tab.${tb.key}`)}
+          </button>
+        ))}
       </div>
 
       {isLoading && (
@@ -65,11 +104,17 @@ export function MyApplicationsPage() {
           <div className="mb-4 grid size-14 place-items-center rounded-xl bg-[var(--color-surface)] text-[var(--color-steel)]">
             <FileText className="size-6" />
           </div>
-          <h3 className="text-lg font-semibold text-foreground">{t("apps.empty.title")}</h3>
-          <p className="mt-2 max-w-sm text-sm text-[var(--color-steel)]">{t("apps.empty.body")}</p>
-          <Button asChild className="mt-5">
-            <Link to="/">{t("apps.empty.cta")}</Link>
-          </Button>
+          <h3 className="text-lg font-semibold text-foreground">
+            {tab === "all" ? t("apps.empty.title") : t("apps.emptyFiltered.title")}
+          </h3>
+          <p className="mt-2 max-w-sm text-sm text-[var(--color-steel)]">
+            {tab === "all" ? t("apps.empty.body") : t("apps.emptyFiltered.body")}
+          </p>
+          {tab === "all" && (
+            <Button asChild className="mt-5">
+              <Link to="/">{t("apps.empty.cta")}</Link>
+            </Button>
+          )}
         </div>
       )}
 
@@ -118,7 +163,7 @@ export function MyApplicationsPage() {
 function ApplicationRow({ app, appliedLabel }: { app: JobApplicationDTO; appliedLabel: string }) {
   return (
     <Link
-      to={`/jobs/${app.jobOfferId}`}
+      to={`/applications/${app.id}`}
       className="flex items-center justify-between gap-4 rounded-lg border border-border bg-card p-5 hover:border-[var(--color-stone)]"
     >
       <div className="min-w-0">

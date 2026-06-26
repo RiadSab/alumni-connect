@@ -55,3 +55,8 @@ export interface ApplicationFilters extends PageParams {
   reviewed?: boolean;
   minRating?: number;
 }
+
+// GET /api/job-applications/me — candidate's own list, optionally filtered to a set of statuses.
+export interface MyApplicationFilters extends PageParams {
+  status?: ApplicationStatus[];
+}

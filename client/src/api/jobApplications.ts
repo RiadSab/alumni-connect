@@ -1,17 +1,18 @@
 // Job-application endpoints (§6).
 
 import { http } from "@/lib/http";
-import type { Page, PageParams } from "@/types/common";
+import type { Page } from "@/types/common";
 import type { CandidateProfileDTO } from "@/types/candidate";
 import type {
   JobApplicationDTO,
+  MyApplicationFilters,
   MyApplicationStatsDTO,
   ReviewApplicationDTO,
 } from "@/types/jobApplication";
 
 export const jobApplicationsApi = {
-  // CANDIDATE — own application history.
-  mine: (params?: PageParams) =>
+  // CANDIDATE — own application history, optionally filtered by status.
+  mine: (params?: MyApplicationFilters) =>
     http.get<Page<JobApplicationDTO>>("/job-applications/me", { query: params }),
 
   // CANDIDATE — dashboard counts.

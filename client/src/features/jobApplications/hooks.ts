@@ -3,12 +3,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { jobApplicationsApi } from "@/api/jobApplications";
 import { queryKeys } from "@/lib/queryKeys";
-import type { PageParams } from "@/types/common";
-import type { ReviewApplicationDTO } from "@/types/jobApplication";
+import type { MyApplicationFilters, ReviewApplicationDTO } from "@/types/jobApplication";
+import type { JobOfferDTO } from "@/types/jobOffer";
 
 // CANDIDATE — own application history. `enabled` lets callers skip the fetch for
 // non-candidates (the endpoint is candidate-only).
-export function useMyApplications(params?: PageParams, options?: { enabled?: boolean }) {
+export function useMyApplications(params?: MyApplicationFilters, options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: queryKeys.jobApplications.mine(params),
     queryFn: () => jobApplicationsApi.mine(params),
@@ -33,6 +33,17 @@ export function useApplication(id: number) {
   });
 }
 
+// The résumé blob submitted with an application; enabled only when one exists.
+export function useApplicationResume(id: number, enabled: boolean) {
+  return useQuery({
+    queryKey: queryKeys.jobApplications.resume(id),
+    queryFn: () => jobApplicationsApi.downloadResume(id),
+    enabled,
+    retry: false,
+    staleTime: Infinity, // the submitted résumé is a snapshot — it never changes
+  });
+}
+
 // OWNER/RECRUITER — the applicant's full candidate profile.
 export function useApplicantProfile(id: number) {
   return useQuery({
@@ -50,6 +61,11 @@ export function useWithdrawApplication() {
     onSuccess: (updated) => {
       queryClient.setQueryData(queryKeys.jobApplications.byId(updated.id), updated);
       queryClient.invalidateQueries({ queryKey: queryKeys.jobApplications.all() });
+      // Withdrawing frees the candidate to re-apply, so the offer is no longer "applied".
+      queryClient.setQueryData<JobOfferDTO>(queryKeys.jobOffers.byId(updated.jobOfferId), (prev) =>
+        prev ? { ...prev, hasApplied: false } : prev,
+      );
+      queryClient.invalidateQueries({ queryKey: queryKeys.jobOffers.all() });
     },
   });
 }
