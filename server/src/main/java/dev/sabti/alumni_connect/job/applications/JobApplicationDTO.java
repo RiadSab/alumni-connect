@@ -14,6 +14,9 @@ public class JobApplicationDTO {
     private Long id;
     private Long jobOfferId;
     private String jobOfferTitle;
+    private Long companyId;
+    private String companyName;
+    private String logoId;
     private Long applicantId;
     private String applicantName;
     private String resumeStorageId;
@@ -34,6 +37,9 @@ public class JobApplicationDTO {
         dto.id = application.getId();
         dto.jobOfferId = application.getJobOffer().getId();
         dto.jobOfferTitle = application.getJobOffer().getTitle();
+        dto.companyId = application.getJobOffer().getCompany().getId();
+        dto.companyName = application.getJobOffer().getCompany().getName();
+        dto.logoId = application.getJobOffer().getCompany().getLogoId();
         dto.applicantId = application.getApplicant().getId();
         dto.applicantName = application.getApplicant().getUser().getFirstName() + " " + application.getApplicant().getUser().getLastName();
         dto.resumeStorageId = application.getResumeStorageId();
