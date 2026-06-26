@@ -4,6 +4,7 @@
 import { Link } from "react-router-dom";
 import { CloudOff, FileText, RefreshCw } from "lucide-react";
 import { useMyApplications } from "@/features/jobApplications/hooks";
+import { CompanyLogo } from "@/features/jobOffers/CompanyLogo";
 import { useT } from "@/features/i18n/lang-context";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -164,11 +165,19 @@ function ApplicationRow({ app, appliedLabel }: { app: JobApplicationDTO; applied
   return (
     <Link
       to={`/applications/${app.id}`}
-      className="flex items-center justify-between gap-4 rounded-lg border border-border bg-card p-5 hover:border-[var(--color-stone)]"
+      className="flex items-center gap-4 rounded-lg border border-border bg-card p-5 hover:border-[var(--color-stone)]"
     >
-      <div className="min-w-0">
+      <CompanyLogo
+        companyId={app.companyId}
+        companyName={app.companyName}
+        logoId={app.logoId}
+        className="size-11 rounded-md"
+        textClassName="text-lg"
+      />
+      <div className="min-w-0 flex-1">
         <div className="truncate font-semibold text-foreground">{app.jobOfferTitle}</div>
-        <div className="mt-1 text-sm text-[var(--color-steel)]">{appliedLabel}</div>
+        <div className="truncate text-sm text-[var(--color-steel)]">{app.companyName}</div>
+        <div className="mt-1 text-xs text-[var(--color-stone)]">{appliedLabel}</div>
       </div>
       <span
         className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${STATUS_STYLES[app.applicationStatus]}`}

@@ -9,6 +9,9 @@ export interface JobApplicationDTO extends AuditFields {
   id: number;
   jobOfferId: number;
   jobOfferTitle: string;
+  companyId: number;
+  companyName: string;
+  logoId: string | null;
   applicantId: number;
   applicantName: string;
   resumeStorageId: string | null;
