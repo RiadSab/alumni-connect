@@ -6,6 +6,7 @@ import { queryKeys } from "@/lib/queryKeys";
 import type { PageParams } from "@/types/common";
 import type {
   CreateJobOfferDTO,
+  JobOfferDTO,
   JobOfferFilters,
   UpdateJobOfferDTO,
 } from "@/types/jobOffer";
@@ -91,7 +92,12 @@ export function useApplyToJobOffer() {
   return useMutation({
     mutationFn: (input: { id: number; data: ApplyToJobOfferInput }) =>
       jobOffersApi.apply(input.id, input.data),
-    onSuccess: () => {
+    onSuccess: (_result, input) => {
+      // Mark this offer's cached detail applied right away, so a later visit (e.g.
+      // from My Applications) shows "Already applied" without waiting on a refetch.
+      queryClient.setQueryData<JobOfferDTO>(queryKeys.jobOffers.byId(input.id), (prev) =>
+        prev ? { ...prev, hasApplied: true } : prev,
+      );
       queryClient.invalidateQueries({ queryKey: queryKeys.jobApplications.all() });
       queryClient.invalidateQueries({ queryKey: queryKeys.jobOffers.all() });
     },
