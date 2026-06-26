@@ -61,6 +61,13 @@ export function RootLayout() {
 
   return (
     <div className="min-h-screen">
+      {/* Soft light background image behind every page. */}
+      <div
+        aria-hidden
+        className="fixed inset-0 -z-10 bg-cover bg-center bg-no-repeat"
+        style={{ backgroundImage: "url(/light_background.png)" }}
+      />
+
       <header className="sticky top-0 z-40 border-b border-border bg-card/80 backdrop-blur">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
           <div className="flex items-center gap-6">
