@@ -7,7 +7,6 @@ public enum ApplicationStatus {
     INTERVIEWED,
     REJECTED,
     ACCEPTED,
-    // Set by the candidate withdrawing their own application (the only status they control); every
-    // other status is a company review outcome.
+    // Set by the candidate; every other status is a company review outcome.
     WITHDRAWN
 }

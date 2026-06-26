@@ -12,8 +12,7 @@ import org.springframework.stereotype.Repository;
 
 import java.util.Collection;
 
-// JpaSpecificationExecutor backs the applicant-triage on an offer (filter by status/reviewed/
-// rating via findAll(Specification, Pageable)); the derived methods stay for the fixed lookups.
+// JpaSpecificationExecutor backs the applicant triage; the derived methods are fixed lookups.
 @Repository
 public interface JobApplicationRepository extends JpaRepository<JobApplication, Long>, JpaSpecificationExecutor<JobApplication> {
     // Candidate dashboard stat counts.
@@ -26,4 +25,6 @@ public interface JobApplicationRepository extends JpaRepository<JobApplication, 
                                                                 ApplicationStatus applicationStatus);
 
     Page<JobApplication> findByApplicant(CandidateProfile applicant, Pageable pageable);
+    Page<JobApplication> findByApplicantAndApplicationStatusIn(CandidateProfile applicant,
+                                                              Collection<ApplicationStatus> statuses, Pageable pageable);
 }

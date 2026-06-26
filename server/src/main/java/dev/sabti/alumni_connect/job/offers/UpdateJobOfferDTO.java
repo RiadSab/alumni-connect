@@ -8,9 +8,7 @@ import lombok.Data;
 import java.time.LocalDateTime;
 import java.util.List;
 
-// All fields nullable: null means "leave unchanged" — same pattern as
-// ReviewApplicationDTO. status is included so closing/reopening an offer is
-// just PATCH {"status": "CLOSED"}, no separate delete/close endpoint.
+// All fields nullable = "leave unchanged"; status is included so close/reopen is a PATCH.
 @Data
 public class UpdateJobOfferDTO {
     private String title;

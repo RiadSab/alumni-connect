@@ -2,6 +2,7 @@ package dev.sabti.alumni_connect.job.offers;
 
 import dev.sabti.alumni_connect.candidate.CandidateProfile;
 import dev.sabti.alumni_connect.auth.entities.User;
+import dev.sabti.alumni_connect.auth.entities.UserType;
 import dev.sabti.alumni_connect.candidate.CandidateProfileRepository;
 import dev.sabti.alumni_connect.auth.repositories.UserRepository;
 import dev.sabti.alumni_connect.company.entities.Company;
@@ -38,14 +39,7 @@ public class JobOfferService {
     private final CompanyUserProfileRepository companyUserProfileRepository;
     private final CandidateProfileRepository candidateProfileRepository;
 
-    // Only OPEN offers are publicly browsable — DRAFT/CLOSED/EXPIRED must stay invisible
-    // to candidates, the same "discoverable set is a filtered subset" reasoning as
-    // CompanyService.getActiveCompanies (only ACTIVE companies are joinable/browsable).
-    // The OPEN constraint is the non-optional base spec; the caller's optional filters are
-    // ANDed onto it, so "no filters" yields exactly the previous unfiltered OPEN list.
-    // @Transactional keeps the Hibernate session open while .from() resolves the lazy
-    // company/postedBy.user associations, so the DTO mapping doesn't depend on
-    // Open-Session-In-View.
+    // Public browse: OPEN offers only, with the caller's optional filters ANDed onto the base spec.
     @Transactional(readOnly = true)
     public Page<JobOfferDTO> getOpenJobOffers(JobOfferSearchCriteria criteria, Pageable pageable) {
         Specification<JobOffer> spec = JobOfferSpecs.isOpen();
@@ -69,12 +63,7 @@ public class JobOfferService {
         return jobOfferRepository.findAll(spec, pageable).map(JobOfferDTO::from);
     }
 
-    // "Recommended for you": OPEN offers ranked by how many of their required skills overlap
-    // with the candidate's own profile skills (system-push, vs the caller-pull of the search
-    // above). The endpoint is gated to ROLE CANDIDATE, so the profile is expected to exist; the
-    // defensive empties cover the impossible cases the same way without throwing. A candidate
-    // with no skills gets an empty page on purpose — that's the signal to go fill their profile,
-    // not a reason to fall back to generic listings (which would hide the gap).
+    // CANDIDATE — OPEN offers ranked by skill overlap with the candidate's profile; empty if no skills.
     @Transactional(readOnly = true)
     public Page<JobOfferDTO> getRecommendedOffers(String candidateEmail, Pageable pageable) {
         User user = userRepository.findByEmail(candidateEmail).orElse(null);
@@ -86,8 +75,6 @@ public class JobOfferService {
         Set<String> skills = profile.getSkills();
         if (skills == null || skills.isEmpty()) return Page.empty(pageable);
 
-        // Lowercased to match the query's lower(s) comparison; skillsRequired isn't normalized on
-        // write, so the matching is made case-insensitive here rather than relying on stored case.
         List<String> normalized = skills.stream()
                 .filter(s -> s != null && !s.isBlank())
                 .map(s -> s.trim().toLowerCase())
@@ -98,10 +85,7 @@ public class JobOfferService {
         return jobOfferRepository.findOpenOffersMatchingSkills(normalized, pageable).map(JobOfferDTO::from);
     }
 
-    // Posting is restricted to a company's own OWNER/RECRUITER, and only while that company is ACTIVE
-    // — the same authority-boundary reasoning that shaped the join-flow (registerCompanyMember). The
-    // two failures are now separate 403s with their own message: "not a poster role" vs "company not
-    // active" (previously both collapsed to one empty 403).
+    // Post a job offer — the company's own OWNER/RECRUITER only, and only while the company is ACTIVE.
     @Transactional
     public JobOfferDTO postJobOffer(String posterEmail, CreateJobOfferDTO dto) {
         User user = userRepository.findByEmail(posterEmail)
@@ -136,40 +120,43 @@ public class JobOfferService {
         return JobOfferDTO.from(jobOfferRepository.save(offer));
     }
 
-    // OPEN offers are public; anything else (DRAFT/CLOSED/EXPIRED) is visible only to the posting
-    // company's OWNER/RECRUITER (404 otherwise, so a draft's existence isn't leaked). hasApplied is
-    // filled for a candidate caller.
+    // Read one offer: OPEN is public; otherwise only the posting company or an applicant (never a DRAFT).
     @Transactional(readOnly = true)
     public JobOfferDTO getJobOfferById(String callerEmail, Long id) {
         JobOffer offer = jobOfferRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Job offer not found"));
 
-        if (offer.getStatus() != JobStatus.OPEN
-                && (callerEmail == null || resolvePosterForCompany(callerEmail, offer.getCompany().getId()).isEmpty())) {
+        User caller = callerEmail == null ? null : userRepository.findByEmail(callerEmail).orElse(null);
+        UserType callerType = caller == null ? null : caller.getUserType();
+
+        CandidateProfile candidate = null;
+        boolean isPoster = false;
+        if (callerType == UserType.CANDIDATE) {
+            candidate = candidateProfileRepository.findByUser(caller).orElse(null);
+        } else if (callerType == UserType.COMPANY_USER && offer.getStatus() != JobStatus.OPEN) {
+            isPoster = resolvePosterForCompany(callerEmail, offer.getCompany().getId()).isPresent();
+        }
+        boolean applied = hasApplied(candidate, offer);
+
+        boolean applicantMayView = applied && offer.getStatus() != JobStatus.DRAFT;
+        if (offer.getStatus() != JobStatus.OPEN && !isPoster && !applicantMayView) {
             throw new NotFoundException("Job offer not found");
         }
 
         JobOfferDTO dto = JobOfferDTO.from(offer);
-        CandidateProfile candidate = callerEmail == null ? null
-                : userRepository.findByEmail(callerEmail).flatMap(candidateProfileRepository::findByUser).orElse(null);
-        dto.setHasApplied(hasApplied(candidate, offer));
+        dto.setHasApplied(applied);
         dto.setIsSaved(candidate != null && savedJobRepository.existsByCandidateAndJobOffer(candidate, offer));
         return dto;
     }
 
-    // True if a candidate caller already has an active (non-withdrawn) application to this offer —
-    // the same condition apply() enforces, so a withdrawn one reads false and re-applying is allowed.
+    // True if the candidate has an active (non-withdrawn) application to this offer.
     private boolean hasApplied(CandidateProfile candidate, JobOffer offer) {
         if (candidate == null) return false;
         return jobApplicationRepository
                 .existsByJobOfferAndApplicantAndApplicationStatusNot(offer, candidate, ApplicationStatus.WITHDRAWN);
     }
 
-    // Editing (including closing/reopening via status) is restricted to the posting company's own
-    // OWNER/RECRUITER. 404 for both "no such offer" and "not your company's offer" — same
-    // 404-for-both, don't-leak-existence reasoning as getJobOfferById above (the old code returned an
-    // empty 403 for both; 404 is the consistent choice). Fields are all nullable: null means "leave
-    // unchanged", same pattern as ReviewApplicationDTO.
+    // Edit (incl. status) — posting company's OWNER/RECRUITER only; null fields left unchanged; 404 otherwise.
     @Transactional
     public JobOfferDTO updateJobOffer(String callerEmail, Long id, UpdateJobOfferDTO dto) {
         JobOffer offer = jobOfferRepository.findById(id)
@@ -198,9 +185,7 @@ public class JobOfferService {
         return JobOfferDTO.from(jobOfferRepository.save(offer));
     }
 
-    // All offers of the caller's own company (any status) — viewable by any of its members, so a
-    // plain MEMBER can see what the company has posted. Posting/editing stay OWNER/RECRUITER
-    // (enforced in postJobOffer/updateJobOffer). 403 if the caller isn't a company user at all.
+    // The caller's own company's offers, any status — any company user; 403 otherwise.
     @Transactional(readOnly = true)
     public Page<JobOfferDTO> getMyCompanyJobOffers(String callerEmail, Pageable pageable) {
         CompanyUserProfile profile = userRepository.findByEmail(callerEmail)
@@ -210,8 +195,7 @@ public class JobOfferService {
         return jobOfferRepository.findByCompany(profile.getCompany(), pageable).map(JobOfferDTO::from);
     }
 
-    // Company dashboard counts via aggregate queries (postings / open / total applicants) —
-    // viewable by any company user, same as the offers listing. 403 if not a company user.
+    // Company dashboard counts (postings / open / applicants) — any company user; 403 otherwise.
     @Transactional(readOnly = true)
     public CompanyOfferStatsDTO getMyCompanyStats(String callerEmail) {
         CompanyUserProfile profile = userRepository.findByEmail(callerEmail)
@@ -225,8 +209,7 @@ public class JobOfferService {
         return new CompanyOfferStatsDTO(totalPostings, openPostings, totalApplicants);
     }
 
-    // Duplicated from JobApplicationService.resolveReviewerForCompany on purpose —
-    // small enough that sharing it isn't worth coupling the two sub-features.
+    // The caller as an OWNER/RECRUITER of the given company, if they are one.
     private Optional<CompanyUserProfile> resolvePosterForCompany(String email, Long companyId) {
         return userRepository.findByEmail(email)
                 .flatMap(companyUserProfileRepository::findByUser)

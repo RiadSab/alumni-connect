@@ -29,6 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.Optional;
 import java.util.Set;
 
@@ -59,7 +60,6 @@ public class JobApplicationService {
 
         if (jobApplicationRepository.existsByJobOfferAndApplicantAndApplicationStatusNot(
                 offer, applicant, ApplicationStatus.WITHDRAWN)) {
-            // already has an active application; a withdrawn one doesn't block re-applying
             throw new ConflictException("You have already applied to this offer");
         }
 
@@ -68,9 +68,7 @@ public class JobApplicationService {
             throw new ConflictException("This offer is no longer accepting applications");
         }
 
-        // An uploaded offer-specific resume wins over the profile one if both are sent (it's the
-        // more deliberate choice). Reusing the profile resume copies the file so this application
-        // keeps its own snapshot — independent of any later profile-resume replace/delete.
+        // An uploaded resume wins; reusing the profile resume copies it so the application keeps its own snapshot.
         String resumeStorageId = null;
         if (resume != null && !resume.isEmpty()) {
             resumeStorageId = storedFileService.store(resume).getStorageId();
@@ -104,7 +102,7 @@ public class JobApplicationService {
         }
 
         if (application.getApplicationStatus() == ApplicationStatus.WITHDRAWN) {
-            return JobApplicationDTO.from(application);  // idempotent: already withdrawn
+            return JobApplicationDTO.from(application);
         }
 
         application.setApplicationStatus(ApplicationStatus.WITHDRAWN);
@@ -120,9 +118,13 @@ public class JobApplicationService {
     }
 
     @Transactional(readOnly = true)
-    public Page<JobApplicationDTO> getMyApplications(String applicantEmail, Pageable pageable) {
+    public Page<JobApplicationDTO> getMyApplications(String applicantEmail,
+                                                     Collection<ApplicationStatus> statuses, Pageable pageable) {
         CandidateProfile applicant = requireCandidate(applicantEmail, "Not a candidate");
-        return jobApplicationRepository.findByApplicant(applicant, pageable).map(JobApplicationDTO::from);
+        Page<JobApplication> page = statuses == null || statuses.isEmpty()
+                ? jobApplicationRepository.findByApplicant(applicant, pageable)
+                : jobApplicationRepository.findByApplicantAndApplicationStatusIn(applicant, statuses, pageable);
+        return page.map(JobApplicationDTO::from);
     }
 
     // Candidate dashboard counts via aggregate queries (total / active / accepted).
@@ -219,9 +221,7 @@ public class JobApplicationService {
         return CandidateProfileDTO.from(applicant.getUser(), applicant);
     }
 
-    // A candidate operation requires a real user behind the email and a CandidateProfile behind that
-    // user; either missing -> 403 with the given message, since the endpoint doesn't apply to the
-    // caller (e.g. a company user trying to apply or list their applications).
+    // Requires a user with a CandidateProfile; either missing -> 403 with the given message.
     private CandidateProfile requireCandidate(String email, String denyMessage) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ForbiddenException(denyMessage));

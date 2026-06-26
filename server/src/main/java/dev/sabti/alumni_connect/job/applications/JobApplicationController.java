@@ -1,6 +1,7 @@
 package dev.sabti.alumni_connect.job.applications;
 
 import dev.sabti.alumni_connect.candidate.CandidateProfileDTO;
+import dev.sabti.alumni_connect.job.entities.ApplicationStatus;
 import dev.sabti.alumni_connect.storage.FileDownload;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -19,7 +20,10 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/job-applications")
@@ -30,8 +34,9 @@ public class JobApplicationController {
 
     @GetMapping("/me")
     public Page<JobApplicationDTO> getMyApplications(@AuthenticationPrincipal UserDetails principal,
+                                                     @RequestParam(required = false) List<ApplicationStatus> status,
                                                      @PageableDefault Pageable pageable) {
-        return jobApplicationService.getMyApplications(principal.getUsername(), pageable);
+        return jobApplicationService.getMyApplications(principal.getUsername(), status, pageable);
     }
 
     // Candidate dashboard counts — the aggregated companion to /me.

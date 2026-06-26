@@ -8,9 +8,7 @@ import lombok.Data;
 import java.time.LocalDateTime;
 import java.util.List;
 
-// company and postedBy are never accepted here — both are derived from the
-// authenticated poster's own CompanyUserProfile, the same server-decides-identity
-// reasoning as RegisterCompanyDTO excluding companyRole/companyId.
+// company/postedBy are derived from the authenticated poster, never accepted here.
 @Data
 public class CreateJobOfferDTO {
 

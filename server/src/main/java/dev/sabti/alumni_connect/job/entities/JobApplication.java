@@ -24,9 +24,7 @@ public class JobApplication extends BaseEntity {
     @JoinColumn(name = "applicant_id", nullable = false)
     private CandidateProfile applicant;
 
-    // Resume/certificates reference file-storage IDs — stay nullable until that
-    // feature exists, the same "deferred until file-storage exists" treatment as
-    // CandidateProfile.resumeId / Company.logoId.
+    // Resume/certificates reference file-storage IDs.
     private String resumeStorageId;
 
     @ElementCollection

@@ -29,9 +29,7 @@ public class JobOffer extends BaseEntity {
     @JoinColumn(name = "company_id", nullable = false)
     private Company company;
 
-    // The company-side user who posted this offer — kept distinct from `company`
-    // so a listing always traces back to an accountable person, the same reasoning
-    // that shaped the company-registration vertical.
+    // The company-side user who posted this offer — distinct from the company, for accountability.
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "posted_by_id", nullable = false)
     private CompanyUserProfile postedBy;

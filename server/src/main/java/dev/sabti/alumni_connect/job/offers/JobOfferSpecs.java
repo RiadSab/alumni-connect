@@ -9,14 +9,11 @@ import org.springframework.data.jpa.domain.Specification;
 
 import java.util.List;
 
-// Predicate builders for the public offers search. Each returns a Specification for one filter;
-// the service AND-combines only the ones whose criteria are present, so absent filters simply
-// don't constrain the query (no "IS NULL OR ..." noise).
+// Predicate builders for the public offers search; the service ANDs only the present filters.
 final class JobOfferSpecs {
     private JobOfferSpecs() {}
 
-    // The non-optional base: only OPEN offers are publicly browsable (DRAFT/CLOSED/EXPIRED stay
-    // hidden). Every search starts from this and ANDs the optional filters onto it.
+    // The base scope: only OPEN offers are publicly browsable.
     static Specification<JobOffer> isOpen() {
         return (root, query, cb) -> cb.equal(root.get("status"), JobStatus.OPEN);
     }
@@ -38,9 +35,7 @@ final class JobOfferSpecs {
         return (root, query, cb) -> cb.equal(root.get("isRemote"), remote);
     }
 
-    // Offers requiring ANY of the given skills. skillsRequired is an @ElementCollection, so this
-    // joins the element table; distinct() prevents an offer from appearing once per matched skill.
-    // Matching is case-insensitive because skillsRequired isn't normalized on write.
+    // Offers requiring ANY of the given skills (case-insensitive); distinct() avoids duplicate rows.
     static Specification<JobOffer> hasAnySkill(List<String> skills) {
         List<String> normalized = skills.stream()
                 .filter(s -> s != null && !s.isBlank())

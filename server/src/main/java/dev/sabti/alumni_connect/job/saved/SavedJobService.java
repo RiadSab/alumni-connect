@@ -28,8 +28,7 @@ public class SavedJobService {
     private final UserRepository userRepository;
     private final CandidateProfileRepository candidateProfileRepository;
 
-    // Idempotent: saving an already-saved offer is a no-op. Only OPEN offers are saveable, so a
-    // draft/closed offer 404s rather than leaking its existence. See docs/saved-jobs.md.
+    // Idempotent; only OPEN offers are saveable (others 404). See docs/saved-jobs.md.
     @Transactional
     public JobOfferDTO save(String candidateEmail, Long offerId) {
         CandidateProfile candidate = requireCandidate(candidateEmail);
@@ -74,8 +73,7 @@ public class SavedJobService {
         return savedJobRepository.findSavedOfferIds(candidate);
     }
 
-    // A real user behind the email with a CandidateProfile; either missing -> 403 (the endpoint
-    // doesn't apply to the caller), same shape as JobApplicationService.requireCandidate.
+    // Requires a user with a CandidateProfile; either missing -> 403.
     private CandidateProfile requireCandidate(String email) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ForbiddenException("Only candidates can save jobs"));

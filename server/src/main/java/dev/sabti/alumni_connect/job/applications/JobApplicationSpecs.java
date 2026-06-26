@@ -5,13 +5,11 @@ import dev.sabti.alumni_connect.job.entities.JobApplication;
 import dev.sabti.alumni_connect.job.entities.JobOffer;
 import org.springframework.data.jpa.domain.Specification;
 
-// Predicate builders for triaging one offer's applicants. The service starts from forOffer(...)
-// — the non-optional base scoping results to a single offer — and ANDs only the supplied filters.
+// Predicate builders for triaging one offer's applicants; the service ANDs only the supplied filters.
 final class JobApplicationSpecs {
     private JobApplicationSpecs() {}
 
-    // The base: applications belonging to this one offer. Every triage query starts here, so
-    // the optional filters can only ever narrow within a single offer's applicants.
+    // The base scope: applications belonging to this one offer.
     static Specification<JobApplication> forOffer(JobOffer offer) {
         return (root, query, cb) -> cb.equal(root.get("jobOffer").get("id"), offer.getId());
     }
@@ -27,8 +25,7 @@ final class JobApplicationSpecs {
                 : cb.isNull(root.get("reviewedAt"));
     }
 
-    // rating is nullable; an unrated application has null rating and so never satisfies a
-    // minRating filter — intended, since "at least N stars" implies it was rated at all.
+    // Unrated applications (null rating) never satisfy a minRating filter — intended.
     static Specification<JobApplication> minRating(int minRating) {
         return (root, query, cb) -> cb.greaterThanOrEqualTo(root.get("rating"), minRating);
     }

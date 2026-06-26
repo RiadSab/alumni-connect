@@ -39,10 +39,7 @@ public class JobOfferController {
     private final JobOfferService jobOfferService;
     private final JobApplicationService jobApplicationService;
 
-    // Public, optionally-filtered browse of OPEN offers. Every filter is optional — none
-    // supplied reproduces the previous unfiltered list. Default sort is newest-first; callers
-    // can override with ?sort=. Bad enum values for city/employmentType yield a 400 from
-    // Spring's parameter binding.
+    // Public, optionally-filtered browse of OPEN offers; default sort is newest-first.
     @GetMapping
     public ResponseEntity<Page<JobOfferDTO>> getOpenJobOffers(
             @RequestParam(required = false) String q,
@@ -55,8 +52,7 @@ public class JobOfferController {
         return ResponseEntity.ok(jobOfferService.getOpenJobOffers(criteria, pageable));
     }
 
-    // The service throws 403 if the caller isn't a company OWNER/RECRUITER, or if their company
-    // isn't ACTIVE.
+    // 403 if the caller isn't a company OWNER/RECRUITER, or if their company isn't ACTIVE.
     @PostMapping
     public ResponseEntity<JobOfferDTO> postJobOffer(@AuthenticationPrincipal UserDetails principal,
                                                      @RequestBody @Valid CreateJobOfferDTO dto) {
@@ -64,11 +60,7 @@ public class JobOfferController {
         return ResponseEntity.status(HttpStatus.CREATED).body(offer);
     }
 
-    // All of the caller's own company's offers, any status — the discovery entry
-    // point for the same company-wide OWNER/RECRUITER authority already enforced on
-    // edit/review. Must be registered (and matched in SecurityConfig) before
-    // /{id} below, since "/me" would otherwise be parsed as an offer id. The service throws 403 if
-    // the caller isn't a company OWNER/RECRUITER.
+    // The caller's own company's offers, any status; must precede /{id} so "me" isn't parsed as an id.
     @GetMapping("/me")
     public Page<JobOfferDTO> getMyCompanyJobOffers(@AuthenticationPrincipal UserDetails principal,
                                                    @PageableDefault Pageable pageable) {
@@ -81,19 +73,14 @@ public class JobOfferController {
         return jobOfferService.getMyCompanyStats(principal.getUsername());
     }
 
-    // "Recommended for you" — OPEN offers ranked by skill overlap with the candidate's
-    // profile. Candidate-only (gated to ROLE CANDIDATE in SecurityConfig, declared before the
-    // public /** GET so it isn't made public). Literal "/recommended" so it isn't parsed as an
-    // offer id by /{id} below. No default sort: the service's query supplies its own ranking.
+    // CANDIDATE-only — OPEN offers ranked by skill overlap; literal path so it precedes /{id}.
     @GetMapping("/recommended")
     public ResponseEntity<Page<JobOfferDTO>> getRecommendedOffers(@AuthenticationPrincipal UserDetails principal,
                                                                    @PageableDefault Pageable pageable) {
         return ResponseEntity.ok(jobOfferService.getRecommendedOffers(principal.getUsername(), pageable));
     }
 
-    // OPEN offers are publicly visible (permitAll in SecurityConfig), so principal may be null here —
-    // non-OPEN offers fall back to the posting company's own OWNER/RECRUITER, checked in the service.
-    // Both "not found" and "not visible to you" throw 404, so draft postings don't leak their existence.
+    // OPEN is public (principal may be null); non-OPEN only to the poster or an applicant. 404 hides existence.
     @GetMapping("/{id}")
     public JobOfferDTO getJobOfferById(@PathVariable Long id,
                                        @AuthenticationPrincipal UserDetails principal) {
@@ -101,9 +88,7 @@ public class JobOfferController {
         return jobOfferService.getJobOfferById(email, id);
     }
 
-    // Partial update; status is one of the editable fields, so closing/reopening an offer is just
-    // PATCH {"status": "CLOSED"} — no separate delete endpoint. The service throws 404 for a missing
-    // offer or one that isn't the caller's company's (404-for-both, so it isn't probeable).
+    // Partial update; status is editable, so closing/reopening is just PATCH status. 404 if not the caller's offer.
     @PatchMapping("/{id}")
     public JobOfferDTO updateJobOffer(@PathVariable Long id,
                                       @AuthenticationPrincipal UserDetails principal,
@@ -111,14 +96,7 @@ public class JobOfferController {
         return jobOfferService.updateJobOffer(principal.getUsername(), id, dto);
     }
 
-    // Applicant lists are private to the posting company's own OWNER/RECRUITER —
-    // authority is checked in JobApplicationService, which throws 404 if the offer doesn't exist or
-    // isn't the caller's company's (404-for-both, not probeable). Note this sub-resource
-    // must stay locked down in SecurityConfig despite the broad public GET on
-    // /api/job-offers/**.
-    // Optional triage filters (status / reviewed / minRating) let the company narrow a busy
-    // offer's applicants; sort via ?sort= (default newest-first). None supplied reproduces the
-    // previous unfiltered list. Authority/ordering unchanged from above.
+    // Posting company's OWNER/RECRUITER only (404 hides existence); optional status/reviewed/minRating triage filters.
     @GetMapping("/{id}/applications")
     public Page<JobApplicationDTO> getApplicationsForOffer(@PathVariable Long id,
                                                            @AuthenticationPrincipal UserDetails principal,
@@ -130,13 +108,7 @@ public class JobOfferController {
         return jobApplicationService.getApplicationsForOffer(principal.getUsername(), id, criteria, pageable);
     }
 
-    // Named business action (apply), not a generic sub-resource POST — mirrors the
-    // /approve, /reject pattern in AdminController (security/auditability rationale).
-    // Multipart so the applicant can attach a resume: an offer-specific PDF upload (`resume`),
-    // or `useProfileResume=true` to reuse their profile CV (copied onto the application). Both
-    // optional; if both are sent the upload wins. A non-PDF upload is rejected here as 400; the
-    // service throws the other reasons (403 not a candidate, 404 no such offer, 409 not open /
-    // already applied / cap reached, 400 no profile resume to reuse).
+    // Apply (multipart): optional resume PDF upload or useProfileResume to copy the profile CV; upload wins; non-PDF is 400.
     @PostMapping(value = "/{id}/apply", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<JobApplicationDTO> apply(@PathVariable Long id,
                                                     @AuthenticationPrincipal UserDetails principal,

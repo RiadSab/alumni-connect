@@ -8,8 +8,7 @@ import lombok.Data;
 import java.time.LocalDateTime;
 import java.util.Set;
 
-// Flattens jobOffer/applicant/reviewedBy down to id + display name — same reasoning
-// as JobOfferDTO. reviewedBy is the only nullable relation (unset until reviewed).
+// Flattens jobOffer/applicant/reviewedBy to id + display name; reviewedBy is null until reviewed.
 @Data
 public class JobApplicationDTO {
     private Long id;

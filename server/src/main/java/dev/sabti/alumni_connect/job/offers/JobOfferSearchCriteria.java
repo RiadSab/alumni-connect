@@ -7,10 +7,7 @@ import lombok.Getter;
 
 import java.util.List;
 
-// The optional filters for the public offers search. Every field nullable/empty means "don't
-// filter on this" — the controller binds them from @RequestParam, and JobOfferSpecs turns only
-// the present ones into predicates. status=OPEN is NOT here: it's a non-optional invariant of
-// the public list, enforced in the service, not a caller-supplied filter.
+// Optional filters for the public offers search; null/empty means "don't filter on this".
 @Getter
 @AllArgsConstructor
 public class JobOfferSearchCriteria {

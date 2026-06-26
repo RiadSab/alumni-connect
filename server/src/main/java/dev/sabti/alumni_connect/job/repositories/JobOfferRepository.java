@@ -13,9 +13,7 @@ import org.springframework.stereotype.Repository;
 
 import java.util.Collection;
 
-// JpaSpecificationExecutor backs the dynamic, optional-filter search on the public offers
-// list (findAll(Specification, Pageable)) — the derived findBy* methods stay for the fixed
-// single-criterion lookups (own-company offers, status).
+// JpaSpecificationExecutor backs the dynamic offers search; the derived findBy* are fixed lookups.
 @Repository
 public interface JobOfferRepository extends JpaRepository<JobOffer, Long>, JpaSpecificationExecutor<JobOffer> {
     Page<JobOffer> findByCompany(Company company, Pageable pageable);
@@ -27,11 +25,7 @@ public interface JobOfferRepository extends JpaRepository<JobOffer, Long>, JpaSp
     @Query("SELECT COALESCE(SUM(o.currentApplicationCount), 0) FROM JobOffer o WHERE o.company = :company")
     long sumApplicationCountByCompany(@Param("company") Company company);
 
-    // Skill-based recommendations: OPEN offers that share at least one skill with the given
-    // (already-lowercased) set, ranked by how many skills overlap (more matches first), newest
-    // as tie-break. A Specification can filter but can't order by an aggregate, so this is a
-    // dedicated query. GROUP BY o collapses the join's one-row-per-matched-skill back to one row
-    // per offer; the explicit countQuery is required because the GROUP BY can't be auto-counted.
+    // OPEN offers sharing >=1 skill, ranked by overlap then newest; a dedicated query since it orders by an aggregate.
     @Query(value = "SELECT o FROM JobOffer o JOIN o.skillsRequired s "
             + "WHERE o.status = dev.sabti.alumni_connect.job.entities.JobStatus.OPEN AND lower(s) IN :skills "
             + "GROUP BY o ORDER BY COUNT(s) DESC, o.createdAt DESC",

@@ -490,7 +490,7 @@ class JobApplicationServiceTest {
     void getMyApplications_notACandidate_throwsForbidden() {
         when(userRepository.findByEmail(CANDIDATE_EMAIL)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.getMyApplications(CANDIDATE_EMAIL, PageRequest.of(0, 10)))
+        assertThatThrownBy(() -> service.getMyApplications(CANDIDATE_EMAIL, null, PageRequest.of(0, 10)))
                 .isInstanceOf(ForbiddenException.class)
                 .hasMessage("Not a candidate");
     }
@@ -502,7 +502,7 @@ class JobApplicationServiceTest {
         when(jobApplicationRepository.findByApplicant(applicant, PageRequest.of(0, 10)))
                 .thenReturn(new PageImpl<>(List.of(application)));
 
-        Page<JobApplicationDTO> result = service.getMyApplications(CANDIDATE_EMAIL, PageRequest.of(0, 10));
+        Page<JobApplicationDTO> result = service.getMyApplications(CANDIDATE_EMAIL, null, PageRequest.of(0, 10));
 
         assertThat(result.getTotalElements()).isEqualTo(1);
     }
