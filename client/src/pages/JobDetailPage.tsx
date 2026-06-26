@@ -1,5 +1,6 @@
 // Single job-offer detail: public read-only view with a gated Apply action.
 
+import { useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import {
   ArrowLeft,
@@ -8,12 +9,15 @@ import {
   Calendar,
   CheckCircle2,
   Clock,
+  FileText,
   Mail,
   MapPin,
   Star,
+  Upload,
   Users,
 } from "lucide-react";
 import { useJobOffer, useApplyToJobOffer } from "@/features/jobOffers/hooks";
+import { useMyResume } from "@/features/candidates/hooks";
 import { useSaveJob, useUnsaveJob } from "@/features/savedJobs/hooks";
 import { cn } from "@/lib/utils";
 import { daysFromNow, formatMoney, humanizeType } from "@/features/jobOffers/format";
@@ -266,6 +270,11 @@ function ApplyAction({ job }: { job: JobOfferDTO }) {
   const { isAuthenticated, user } = useAuth();
   const isCandidate = isAuthenticated && user?.userType === "CANDIDATE";
   const apply = useApplyToJobOffer();
+  const profileResume = useMyResume(isCandidate); // only fetched for candidates
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [mode, setMode] = useState<"profile" | "upload">("profile");
+  const [file, setFile] = useState<File | null>(null);
+  const [fileError, setFileError] = useState<string | null>(null);
 
   // Companies/admins can't apply — no button for them.
   if (isAuthenticated && !isCandidate) return null;
@@ -288,16 +297,91 @@ function ApplyAction({ job }: { job: JobOfferDTO }) {
     );
   }
 
+  // No CV on the profile yet → uploading one for this role is the only option.
+  const mustUpload = !profileResume.isLoading && !profileResume.isSuccess;
+  const uploading = mustUpload || mode === "upload";
+  const canSubmit = uploading ? file !== null : true;
+
+  function onFileChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const picked = event.target.files?.[0];
+    event.target.value = ""; // let the user re-pick the same filename
+    if (!picked) return;
+    if (picked.type !== "application/pdf") {
+      setFileError(t("detail.resumeNotPdf"));
+      return;
+    }
+    setFileError(null);
+    setFile(picked);
+  }
+
+  function submit() {
+    apply.mutate({
+      id: job.id,
+      data: uploading ? { resume: file ?? undefined } : { useProfileResume: true },
+    });
+  }
+
   return (
-    <div className="space-y-2">
-      <Button
-        className="w-full"
-        disabled={apply.isPending}
-        onClick={() => apply.mutate({ id: job.id, data: { useProfileResume: true } })}
-      >
+    <div className="space-y-3">
+      <div className="space-y-1.5">
+        <label className={cn("flex items-center gap-2 text-sm", mustUpload && "opacity-50")}>
+          <input
+            type="radio"
+            name="resumeChoice"
+            className="accent-[var(--color-primary)]"
+            checked={!uploading}
+            disabled={mustUpload}
+            onChange={() => setMode("profile")}
+          />
+          {t("detail.useProfileResume")}
+        </label>
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="radio"
+            name="resumeChoice"
+            className="accent-[var(--color-primary)]"
+            checked={uploading}
+            onChange={() => setMode("upload")}
+          />
+          {t("detail.uploadResume")}
+        </label>
+      </div>
+
+      {uploading && (
+        <div className="space-y-1.5">
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full"
+            onClick={() => {
+              setFileError(null);
+              inputRef.current?.click();
+            }}
+          >
+            <Upload className="size-4" /> {t("detail.chooseFile")}
+          </Button>
+          {file && (
+            <p className="flex items-center gap-1.5 text-xs text-[var(--color-charcoal)]">
+              <FileText className="size-3.5" /> {file.name}
+            </p>
+          )}
+          <input ref={inputRef} type="file" accept="application/pdf" hidden onChange={onFileChange} />
+        </div>
+      )}
+
+      <Button className="w-full" disabled={apply.isPending || !canSubmit} onClick={submit}>
         {apply.isPending ? t("detail.applying") : t("card.apply")}
       </Button>
-      <p className="text-center text-xs text-[var(--color-steel)]">{t("detail.applyHint")}</p>
+
+      {mustUpload ? (
+        <p className="text-center text-xs text-[var(--color-steel)]">{t("detail.noProfileResume")}</p>
+      ) : (
+        !uploading && (
+          <p className="text-center text-xs text-[var(--color-steel)]">{t("detail.applyHint")}</p>
+        )
+      )}
+
+      {fileError && <p className="text-center text-xs text-destructive">{fileError}</p>}
       {apply.isError && (
         <p className="text-center text-xs text-destructive">
           {isApiError(apply.error) ? apply.error.message : t("detail.applyError")}

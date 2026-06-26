@@ -22,10 +22,11 @@ export function useUpdateMyCandidateProfile() {
 }
 
 // The candidate's own CV blob; success = on file, a 404 = none yet (retry:false).
-export function useMyResume() {
+export function useMyResume(enabled = true) {
   return useQuery({
     queryKey: queryKeys.candidate.resume(),
     queryFn: () => candidatesApi.downloadResume(),
+    enabled,
     retry: false,
     staleTime: Infinity, // the blob only changes when we upload a new one
   });
