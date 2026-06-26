@@ -47,7 +47,7 @@ graph TD
   API --> Mail
 ```
 
-**Continuous deployment** — every push to `main` is built and shipped automatically (details in [`docs/ci-cd.md`](docs/ci-cd.md)):
+**Continuous deployment** — every push to `main` is built and shipped automatically:
 
 ```mermaid
 graph TD
