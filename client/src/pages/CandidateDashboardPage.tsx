@@ -1,129 +1,269 @@
-// Candidate's dashboard: job-search overview plus shortcuts. Reached via /dashboard
-// for a CANDIDATE. Counts come from the stats endpoint; the recent list is a small
-// page of the latest applications.
+// Candidate's dashboard: a compact job-search overview. Reached via /dashboard for a
+// CANDIDATE. Deliberately uses its own condensed shapes (small stat tiles, tight list
+// rows in side-by-side panels) rather than the full board cards, so it reads as a
+// glanceable summary, not another list page.
 
 import { Link } from "react-router-dom";
-import { Briefcase, FileText, UserPen } from "lucide-react";
+import { Bookmark, Briefcase, CalendarClock, CheckCircle2, FileUp, UserPen } from "lucide-react";
 import { useAuth } from "@/features/auth/auth-context";
 import { useMyApplications, useMyApplicationStats } from "@/features/jobApplications/hooks";
+import { useRecommendedJobOffers } from "@/features/jobOffers/hooks";
+import { useMyCandidateProfile } from "@/features/candidates/hooks";
+import { CompanyLogo } from "@/features/jobOffers/CompanyLogo";
 import { useT } from "@/features/i18n/lang-context";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { applicationStatusOptions } from "@/types/enums";
 import type { ApplicationStatus } from "@/types/enums";
 import type { JobApplicationDTO } from "@/types/jobApplication";
+import type { JobOfferDTO } from "@/types/jobOffer";
 
-function statusVariant(status: ApplicationStatus): "default" | "secondary" | "destructive" | "outline" {
-  if (status === "ACCEPTED") return "default";
-  if (status === "REJECTED") return "destructive";
-  if (status === "WITHDRAWN") return "outline";
-  return "secondary";
+// Tight status dot colours for the recent list (full badges belong on the list page).
+const STATUS_DOT: Record<ApplicationStatus, string> = {
+  APPLIED: "bg-[var(--color-stone)]",
+  UNDER_REVIEW: "bg-[var(--color-link-blue)]",
+  SCHEDULED_INTERVIEW: "bg-[var(--color-brand-purple-800)]",
+  INTERVIEWED: "bg-[var(--color-brand-purple-800)]",
+  ACCEPTED: "bg-[var(--color-brand-green)]",
+  REJECTED: "bg-[var(--color-error)]",
+  WITHDRAWN: "bg-[var(--color-stone)]",
+};
+
+function statusLabel(status: ApplicationStatus): string {
+  return applicationStatusOptions.find((o) => o.value === status)?.label ?? status;
 }
 
 export function CandidateDashboardPage() {
   const { t } = useT();
   const { user } = useAuth();
   const stats = useMyApplicationStats();
-  // Just the latest few for the recent list; the counts come from stats above.
   const recentQuery = useMyApplications({ size: 5 });
   const recent = recentQuery.data?.content ?? [];
+  // An acceptance or scheduled interview to surface at the top, accepted first.
+  const highlightQuery = useMyApplications({ status: ["ACCEPTED", "SCHEDULED_INTERVIEW"], size: 10 });
+  const highlights = highlightQuery.data?.content ?? [];
+  const highlight =
+    highlights.find((a) => a.applicationStatus === "ACCEPTED") ??
+    highlights.find((a) => a.applicationStatus === "SCHEDULED_INTERVIEW");
+  const recommendedQuery = useRecommendedJobOffers({ size: 5 });
+  const recommended = recommendedQuery.data?.content ?? [];
+  const profile = useMyCandidateProfile();
+  const needsResume = !!profile.data && !profile.data.resumeId;
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-foreground">
-          {t("dash.welcome", { name: user?.firstName ?? "" })}
-        </h1>
+    <div className="mx-auto max-w-5xl space-y-5">
+      <h1 className="text-2xl font-semibold text-foreground">
+        {t("dash.welcome", { name: user?.firstName ?? "" })}
+      </h1>
+
+      {highlight && <HighlightBanner application={highlight} />}
+      {needsResume && <ResumeNudge />}
+
+      {/* Compact stat tiles + inline shortcuts. */}
+      <div className="grid gap-3 sm:grid-cols-3">
+        <StatTile label={t("dash.stat.applications")} value={stats.isError ? "—" : stats.data?.total ?? 0}
+          loading={stats.isLoading} />
+        <StatTile label={t("dash.stat.active")} value={stats.isError ? "—" : stats.data?.active ?? 0}
+          loading={stats.isLoading} />
+        <StatTile label={t("dash.stat.accepted")} value={stats.isError ? "—" : stats.data?.accepted ?? 0}
+          loading={stats.isLoading} />
       </div>
 
-      {/* Stats */}
-      <div className="grid gap-4 sm:grid-cols-3">
-        <StatCard label={t("dash.stat.applications")} value={stats.isError ? "—" : stats.data?.total ?? 0}
-          loading={stats.isLoading} />
-        <StatCard label={t("dash.stat.active")} value={stats.isError ? "—" : stats.data?.active ?? 0}
-          loading={stats.isLoading} />
-        <StatCard label={t("dash.stat.accepted")} value={stats.isError ? "—" : stats.data?.accepted ?? 0}
-          loading={stats.isLoading} />
-      </div>
-
-      {/* Quick actions */}
-      <div className="flex flex-wrap gap-3">
-        <Button asChild>
-          <Link to="/">
-            <Briefcase className="size-4" /> {t("dash.browseJobs")}
-          </Link>
+      <div className="flex flex-wrap gap-2">
+        <Button size="sm" asChild>
+          <Link to="/"><Briefcase className="size-4" /> {t("dash.browseJobs")}</Link>
         </Button>
-        <Button variant="outline" asChild>
-          <Link to="/applications">
-            <FileText className="size-4" /> {t("nav.myApplications")}
-          </Link>
+        <Button size="sm" variant="outline" asChild>
+          <Link to="/saved"><Bookmark className="size-4" /> {t("dash.savedJobs")}</Link>
         </Button>
-        <Button variant="outline" asChild>
-          <Link to="/profile/edit">
-            <UserPen className="size-4" /> {t("dash.editProfile")}
-          </Link>
+        <Button size="sm" variant="outline" asChild>
+          <Link to="/profile/edit"><UserPen className="size-4" /> {t("dash.editProfile")}</Link>
         </Button>
       </div>
 
-      {/* Recent applications */}
-      <section>
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-[var(--color-stone)]">
-            {t("dash.recentApplications")}
-          </h2>
-          {recent.length > 0 && (
-            <Link to="/applications" className="text-sm font-medium text-[var(--color-link-blue)] hover:underline">
-              {t("dash.viewAll")}
-            </Link>
+      {/* Two short columns: recommended on the left, recent activity on the right. */}
+      <div className="grid gap-5 lg:grid-cols-2">
+        <Panel title={t("dash.recommended")}>
+          {recommendedQuery.isLoading ? (
+            <RowsSkeleton />
+          ) : recommended.length === 0 ? (
+            <EmptyRow text={t("dash.recommendedEmpty")} />
+          ) : (
+            <ul className="divide-y divide-border">
+              {recommended.map((job) => (
+                <RecommendedRow key={job.id} job={job} />
+              ))}
+            </ul>
           )}
-        </div>
+        </Panel>
 
-        {recentQuery.isLoading ? (
-          <Skeleton className="h-20 w-full rounded-lg" />
-        ) : recent.length === 0 ? (
-          <p className="text-sm text-[var(--color-slate)]">{t("dash.noApplications")}</p>
-        ) : (
-          <div className="space-y-3">
-            {recent.map((application) => (
-              <RecentRow key={application.id} application={application} />
-            ))}
-          </div>
-        )}
-      </section>
+        <Panel
+          title={t("dash.recentApplications")}
+          action={recent.length > 0 ? { to: "/applications", label: t("dash.viewAll") } : undefined}
+        >
+          {recentQuery.isLoading ? (
+            <RowsSkeleton />
+          ) : recent.length === 0 ? (
+            <EmptyRow text={t("dash.noApplications")} />
+          ) : (
+            <ul className="divide-y divide-border">
+              {recent.map((application) => (
+                <RecentRow key={application.id} application={application} />
+              ))}
+            </ul>
+          )}
+        </Panel>
+      </div>
     </div>
   );
 }
 
-function StatCard({ label, value, loading }: { label: string; value: number | string; loading: boolean }) {
+// A glanceable card with a small header; the body is a tight, divided list.
+function Panel({
+  title,
+  action,
+  children,
+}: {
+  title: string;
+  action?: { to: string; label: string };
+  children: React.ReactNode;
+}) {
   return (
-    <div className="rounded-lg border border-border bg-card p-5">
-      <div className="text-[11px] font-semibold uppercase tracking-wider text-[var(--color-stone)]">
-        {label}
+    <section className="rounded-lg border border-border bg-card">
+      <div className="flex items-center justify-between px-4 py-3">
+        <h2 className="text-xs font-semibold uppercase tracking-wider text-[var(--color-stone)]">{title}</h2>
+        {action && (
+          <Link to={action.to} className="text-xs font-medium text-[var(--color-link-blue)] hover:underline">
+            {action.label}
+          </Link>
+        )}
       </div>
+      <div className="border-t border-border px-4">{children}</div>
+    </section>
+  );
+}
+
+function RecommendedRow({ job }: { job: JobOfferDTO }) {
+  return (
+    <li>
+      <Link to={`/jobs/${job.id}`} className="flex items-center gap-3 py-3 group">
+        <CompanyLogo
+          companyId={job.companyId}
+          companyName={job.companyName}
+          logoId={job.logoId}
+          className="size-9 shrink-0 rounded-md"
+          textClassName="text-sm"
+        />
+        <div className="min-w-0 flex-1">
+          <div className="truncate text-sm font-medium text-foreground group-hover:text-primary">
+            {job.title}
+          </div>
+          <div className="truncate text-xs text-[var(--color-steel)]">
+            {job.companyName}
+            {job.city && ` · ${job.city}`}
+          </div>
+        </div>
+      </Link>
+    </li>
+  );
+}
+
+function RecentRow({ application }: { application: JobApplicationDTO }) {
+  return (
+    <li>
+      <Link to={`/applications/${application.id}`} className="flex items-center gap-3 py-3 group">
+        <span className={`size-2 shrink-0 rounded-full ${STATUS_DOT[application.applicationStatus]}`} />
+        <div className="min-w-0 flex-1">
+          <div className="truncate text-sm font-medium text-foreground group-hover:text-primary">
+            {application.jobOfferTitle}
+          </div>
+          <div className="truncate text-xs text-[var(--color-steel)]">{application.companyName}</div>
+        </div>
+        <span className="shrink-0 text-xs text-[var(--color-steel)]">
+          {statusLabel(application.applicationStatus)}
+        </span>
+      </Link>
+    </li>
+  );
+}
+
+// A celebratory/actionable banner for the candidate's most important live status.
+function HighlightBanner({ application }: { application: JobApplicationDTO }) {
+  const { t } = useT();
+  const accepted = application.applicationStatus === "ACCEPTED";
+  const tint = accepted
+    ? "border-[var(--color-brand-green)] bg-[color-mix(in_srgb,var(--color-brand-green)_8%,#fff)]"
+    : "border-[var(--color-brand-purple-800)] bg-[var(--color-tint-lavender)]";
+  const iconColor = accepted ? "text-[var(--color-brand-green)]" : "text-[var(--color-brand-purple-800)]";
+  const Icon = accepted ? CheckCircle2 : CalendarClock;
+
+  return (
+    <Link
+      to={`/applications/${application.id}`}
+      className={`flex items-center gap-3 rounded-lg border px-4 py-3 transition-shadow hover:shadow-sm ${tint}`}
+    >
+      <Icon className={`size-5 shrink-0 ${iconColor}`} />
+      <div className="min-w-0 flex-1">
+        <span className="text-sm font-semibold text-foreground">
+          {accepted ? t("dash.highlight.accepted") : t("dash.highlight.interview")}
+        </span>
+        <span className="ml-2 text-sm text-[var(--color-slate)]">
+          {application.jobOfferTitle} · {application.companyName}
+        </span>
+      </div>
+      <span className="shrink-0 text-xs font-medium text-[var(--color-link-blue)]">
+        {t("dash.highlight.view")}
+      </span>
+    </Link>
+  );
+}
+
+// Shown until the candidate has a résumé on file — applying is much faster with one.
+function ResumeNudge() {
+  const { t } = useT();
+  return (
+    <div className="flex items-center gap-3 rounded-lg border border-[var(--color-brand-orange-deep)] bg-[var(--color-tint-peach)] px-4 py-3">
+      <FileUp className="size-5 shrink-0 text-[var(--color-brand-orange-deep)]" />
+      <div className="min-w-0 flex-1">
+        <span className="text-sm font-semibold text-foreground">{t("dash.resumeNudge.title")}</span>
+        <span className="ml-2 text-sm text-[var(--color-slate)]">{t("dash.resumeNudge.body")}</span>
+      </div>
+      <Button variant="outline" size="sm" asChild className="shrink-0">
+        <Link to="/profile/edit">{t("dash.resumeNudge.cta")}</Link>
+      </Button>
+    </div>
+  );
+}
+
+function StatTile({ label, value, loading }: { label: string; value: number | string; loading: boolean }) {
+  return (
+    <div className="flex items-center justify-between rounded-lg border border-border bg-card px-4 py-3">
+      <span className="text-xs font-medium text-[var(--color-steel)]">{label}</span>
       {loading ? (
-        <Skeleton className="mt-2 h-8 w-12 rounded" />
+        <Skeleton className="h-6 w-8 rounded" />
       ) : (
-        <div className="mt-1 text-3xl font-semibold text-foreground">{value}</div>
+        <span className="text-xl font-semibold text-foreground">{value}</span>
       )}
     </div>
   );
 }
 
-function RecentRow({ application }: { application: JobApplicationDTO }) {
-  const status =
-    applicationStatusOptions.find((o) => o.value === application.applicationStatus)?.label ??
-    application.applicationStatus;
+function EmptyRow({ text }: { text: string }) {
+  return <p className="py-6 text-center text-sm text-[var(--color-slate)]">{text}</p>;
+}
 
+function RowsSkeleton() {
   return (
-    <article className="flex items-center justify-between gap-4 rounded-lg border border-border bg-card p-4">
-      <Link
-        to={`/jobs/${application.jobOfferId}`}
-        className="truncate text-sm font-semibold text-foreground hover:text-primary"
-      >
-        {application.jobOfferTitle}
-      </Link>
-      <Badge variant={statusVariant(application.applicationStatus)}>{status}</Badge>
-    </article>
+    <div className="divide-y divide-border">
+      {Array.from({ length: 3 }).map((_, i) => (
+        <div key={i} className="flex items-center gap-3 py-3">
+          <Skeleton className="size-9 shrink-0 rounded-md" />
+          <div className="flex-1 space-y-1.5">
+            <Skeleton className="h-3.5 w-2/3 rounded" />
+            <Skeleton className="h-3 w-1/3 rounded" />
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }

@@ -27,6 +27,7 @@ export interface CandidateProfileDTO extends AuditFields {
   portfolioUrl: string | null;
   bio: string | null;
   profilePhotoId: string | null;
+  resumeId: string | null;
 }
 
 // PATCH /api/candidates/me — all fields optional (omit = leave unchanged).
