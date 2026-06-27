@@ -10,8 +10,7 @@ import java.time.LocalDateTime;
 import java.util.Set;
 
 // Flattens User identity fields together with CandidateProfile data — same shape for
-// /me (self) and /{id} (admin review of a pending candidate). profilePhotoId/resumeId
-// are intentionally omitted until the file-storage phase exists.
+// /me (self) and /{id} (admin review of a pending candidate).
 @Data
 public class CandidateProfileDTO {
     private Long id;
@@ -34,6 +33,7 @@ public class CandidateProfileDTO {
     private String portfolioUrl;
     private String bio;
     private String profilePhotoId;
+    private String resumeId;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -59,6 +59,7 @@ public class CandidateProfileDTO {
         dto.portfolioUrl = profile.getPortfolioUrl();
         dto.bio = profile.getBio();
         dto.profilePhotoId = profile.getProfilePhotoId();
+        dto.resumeId = profile.getResumeId();
         dto.createdAt = profile.getCreatedAt();
         dto.updatedAt = profile.getUpdatedAt();
         return dto;
