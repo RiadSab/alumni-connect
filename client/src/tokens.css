@@ -105,7 +105,7 @@
   --shadow-4: rgba(15, 15, 15, 0.16) 0px 16px 48px -8px;
 
   /* ---- Typography ---------------------------------------------------- */
-  --font-sans: "Inter", -apple-system, system-ui, "Segoe UI", Helvetica, Arial, sans-serif;
+  --font-sans: "Bricolage Grotesque", -apple-system, system-ui, "Segoe UI", Helvetica, Arial, sans-serif;
 
   /* Type scale: size / weight / line-height / letter-spacing */
   --text-hero-size: 80px;   --text-hero-weight: 600; --text-hero-lh: 1.05; --text-hero-ls: -2px;

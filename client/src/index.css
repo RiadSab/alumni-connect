@@ -1,8 +1,16 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "./tokens.css";
+
+/* Bricolage Grotesque: self-hosted variable grotesque used for body text. */
+@font-face {
+  font-family: "Bricolage Grotesque";
+  src: url("/Bricolage_Grotesque/BricolageGrotesque-Variable.ttf") format("truetype-variations");
+  font-weight: 200 800;
+  font-style: normal;
+  font-display: swap;
+}
 
 /* Caudex: self-hosted serif used for headings (files in public/Caudex). */
 @font-face {
@@ -89,7 +97,7 @@
 }
 
 @theme inline {
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif;
   --font-heading: "Caudex", Georgia, "Times New Roman", serif;
 
   --color-background: var(--background);
@@ -139,6 +147,8 @@
   }
   body {
     @apply bg-background text-foreground font-sans;
+    /* Bricolage reads a touch light at small UI sizes; nudge the base off 400. */
+    font-weight: 440;
     margin: 0;
   }
   h1, h2, h3 {
