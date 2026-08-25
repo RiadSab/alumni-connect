@@ -189,7 +189,7 @@ function RecentRow({ application }: { application: JobApplicationDTO }) {
 
 // A celebratory/actionable banner for the candidate's most important live status.
 function HighlightBanner({ application }: { application: JobApplicationDTO }) {
-  const { t } = useT();
+  const { t, lang } = useT();
   const accepted = application.applicationStatus === "ACCEPTED";
   const tint = accepted
     ? "border-[var(--color-brand-green)] bg-[color-mix(in_srgb,var(--color-brand-green)_8%,#fff)]"
@@ -209,6 +209,11 @@ function HighlightBanner({ application }: { application: JobApplicationDTO }) {
         </span>
         <span className="ml-2 text-sm text-[var(--color-slate)]">
           {application.jobOfferTitle} · {application.companyName}
+          {application.interviewAt &&
+            ` · ${new Date(application.interviewAt).toLocaleString(lang, {
+              dateStyle: "medium",
+              timeStyle: "short",
+            })}`}
         </span>
       </div>
       <span className="shrink-0 text-xs font-medium text-[var(--color-link-blue)]">
