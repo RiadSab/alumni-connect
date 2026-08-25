@@ -155,3 +155,7 @@ export const applicationStatusOptions = toOptions(ApplicationStatus);
 export const Priority = ["LOW", "MEDIUM", "HIGH"] as const;
 export type Priority = (typeof Priority)[number];
 export const priorityOptions = toOptions(Priority);
+
+export const InterviewMode = ["ONLINE", "ONSITE"] as const;
+export type InterviewMode = (typeof InterviewMode)[number];
+export const interviewModeOptions = toOptions(InterviewMode, { ONSITE: "On site" });

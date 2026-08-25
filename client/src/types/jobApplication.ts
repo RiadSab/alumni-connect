@@ -1,7 +1,7 @@
 // Job-application DTOs (§6).
 
 import { z } from "zod";
-import { ApplicationStatus, Priority } from "@/types/enums";
+import { ApplicationStatus, InterviewMode, Priority } from "@/types/enums";
 import type { AuditFields, PageParams } from "@/types/common";
 
 // Output shape.
@@ -21,9 +21,16 @@ export interface JobApplicationDTO extends AuditFields {
   reviewedAt: string | null;
   reviewedById: number | null;
   reviewedByName: string | null;
+  // Null for the candidate: the company's private assessment is stripped server-side.
   companyUserNote: string | null;
   priority: Priority | null;
   rating: number | null; // 0-10
+  // Filled in once the application is moved to SCHEDULED_INTERVIEW.
+  interviewMode: InterviewMode | null;
+  interviewAt: string | null;
+  interviewLink: string | null;
+  interviewLocation: string | null;
+  interviewerName: string | null;
 }
 
 // GET /api/job-applications/me/stats — candidate dashboard counts.
@@ -49,6 +56,13 @@ export const reviewApplicationSchema = z.object({
   companyUserNote: z.string().optional(),
   priority: z.enum(Priority).optional(),
   rating: z.number().int().min(0).max(10).optional(),
+  // Required together when applicationStatus is SCHEDULED_INTERVIEW; which of link/location
+  // is needed depends on the mode, so the server has the last word and its message is shown.
+  interviewMode: z.enum(InterviewMode).optional(),
+  interviewAt: z.string().optional(),
+  interviewLink: z.string().optional(),
+  interviewLocation: z.string().optional(),
+  interviewerName: z.string().optional(),
 });
 export type ReviewApplicationDTO = z.infer<typeof reviewApplicationSchema>;
 
