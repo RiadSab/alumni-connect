@@ -1,16 +1,25 @@
-// A candidate's view of one of their own applications: the offer it's for, its
-// current status, the résumé and cover letter they submitted, and a guarded
-// withdraw action. The My Applications rows link here.
+// A candidate's view of one of their own applications, reached from the My Applications rows.
 
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { ArrowLeft, Briefcase, Calendar, CloudOff, FileText, MapPin, RefreshCw } from "lucide-react";
+import {
+  ArrowLeft,
+  Briefcase,
+  Calendar,
+  CalendarClock,
+  CloudOff,
+  FileText,
+  MapPin,
+  RefreshCw,
+  Video,
+} from "lucide-react";
 import {
   useApplication,
   useApplicationResume,
   useWithdrawApplication,
 } from "@/features/jobApplications/hooks";
 import { useJobOffer } from "@/features/jobOffers/hooks";
+import type { JobApplicationDTO } from "@/types/jobApplication";
 import { formatMoney, humanizeType } from "@/features/jobOffers/format";
 import { useT } from "@/features/i18n/lang-context";
 import { isApiError } from "@/lib/http";
@@ -97,7 +106,7 @@ export function ApplicationDetailPage() {
     if (!resume.data) return;
     const url = URL.createObjectURL(resume.data);
     window.open(url, "_blank");
-    // ponytail: revoke after a minute — the new tab has loaded the blob by then.
+    // The new tab has loaded the blob by then.
     setTimeout(() => URL.revokeObjectURL(url), 60_000);
   }
 
@@ -126,6 +135,8 @@ export function ApplicationDetailPage() {
         </div>
 
         <OfferSummary query={offer} />
+
+        {app.interviewAt && <InterviewDetails application={app} />}
 
         {/* Résumé submitted with this application (a snapshot — independent of the profile CV). */}
         <Section title={t("appDetail.resumeTitle")}>
@@ -198,6 +209,49 @@ export function ApplicationDetailPage() {
         )}
       </div>
     </div>
+  );
+}
+
+// Set by the company when the application moved to SCHEDULED_INTERVIEW. The time is
+// rendered in the reader's own timezone, which is the point of storing an instant.
+function InterviewDetails({ application }: { application: JobApplicationDTO }) {
+  const { t, lang } = useT();
+  const when = new Date(application.interviewAt!).toLocaleString(lang, {
+    dateStyle: "full",
+    timeStyle: "short",
+  });
+
+  return (
+    <Section title={t("appDetail.interviewTitle")}>
+      <div className="flex flex-col gap-2 text-sm text-[var(--color-charcoal)]">
+        <span className="inline-flex items-center gap-1.5 font-medium">
+          <CalendarClock className="size-4 text-[var(--color-brand-purple-800)]" /> {when}
+        </span>
+
+        {application.interviewMode === "ONLINE" && application.interviewLink ? (
+          <a
+            href={application.interviewLink}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1.5 font-medium text-[var(--color-link-blue)] hover:underline"
+          >
+            <Video className="size-4" /> {t("appDetail.interviewJoin")}
+          </a>
+        ) : (
+          application.interviewLocation && (
+            <span className="inline-flex items-center gap-1.5">
+              <MapPin className="size-4 text-[var(--color-steel)]" /> {application.interviewLocation}
+            </span>
+          )
+        )}
+
+        {application.interviewerName && (
+          <span className="text-[var(--color-steel)]">
+            {t("appDetail.interviewWith")} {application.interviewerName}
+          </span>
+        )}
+      </div>
+    </Section>
   );
 }
 
