@@ -8,6 +8,7 @@ import jakarta.validation.constraints.Max;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.Set;
 
 @Entity
@@ -52,4 +53,16 @@ public class JobApplication extends BaseEntity {
 
     @Max(10)
     private Integer rating;
+
+    // Set together when the application is moved to SCHEDULED_INTERVIEW; link is for ONLINE, location for ONSITE.
+    @Enumerated(EnumType.STRING)
+    private InterviewMode interviewMode;
+
+    private OffsetDateTime interviewAt;
+
+    private String interviewLink;
+
+    private String interviewLocation;
+
+    private String interviewerName;
 }
