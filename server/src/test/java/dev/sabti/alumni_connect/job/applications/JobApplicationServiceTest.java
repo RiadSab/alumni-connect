@@ -513,6 +513,23 @@ class JobApplicationServiceTest {
         verify(emailSender, never()).send(anyString(), anyString(), anyString());
     }
 
+    @Test
+    void review_internalStatusChange_doesNotEmailTheApplicant() {
+        Company company = company(COMPANY_ID);
+        JobApplication application = application(5L, offer(1L, company, JobStatus.OPEN),
+                candidate(1L, user(11L, "A", "B")), ApplicationStatus.APPLIED);
+        when(jobApplicationRepository.findById(5L)).thenReturn(Optional.of(application));
+        asReviewer(REVIEWER_EMAIL, 9L, company, CompanyRole.OWNER);
+        when(jobApplicationRepository.save(any(JobApplication.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        ReviewApplicationDTO dto = new ReviewApplicationDTO();
+        dto.setApplicationStatus(ApplicationStatus.UNDER_REVIEW);
+
+        service.review(REVIEWER_EMAIL, 5L, dto);
+
+        verify(emailSender, never()).send(anyString(), anyString(), anyString());
+    }
+
     // --- getApplicantProfile() -----------------------------------------------
 
     @Test
