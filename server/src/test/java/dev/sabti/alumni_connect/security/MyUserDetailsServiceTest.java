@@ -102,10 +102,10 @@ class MyUserDetailsServiceTest {
     }
 
     @Test
-    void companyUser_getsRoleCompanyuser() {
+    void companyUser_getsRoleCompanyUser() {
         givenUser(UserType.COMPANY_USER, UserStatus.ACTIVE);
 
-        assertThat(authorities()).contains("ROLE_COMPANYUSER");
+        assertThat(authorities()).contains("ROLE_COMPANY_USER");
     }
 
     @Test
