@@ -34,7 +34,9 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Collection;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
 
@@ -56,6 +58,10 @@ public class JobApplicationService {
     // An application is "active" until it reaches one of these.
     private static final Set<ApplicationStatus> TERMINAL_STATUSES =
             Set.of(ApplicationStatus.ACCEPTED, ApplicationStatus.REJECTED, ApplicationStatus.WITHDRAWN);
+
+    // The offset is spelled out: the candidate may be reading this from another timezone.
+    private static final DateTimeFormatter INTERVIEW_TIME =
+            DateTimeFormatter.ofPattern("EEEE d MMMM yyyy, HH:mm (OOOO)", Locale.ENGLISH);
 
     // The candidate is emailed about outcomes, not about internal progress like UNDER_REVIEW.
     private static final Set<ApplicationStatus> NOTIFIED_STATUSES =
@@ -243,19 +249,42 @@ public class JobApplicationService {
     }
 
     private void notifyApplicant(JobApplication application) {
+        boolean interview = application.getApplicationStatus() == ApplicationStatus.SCHEDULED_INTERVIEW;
         String title = application.getJobOffer().getTitle();
-        String status = application.getApplicationStatus().name().toLowerCase().replace('_', ' ');
+        String subject = interview
+                ? "Interview scheduled for " + title
+                : "Update on your application for " + title;
         try {
-            emailSender.send(application.getApplicant().getUser().getEmail(),
-                    "Update on your application for " + title,
-                    "Your application for " + title + " at "
-                            + application.getJobOffer().getCompany().getName()
-                            + " is now: " + status + ".\n\n"
-                            + frontendUrl + "/applications/" + application.getId());
+            emailSender.send(application.getApplicant().getUser().getEmail(), subject,
+                    interview ? interviewBody(application) : statusBody(application));
         } catch (Exception e) {
             // The review itself must stand even if the mail fails, so this never propagates.
             log.warn("Could not email the applicant about application {}", application.getId(), e);
         }
+    }
+
+    private String statusBody(JobApplication application) {
+        String status = application.getApplicationStatus().name().toLowerCase().replace('_', ' ');
+        return "Your application for " + application.getJobOffer().getTitle() + " at "
+                + application.getJobOffer().getCompany().getName()
+                + " is now: " + status + "."
+                + applicationLink(application);
+    }
+
+    private String interviewBody(JobApplication application) {
+        String where = application.getInterviewMode() == InterviewMode.ONLINE
+                ? "Meeting link: " + application.getInterviewLink()
+                : "Where: " + application.getInterviewLocation();
+        return "Your interview for " + application.getJobOffer().getTitle() + " at "
+                + application.getJobOffer().getCompany().getName() + " is scheduled.\n\n"
+                + "When: " + INTERVIEW_TIME.format(application.getInterviewAt()) + "\n"
+                + "Interviewer: " + application.getInterviewerName() + "\n"
+                + where
+                + applicationLink(application);
+    }
+
+    private String applicationLink(JobApplication application) {
+        return "\n\n" + frontendUrl + "/applications/" + application.getId();
     }
 
 
