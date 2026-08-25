@@ -37,9 +37,10 @@ import { useAuth } from "@/features/auth/auth-context";
 const reviewableStatuses = applicationStatusOptions.filter((o) => o.value !== "WITHDRAWN");
 
 // <input type="datetime-local"> wants local wall time, while the API speaks UTC instants.
-function toLocalInput(iso: string | null): string {
-  if (iso === null) return "";
-  const date = new Date(iso);
+// A missing or unparseable value leaves the field empty — toISOString() throws on one.
+function toLocalInput(iso: string | null | undefined): string {
+  const date = iso ? new Date(iso) : null;
+  if (date === null || Number.isNaN(date.getTime())) return "";
   return new Date(date.getTime() - date.getTimezoneOffset() * 60_000).toISOString().slice(0, 16);
 }
 
