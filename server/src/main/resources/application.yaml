@@ -53,6 +53,8 @@ app:
   mail:
     provider: ${MAIL_PROVIDER:log}
     from: ${MAIL_FROM:noreply@example.com}
+  # Base URL of the client, used to build links in outgoing email.
+  frontend-url: ${FRONTEND_URL:http://localhost:5173}
   auth:
     cookie-secure: ${COOKIE_SECURE:true} # set false for local http dev
   cors:

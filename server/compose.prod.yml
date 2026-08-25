@@ -27,6 +27,7 @@ services:
       MAIL_PROVIDER: smtp
       MAIL_PASSWORD: ${MAIL_PASSWORD}
       MAIL_FROM: ${MAIL_FROM}
+      FRONTEND_URL: ${FRONTEND_URL}
 
   caddy:
     image: caddy:2
