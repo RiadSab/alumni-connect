@@ -58,4 +58,13 @@ public class JobApplicationDTO {
         dto.updatedAt = application.getUpdatedAt();
         return dto;
     }
+
+    // The note, priority and rating are the company's private assessment — never shown to the candidate.
+    public static JobApplicationDTO forApplicant(JobApplication application) {
+        JobApplicationDTO dto = from(application);
+        dto.companyUserNote = null;
+        dto.priority = null;
+        dto.rating = null;
+        return dto;
+    }
 }

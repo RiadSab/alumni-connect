@@ -101,7 +101,7 @@ public class JobApplicationService {
         offer.setCurrentApplicationCount(offer.getCurrentApplicationCount() + 1);
         jobOfferRepository.save(offer);
 
-        return JobApplicationDTO.from(application);
+        return JobApplicationDTO.forApplicant(application);
     }
 
     @Transactional
@@ -114,7 +114,7 @@ public class JobApplicationService {
         }
 
         if (application.getApplicationStatus() == ApplicationStatus.WITHDRAWN) {
-            return JobApplicationDTO.from(application);
+            return JobApplicationDTO.forApplicant(application);
         }
 
         application.setApplicationStatus(ApplicationStatus.WITHDRAWN);
@@ -126,7 +126,7 @@ public class JobApplicationService {
             jobOfferRepository.save(offer);
         }
 
-        return JobApplicationDTO.from(application);
+        return JobApplicationDTO.forApplicant(application);
     }
 
     @Transactional(readOnly = true)
@@ -136,7 +136,7 @@ public class JobApplicationService {
         Page<JobApplication> page = statuses == null || statuses.isEmpty()
                 ? jobApplicationRepository.findByApplicant(applicant, pageable)
                 : jobApplicationRepository.findByApplicantAndApplicationStatusIn(applicant, statuses, pageable);
-        return page.map(JobApplicationDTO::from);
+        return page.map(JobApplicationDTO::forApplicant);
     }
 
     // Candidate dashboard counts via aggregate queries (total / active / accepted).
@@ -225,7 +225,10 @@ public class JobApplicationService {
     public JobApplicationDTO getApplicationById(String callerEmail, Long applicationId) {
         JobApplication application = jobApplicationRepository.findById(applicationId)
                 .orElseThrow(() -> new NotFoundException("Application not found"));
-        if (!canAccessApplication(callerEmail, application)) {
+        if (isApplicant(callerEmail, application)) {
+            return JobApplicationDTO.forApplicant(application);
+        }
+        if (resolveReviewerForCompany(callerEmail, application.getJobOffer().getCompany().getId()).isEmpty()) {
             throw new NotFoundException("Application not found");  // not yours -> 404, not probeable
         }
         return JobApplicationDTO.from(application);
