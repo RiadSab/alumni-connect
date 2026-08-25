@@ -11,6 +11,7 @@ import dev.sabti.alumni_connect.company.repositories.CompanyUserProfileRepositor
 import dev.sabti.alumni_connect.job.entities.ApplicationStatus;
 import dev.sabti.alumni_connect.job.entities.JobApplication;
 import dev.sabti.alumni_connect.job.entities.JobOffer;
+import dev.sabti.alumni_connect.job.entities.Priority;
 import dev.sabti.alumni_connect.job.entities.JobStatus;
 import dev.sabti.alumni_connect.job.repositories.JobApplicationRepository;
 import dev.sabti.alumni_connect.job.repositories.JobOfferRepository;
@@ -359,6 +360,38 @@ class JobApplicationServiceTest {
         JobApplicationDTO result = service.getApplicationById(CANDIDATE_EMAIL, 5L);
 
         assertThat(result.getId()).isEqualTo(5L);
+    }
+
+    @Test
+    void getApplicationById_theApplicant_doesNotSeeThePrivateReviewFields() {
+        CandidateProfile applicant = asCandidate(CANDIDATE_EMAIL, 1L);
+        JobApplication application = application(5L, offer(1L, company(COMPANY_ID), JobStatus.OPEN), applicant, ApplicationStatus.APPLIED);
+        application.setCompanyUserNote("weak on system design");
+        application.setPriority(Priority.LOW);
+        application.setRating(3);
+        when(jobApplicationRepository.findById(5L)).thenReturn(Optional.of(application));
+
+        JobApplicationDTO result = service.getApplicationById(CANDIDATE_EMAIL, 5L);
+
+        assertThat(result.getCompanyUserNote()).isNull();
+        assertThat(result.getPriority()).isNull();
+        assertThat(result.getRating()).isNull();
+    }
+
+    @Test
+    void getApplicationById_theReviewer_stillSeesThePrivateReviewFields() {
+        Company company = company(COMPANY_ID);
+        JobApplication application = application(5L, offer(1L, company, JobStatus.OPEN),
+                candidate(1L, user(11L, "A", "B")), ApplicationStatus.APPLIED);
+        application.setCompanyUserNote("weak on system design");
+        application.setRating(3);
+        when(jobApplicationRepository.findById(5L)).thenReturn(Optional.of(application));
+        asReviewer(REVIEWER_EMAIL, 9L, company, CompanyRole.OWNER);
+
+        JobApplicationDTO result = service.getApplicationById(REVIEWER_EMAIL, 5L);
+
+        assertThat(result.getCompanyUserNote()).isEqualTo("weak on system design");
+        assertThat(result.getRating()).isEqualTo(3);
     }
 
     // --- getApplicationResume() ----------------------------------------------
