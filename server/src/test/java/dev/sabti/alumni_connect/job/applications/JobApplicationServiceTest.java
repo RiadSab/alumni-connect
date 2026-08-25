@@ -10,6 +10,7 @@ import dev.sabti.alumni_connect.company.entities.CompanyUserProfile;
 import dev.sabti.alumni_connect.company.repositories.CompanyUserProfileRepository;
 import dev.sabti.alumni_connect.job.entities.ApplicationStatus;
 import dev.sabti.alumni_connect.job.entities.JobApplication;
+import dev.sabti.alumni_connect.job.entities.InterviewMode;
 import dev.sabti.alumni_connect.job.entities.JobOffer;
 import dev.sabti.alumni_connect.job.entities.Priority;
 import dev.sabti.alumni_connect.job.entities.JobStatus;
@@ -36,6 +37,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -561,6 +563,117 @@ class JobApplicationServiceTest {
         service.review(REVIEWER_EMAIL, 5L, dto);
 
         verify(emailSender, never()).send(anyString(), anyString(), anyString());
+    }
+
+    // --- review(): interview details -----------------------------------------
+
+    // Reviewer of the posting company + an application ready to be scheduled.
+    private JobApplication readyToSchedule(ApplicationStatus status) {
+        Company company = company(COMPANY_ID);
+        company.setName("Acme");
+        User applicantUser = user(11L, "A", "B");
+        applicantUser.setEmail("applicant@example.com");
+        JobApplication application = application(5L, offer(1L, company, JobStatus.OPEN),
+                candidate(1L, applicantUser), status);
+        when(jobApplicationRepository.findById(5L)).thenReturn(Optional.of(application));
+        asReviewer(REVIEWER_EMAIL, 9L, company, CompanyRole.OWNER);
+        return application;
+    }
+
+    private ReviewApplicationDTO scheduleOnline(String link) {
+        ReviewApplicationDTO dto = new ReviewApplicationDTO();
+        dto.setApplicationStatus(ApplicationStatus.SCHEDULED_INTERVIEW);
+        dto.setInterviewMode(InterviewMode.ONLINE);
+        dto.setInterviewAt(OffsetDateTime.now().plusDays(3));
+        dto.setInterviewerName("Jane Doe");
+        dto.setInterviewLink(link);
+        return dto;
+    }
+
+    @Test
+    void review_scheduleWithoutDetails_throwsBadRequest() {
+        readyToSchedule(ApplicationStatus.APPLIED);
+
+        ReviewApplicationDTO dto = new ReviewApplicationDTO();
+        dto.setApplicationStatus(ApplicationStatus.SCHEDULED_INTERVIEW);
+
+        assertThatThrownBy(() -> service.review(REVIEWER_EMAIL, 5L, dto))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessage("Interview mode is required");
+    }
+
+    @Test
+    void review_scheduleInThePast_throwsBadRequest() {
+        readyToSchedule(ApplicationStatus.APPLIED);
+
+        ReviewApplicationDTO dto = scheduleOnline("https://meet.example.com/abc");
+        dto.setInterviewAt(OffsetDateTime.now().minusHours(1));
+
+        assertThatThrownBy(() -> service.review(REVIEWER_EMAIL, 5L, dto))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessage("The interview must be scheduled in the future");
+    }
+
+    @Test
+    void review_scheduleOnlineWithoutAnHttpsLink_throwsBadRequest() {
+        readyToSchedule(ApplicationStatus.APPLIED);
+
+        assertThatThrownBy(() -> service.review(REVIEWER_EMAIL, 5L, scheduleOnline("javascript:alert(1)")))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessage("An https meeting link is required for an online interview");
+    }
+
+    @Test
+    void review_scheduleOnsiteWithoutALocation_throwsBadRequest() {
+        readyToSchedule(ApplicationStatus.APPLIED);
+
+        ReviewApplicationDTO dto = scheduleOnline(null);
+        dto.setInterviewMode(InterviewMode.ONSITE);
+
+        assertThatThrownBy(() -> service.review(REVIEWER_EMAIL, 5L, dto))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessage("A location is required for an on-site interview");
+    }
+
+    @Test
+    void review_scheduleOnline_storesTheDetailsAndEmailsThem() {
+        JobApplication application = readyToSchedule(ApplicationStatus.UNDER_REVIEW);
+        when(jobApplicationRepository.save(any(JobApplication.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        service.review(REVIEWER_EMAIL, 5L, scheduleOnline("https://meet.example.com/abc"));
+
+        assertThat(application.getInterviewMode()).isEqualTo(InterviewMode.ONLINE);
+        assertThat(application.getInterviewLink()).isEqualTo("https://meet.example.com/abc");
+        assertThat(application.getInterviewerName()).isEqualTo("Jane Doe");
+        verify(emailSender).send(eq("applicant@example.com"),
+                contains("Interview scheduled"), contains("https://meet.example.com/abc"));
+    }
+
+    @Test
+    void review_switchToOnsite_dropsTheStaleMeetingLink() {
+        JobApplication application = readyToSchedule(ApplicationStatus.SCHEDULED_INTERVIEW);
+        application.setInterviewMode(InterviewMode.ONLINE);
+        application.setInterviewLink("https://meet.example.com/old");
+        when(jobApplicationRepository.save(any(JobApplication.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        ReviewApplicationDTO dto = scheduleOnline(null);
+        dto.setInterviewMode(InterviewMode.ONSITE);
+        dto.setInterviewLocation("12 Rue des Fleurs, Casablanca");
+
+        service.review(REVIEWER_EMAIL, 5L, dto);
+
+        assertThat(application.getInterviewLink()).isNull();
+        assertThat(application.getInterviewLocation()).isEqualTo("12 Rue des Fleurs, Casablanca");
+    }
+
+    @Test
+    void review_rescheduleAnAlreadyScheduledInterview_stillEmailsTheApplicant() {
+        readyToSchedule(ApplicationStatus.SCHEDULED_INTERVIEW);
+        when(jobApplicationRepository.save(any(JobApplication.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        service.review(REVIEWER_EMAIL, 5L, scheduleOnline("https://meet.example.com/new"));
+
+        verify(emailSender).send(anyString(), anyString(), contains("https://meet.example.com/new"));
     }
 
     // --- getApplicantProfile() -----------------------------------------------
