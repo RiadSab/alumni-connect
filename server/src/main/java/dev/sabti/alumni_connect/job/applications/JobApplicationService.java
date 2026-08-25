@@ -55,6 +55,10 @@ public class JobApplicationService {
     private static final Set<ApplicationStatus> TERMINAL_STATUSES =
             Set.of(ApplicationStatus.ACCEPTED, ApplicationStatus.REJECTED, ApplicationStatus.WITHDRAWN);
 
+    // The candidate is emailed about outcomes, not about internal progress like UNDER_REVIEW.
+    private static final Set<ApplicationStatus> NOTIFIED_STATUSES =
+            Set.of(ApplicationStatus.SCHEDULED_INTERVIEW, ApplicationStatus.ACCEPTED, ApplicationStatus.REJECTED);
+
     @Transactional
     public JobApplicationDTO apply(String applicantEmail, Long jobOfferId, ApplyToJobOfferDTO dto,
                                    MultipartFile resume, Boolean useProfileResume) {
@@ -192,8 +196,8 @@ public class JobApplicationService {
 
         JobApplication saved = jobApplicationRepository.save(application);
 
-        // Notes and ratings are internal to the company; only a status change concerns the candidate.
-        if (saved.getApplicationStatus() != previousStatus) {
+        if (saved.getApplicationStatus() != previousStatus
+                && NOTIFIED_STATUSES.contains(saved.getApplicationStatus())) {
             notifyApplicant(saved);
         }
 
