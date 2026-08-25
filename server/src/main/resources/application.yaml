@@ -55,6 +55,8 @@ app:
     from: ${MAIL_FROM:noreply@example.com}
   # Base URL of the client, used to build links in outgoing email.
   frontend-url: ${FRONTEND_URL:http://localhost:5173}
+  # Timezone interview times are written in when emailed.
+  timezone: ${APP_TIMEZONE:Africa/Casablanca}
   auth:
     cookie-secure: ${COOKIE_SECURE:true} # set false for local http dev
   cors:

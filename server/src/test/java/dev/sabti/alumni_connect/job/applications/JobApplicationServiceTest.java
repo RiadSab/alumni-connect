@@ -24,12 +24,14 @@ import dev.sabti.alumni_connect.shared.exception.NotFoundException;
 import dev.sabti.alumni_connect.storage.FileDownload;
 import dev.sabti.alumni_connect.storage.StoredFile;
 import dev.sabti.alumni_connect.storage.StoredFileService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.core.io.Resource;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -66,6 +68,13 @@ class JobApplicationServiceTest {
     @Mock private StoredFileService storedFileService;
     @Mock private EmailSender emailSender;
     @InjectMocks private JobApplicationService service;
+
+    // Both are @Value fields, so Mockito leaves them null.
+    @BeforeEach
+    void injectConfiguredValues() {
+        ReflectionTestUtils.setField(service, "frontendUrl", "https://alumni.example.com");
+        ReflectionTestUtils.setField(service, "timezone", "Africa/Casablanca");
+    }
 
     private static final String CANDIDATE_EMAIL = "candidate@example.com";
     private static final String REVIEWER_EMAIL = "reviewer@example.com";

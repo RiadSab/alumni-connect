@@ -34,6 +34,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Collection;
 import java.util.Locale;
@@ -55,11 +56,14 @@ public class JobApplicationService {
     @Value("${app.frontend-url}")
     private String frontendUrl;
 
+    @Value("${app.timezone}")
+    private String timezone;
+
     // An application is "active" until it reaches one of these.
     private static final Set<ApplicationStatus> TERMINAL_STATUSES =
             Set.of(ApplicationStatus.ACCEPTED, ApplicationStatus.REJECTED, ApplicationStatus.WITHDRAWN);
 
-    // The offset is spelled out: the candidate may be reading this from another timezone.
+    // Written in the platform timezone with the offset spelled out, so it can't be read an hour wrong.
     private static final DateTimeFormatter INTERVIEW_TIME =
             DateTimeFormatter.ofPattern("EEEE d MMMM yyyy, HH:mm (OOOO)", Locale.ENGLISH);
 
@@ -277,7 +281,7 @@ public class JobApplicationService {
                 : "Where: " + application.getInterviewLocation();
         return "Your interview for " + application.getJobOffer().getTitle() + " at "
                 + application.getJobOffer().getCompany().getName() + " is scheduled.\n\n"
-                + "When: " + INTERVIEW_TIME.format(application.getInterviewAt()) + "\n"
+                + "When: " + INTERVIEW_TIME.format(application.getInterviewAt().atZoneSameInstant(ZoneId.of(timezone))) + "\n"
                 + "Interviewer: " + application.getInterviewerName() + "\n"
                 + where
                 + applicationLink(application);

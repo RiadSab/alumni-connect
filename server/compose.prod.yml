@@ -28,6 +28,7 @@ services:
       MAIL_PASSWORD: ${MAIL_PASSWORD}
       MAIL_FROM: ${MAIL_FROM}
       FRONTEND_URL: ${FRONTEND_URL}
+      APP_TIMEZONE: ${APP_TIMEZONE}
 
   caddy:
     image: caddy:2
