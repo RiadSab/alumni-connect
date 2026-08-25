@@ -9,6 +9,7 @@ import dev.sabti.alumni_connect.company.entities.CompanyRole;
 import dev.sabti.alumni_connect.company.entities.CompanyUserProfile;
 import dev.sabti.alumni_connect.company.repositories.CompanyUserProfileRepository;
 import dev.sabti.alumni_connect.job.entities.ApplicationStatus;
+import dev.sabti.alumni_connect.job.entities.InterviewMode;
 import dev.sabti.alumni_connect.job.entities.JobApplication;
 import dev.sabti.alumni_connect.job.entities.JobOffer;
 import dev.sabti.alumni_connect.job.entities.JobStatus;
@@ -32,6 +33,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.Collection;
 import java.util.Optional;
 import java.util.Set;
@@ -185,6 +187,8 @@ public class JobApplicationService {
                 .orElseThrow(() -> new NotFoundException("Application not found"));  // not your company -> 404
 
         ApplicationStatus previousStatus = application.getApplicationStatus();
+        boolean scheduling = dto.getApplicationStatus() == ApplicationStatus.SCHEDULED_INTERVIEW;
+        if (scheduling) applyInterviewDetails(application, dto);
 
         if (dto.getApplicationStatus() != null) application.setApplicationStatus(dto.getApplicationStatus());
         if (dto.getCompanyUserNote() != null) application.setCompanyUserNote(dto.getCompanyUserNote());
@@ -196,12 +200,46 @@ public class JobApplicationService {
 
         JobApplication saved = jobApplicationRepository.save(application);
 
-        if (saved.getApplicationStatus() != previousStatus
-                && NOTIFIED_STATUSES.contains(saved.getApplicationStatus())) {
+        // Scheduling always notifies, so rescheduling an already-scheduled interview still reaches the candidate.
+        boolean outcomeChanged = saved.getApplicationStatus() != previousStatus
+                && NOTIFIED_STATUSES.contains(saved.getApplicationStatus());
+        if (scheduling || outcomeChanged) {
             notifyApplicant(saved);
         }
 
         return JobApplicationDTO.from(saved);
+    }
+
+    private void applyInterviewDetails(JobApplication application, ReviewApplicationDTO dto) {
+        if (dto.getInterviewMode() == null) {
+            throw new BadRequestException("Interview mode is required");
+        }
+        if (dto.getInterviewAt() == null || dto.getInterviewAt().isBefore(OffsetDateTime.now())) {
+            throw new BadRequestException("The interview must be scheduled in the future");
+        }
+        if (isBlank(dto.getInterviewerName())) {
+            throw new BadRequestException("The interviewer name is required");
+        }
+
+        boolean online = dto.getInterviewMode() == InterviewMode.ONLINE;
+        // The link is emailed from our own domain, so only plain https is accepted.
+        if (online && (isBlank(dto.getInterviewLink()) || !dto.getInterviewLink().trim().startsWith("https://"))) {
+            throw new BadRequestException("An https meeting link is required for an online interview");
+        }
+        if (!online && isBlank(dto.getInterviewLocation())) {
+            throw new BadRequestException("A location is required for an on-site interview");
+        }
+
+        application.setInterviewMode(dto.getInterviewMode());
+        application.setInterviewAt(dto.getInterviewAt());
+        application.setInterviewerName(dto.getInterviewerName().trim());
+        // Only the field matching the mode is kept, so a rescheduled interview can't show a stale link.
+        application.setInterviewLink(online ? dto.getInterviewLink().trim() : null);
+        application.setInterviewLocation(online ? null : dto.getInterviewLocation().trim());
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.isBlank();
     }
 
     private void notifyApplicant(JobApplication application) {
