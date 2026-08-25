@@ -14,6 +14,7 @@ import dev.sabti.alumni_connect.job.entities.JobOffer;
 import dev.sabti.alumni_connect.job.entities.JobStatus;
 import dev.sabti.alumni_connect.job.repositories.JobApplicationRepository;
 import dev.sabti.alumni_connect.job.repositories.JobOfferRepository;
+import dev.sabti.alumni_connect.shared.email.EmailSender;
 import dev.sabti.alumni_connect.shared.exception.BadRequestException;
 import dev.sabti.alumni_connect.shared.exception.ConflictException;
 import dev.sabti.alumni_connect.shared.exception.ForbiddenException;
@@ -21,6 +22,8 @@ import dev.sabti.alumni_connect.shared.exception.NotFoundException;
 import dev.sabti.alumni_connect.storage.FileDownload;
 import dev.sabti.alumni_connect.storage.StoredFileService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -34,6 +37,7 @@ import java.util.Optional;
 import java.util.Set;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class JobApplicationService {
     private final JobApplicationRepository jobApplicationRepository;
@@ -42,6 +46,10 @@ public class JobApplicationService {
     private final CandidateProfileRepository candidateProfileRepository;
     private final CompanyUserProfileRepository companyUserProfileRepository;
     private final StoredFileService storedFileService;
+    private final EmailSender emailSender;
+
+    @Value("${app.frontend-url}")
+    private String frontendUrl;
 
     // An application is "active" until it reaches one of these.
     private static final Set<ApplicationStatus> TERMINAL_STATUSES =
@@ -172,6 +180,8 @@ public class JobApplicationService {
         CompanyUserProfile reviewer = resolveReviewerForCompany(reviewerEmail, postingCompanyId)
                 .orElseThrow(() -> new NotFoundException("Application not found"));  // not your company -> 404
 
+        ApplicationStatus previousStatus = application.getApplicationStatus();
+
         if (dto.getApplicationStatus() != null) application.setApplicationStatus(dto.getApplicationStatus());
         if (dto.getCompanyUserNote() != null) application.setCompanyUserNote(dto.getCompanyUserNote());
         if (dto.getPriority() != null) application.setPriority(dto.getPriority());
@@ -180,7 +190,30 @@ public class JobApplicationService {
         application.setReviewedAt(LocalDateTime.now());
         application.setReviewedBy(reviewer);
 
-        return JobApplicationDTO.from(jobApplicationRepository.save(application));
+        JobApplication saved = jobApplicationRepository.save(application);
+
+        // Notes and ratings are internal to the company; only a status change concerns the candidate.
+        if (saved.getApplicationStatus() != previousStatus) {
+            notifyApplicant(saved);
+        }
+
+        return JobApplicationDTO.from(saved);
+    }
+
+    private void notifyApplicant(JobApplication application) {
+        String title = application.getJobOffer().getTitle();
+        String status = application.getApplicationStatus().name().toLowerCase().replace('_', ' ');
+        try {
+            emailSender.send(application.getApplicant().getUser().getEmail(),
+                    "Update on your application for " + title,
+                    "Your application for " + title + " at "
+                            + application.getJobOffer().getCompany().getName()
+                            + " is now: " + status + ".\n\n"
+                            + frontendUrl + "/applications/" + application.getId());
+        } catch (Exception e) {
+            // The review itself must stand even if the mail fails, so this never propagates.
+            log.warn("Could not email the applicant about application {}", application.getId(), e);
+        }
     }
 
 
