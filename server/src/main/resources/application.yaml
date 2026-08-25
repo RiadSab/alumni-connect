@@ -28,6 +28,10 @@ spring:
           auth: true
           starttls:
             enable: true
+          # Without these a stalled SMTP connection hangs the request that triggered the mail.
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
 
 jwt:
   secret: ${JWT_SECRET}
