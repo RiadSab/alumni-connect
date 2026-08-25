@@ -1,11 +1,13 @@
 package dev.sabti.alumni_connect.job.applications;
 
 import dev.sabti.alumni_connect.job.entities.ApplicationStatus;
+import dev.sabti.alumni_connect.job.entities.InterviewMode;
 import dev.sabti.alumni_connect.job.entities.JobApplication;
 import dev.sabti.alumni_connect.job.entities.Priority;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.Set;
 
 // Flattens jobOffer/applicant/reviewedBy to id + display name; reviewedBy is null until reviewed.
@@ -29,6 +31,11 @@ public class JobApplicationDTO {
     private String companyUserNote;
     private Priority priority;
     private Integer rating;
+    private InterviewMode interviewMode;
+    private OffsetDateTime interviewAt;
+    private String interviewLink;
+    private String interviewLocation;
+    private String interviewerName;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -54,6 +61,11 @@ public class JobApplicationDTO {
         dto.companyUserNote = application.getCompanyUserNote();
         dto.priority = application.getPriority();
         dto.rating = application.getRating();
+        dto.interviewMode = application.getInterviewMode();
+        dto.interviewAt = application.getInterviewAt();
+        dto.interviewLink = application.getInterviewLink();
+        dto.interviewLocation = application.getInterviewLocation();
+        dto.interviewerName = application.getInterviewerName();
         dto.createdAt = application.getCreatedAt();
         dto.updatedAt = application.getUpdatedAt();
         return dto;
