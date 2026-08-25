@@ -1,7 +1,4 @@
-// Review one job application (OWNER/RECRUITER). Shows the application (cover letter,
-// résumé, the applicant's full candidate profile) and a review form that PATCHes
-// status / priority / rating / private note via useReviewApplication. Accept and
-// Reject are one-click status changes. Reached at /company/applications/:appId.
+// Review one job application (OWNER/RECRUITER) at /company/applications/:appId.
 
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
@@ -30,12 +27,21 @@ import {
 import {
   applicationStatusOptions,
   fieldsOptions,
+  interviewModeOptions,
   priorityOptions,
   type ApplicationStatus,
 } from "@/types/enums";
+import { useAuth } from "@/features/auth/auth-context";
 
 // Status options a recruiter sets (WITHDRAWN is a candidate-only action).
 const reviewableStatuses = applicationStatusOptions.filter((o) => o.value !== "WITHDRAWN");
+
+// <input type="datetime-local"> wants local wall time, while the API speaks UTC instants.
+function toLocalInput(iso: string | null): string {
+  if (iso === null) return "";
+  const date = new Date(iso);
+  return new Date(date.getTime() - date.getTimezoneOffset() * 60_000).toISOString().slice(0, 16);
+}
 
 function statusVariant(status: ApplicationStatus): "default" | "secondary" | "destructive" | "outline" {
   if (status === "ACCEPTED") return "default";
@@ -120,7 +126,7 @@ function ResumeButton({ appId, hasResume }: { appId: number; hasResume: boolean 
       const blob = await jobApplicationsApi.downloadResume(appId);
       const url = URL.createObjectURL(blob);
       window.open(url, "_blank");
-      // ponytail: revoke after a minute — the new tab has loaded the blob by then.
+      // The new tab has loaded the blob by then.
       setTimeout(() => URL.revokeObjectURL(url), 60_000);
     } catch (e) {
       setError(isApiError(e) ? e.message : t("review.resumeError"));
@@ -219,6 +225,7 @@ function ApplicantProfile({ appId }: { appId: number }) {
 
 function ReviewForm({ application }: { application: JobApplicationDTO }) {
   const { t } = useT();
+  const { user } = useAuth();
   const review = useReviewApplication();
   const [error, setError] = useState<string | null>(null);
 
@@ -227,6 +234,12 @@ function ReviewForm({ application }: { application: JobApplicationDTO }) {
     priority: (application.priority as string) ?? "",
     rating: application.rating != null ? String(application.rating) : "",
     note: application.companyUserNote ?? "",
+    interviewMode: (application.interviewMode as string) ?? "ONLINE",
+    interviewAt: toLocalInput(application.interviewAt),
+    interviewLink: application.interviewLink ?? "",
+    interviewLocation: application.interviewLocation ?? "",
+    // Whoever schedules is usually the one conducting it.
+    interviewerName: application.interviewerName ?? `${user?.firstName ?? ""} ${user?.lastName ?? ""}`.trim(),
   }));
 
   function setField(name: keyof typeof form, value: string) {
@@ -238,11 +251,20 @@ function ReviewForm({ application }: { application: JobApplicationDTO }) {
     const status = statusOverride ?? form.status;
     if (statusOverride) setField("status", statusOverride); // keep the Select in sync
 
+    const online = form.interviewMode === "ONLINE";
     const payload = {
       applicationStatus: status,
       priority: form.priority === "" ? undefined : form.priority,
       rating: form.rating === "" ? undefined : Number(form.rating),
       companyUserNote: form.note,
+      // Sent only when scheduling; the server ignores them otherwise.
+      ...(status === "SCHEDULED_INTERVIEW" && {
+        interviewMode: form.interviewMode,
+        interviewAt: form.interviewAt === "" ? undefined : new Date(form.interviewAt).toISOString(),
+        interviewLink: online ? form.interviewLink : undefined,
+        interviewLocation: online ? undefined : form.interviewLocation,
+        interviewerName: form.interviewerName,
+      }),
     };
 
     const result = reviewApplicationSchema.safeParse(payload);
@@ -290,6 +312,78 @@ function ReviewForm({ application }: { application: JobApplicationDTO }) {
               </SelectContent>
             </Select>
           </div>
+
+          {form.status === "SCHEDULED_INTERVIEW" && (
+            <div className="flex flex-col gap-4 rounded-lg border border-border bg-[var(--color-tint-lavender)]/30 p-4">
+              <p className="text-sm font-semibold text-foreground">Interview details</p>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-medium">Mode</label>
+                  <Select
+                    value={form.interviewMode}
+                    onValueChange={(v) => setField("interviewMode", v)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {interviewModeOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex flex-col gap-2">
+                  <label htmlFor="interviewAt" className="text-sm font-medium">Date and time</label>
+                  <Input
+                    id="interviewAt"
+                    type="datetime-local"
+                    value={form.interviewAt}
+                    onChange={(event) => setField("interviewAt", event.target.value)}
+                  />
+                </div>
+              </div>
+
+              {form.interviewMode === "ONLINE" ? (
+                <div className="flex flex-col gap-2">
+                  <label htmlFor="interviewLink" className="text-sm font-medium">Meeting link</label>
+                  <Input
+                    id="interviewLink"
+                    type="url"
+                    placeholder="https://meet.google.com/abc-defg-hij"
+                    value={form.interviewLink}
+                    onChange={(event) => setField("interviewLink", event.target.value)}
+                  />
+                </div>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  <label htmlFor="interviewLocation" className="text-sm font-medium">Location</label>
+                  <Input
+                    id="interviewLocation"
+                    placeholder="12 Rue des Fleurs, Casablanca"
+                    value={form.interviewLocation}
+                    onChange={(event) => setField("interviewLocation", event.target.value)}
+                  />
+                </div>
+              )}
+
+              <div className="flex flex-col gap-2">
+                <label htmlFor="interviewerName" className="text-sm font-medium">Interviewer</label>
+                <Input
+                  id="interviewerName"
+                  value={form.interviewerName}
+                  onChange={(event) => setField("interviewerName", event.target.value)}
+                />
+              </div>
+
+              <p className="text-xs text-[var(--color-slate)]">
+                Saving emails these details to the candidate.
+              </p>
+            </div>
+          )}
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="flex flex-col gap-2">
