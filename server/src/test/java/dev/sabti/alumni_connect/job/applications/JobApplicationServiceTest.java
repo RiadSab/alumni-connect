@@ -14,6 +14,7 @@ import dev.sabti.alumni_connect.job.entities.JobOffer;
 import dev.sabti.alumni_connect.job.entities.JobStatus;
 import dev.sabti.alumni_connect.job.repositories.JobApplicationRepository;
 import dev.sabti.alumni_connect.job.repositories.JobOfferRepository;
+import dev.sabti.alumni_connect.shared.email.EmailSender;
 import dev.sabti.alumni_connect.shared.exception.BadRequestException;
 import dev.sabti.alumni_connect.shared.exception.ConflictException;
 import dev.sabti.alumni_connect.shared.exception.ForbiddenException;
@@ -41,6 +42,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.contains;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -58,6 +61,7 @@ class JobApplicationServiceTest {
     @Mock private CandidateProfileRepository candidateProfileRepository;
     @Mock private CompanyUserProfileRepository companyUserProfileRepository;
     @Mock private StoredFileService storedFileService;
+    @Mock private EmailSender emailSender;
     @InjectMocks private JobApplicationService service;
 
     private static final String CANDIDATE_EMAIL = "candidate@example.com";
@@ -468,6 +472,45 @@ class JobApplicationServiceTest {
         assertThat(application.getReviewedAt()).isNotNull();
         assertThat(application.getReviewedBy()).isSameAs(reviewer);
         assertThat(result.getReviewedById()).isEqualTo(9L);
+    }
+
+    @Test
+    void review_statusChanged_emailsTheApplicant() {
+        Company company = company(COMPANY_ID);
+        company.setName("Acme");
+        User applicantUser = user(11L, "A", "B");
+        applicantUser.setEmail("applicant@example.com");
+        JobApplication application = application(5L, offer(1L, company, JobStatus.OPEN),
+                candidate(1L, applicantUser), ApplicationStatus.APPLIED);
+        when(jobApplicationRepository.findById(5L)).thenReturn(Optional.of(application));
+        asReviewer(REVIEWER_EMAIL, 9L, company, CompanyRole.OWNER);
+        when(jobApplicationRepository.save(any(JobApplication.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        ReviewApplicationDTO dto = new ReviewApplicationDTO();
+        dto.setApplicationStatus(ApplicationStatus.ACCEPTED);
+
+        service.review(REVIEWER_EMAIL, 5L, dto);
+
+        verify(emailSender).send(eq("applicant@example.com"),
+                contains("Backend Engineer"), contains("accepted"));
+    }
+
+    @Test
+    void review_statusUnchanged_doesNotEmailTheApplicant() {
+        Company company = company(COMPANY_ID);
+        JobApplication application = application(5L, offer(1L, company, JobStatus.OPEN),
+                candidate(1L, user(11L, "A", "B")), ApplicationStatus.UNDER_REVIEW);
+        when(jobApplicationRepository.findById(5L)).thenReturn(Optional.of(application));
+        asReviewer(REVIEWER_EMAIL, 9L, company, CompanyRole.OWNER);
+        when(jobApplicationRepository.save(any(JobApplication.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        ReviewApplicationDTO dto = new ReviewApplicationDTO();
+        dto.setCompanyUserNote("internal note");
+        dto.setRating(7);
+
+        service.review(REVIEWER_EMAIL, 5L, dto);
+
+        verify(emailSender, never()).send(anyString(), anyString(), anyString());
     }
 
     // --- getApplicantProfile() -----------------------------------------------
