@@ -6,6 +6,7 @@ import type { PageParams } from "@/types/common";
 import type { CompanyListParams } from "@/types/company";
 import type { JobOfferFilters } from "@/types/jobOffer";
 import type { ApplicationFilters, MyApplicationFilters } from "@/types/jobApplication";
+import type { AlumniRecordFilters } from "@/types/alumni";
 import type { AdminUserFilters, AdminCompanyFilters } from "@/types/admin";
 
 export const queryKeys = {
@@ -54,6 +55,11 @@ export const queryKeys = {
     byId: (id: number) => ["jobApplications", "byId", id] as const,
     applicant: (id: number) => ["jobApplications", "byId", id, "applicant"] as const,
     resume: (id: number) => ["jobApplications", "byId", id, "resume"] as const,
+  },
+
+  alumni: {
+    all: () => ["alumni"] as const,
+    records: (filters?: AlumniRecordFilters) => ["alumni", "records", filters] as const,
   },
 
   admin: {
