@@ -141,6 +141,9 @@ export function RootLayout() {
                     <NavLink to="/admin/companies" className={navLinkClass} onClick={() => setMenuOpen(false)}>
                       {t("nav.moderate.companies")}
                     </NavLink>
+                    <NavLink to="/admin/alumni" className={navLinkClass} onClick={() => setMenuOpen(false)}>
+                      {t("nav.moderate.alumni")}
+                    </NavLink>
                   </>
                 )}
               </nav>
@@ -283,6 +286,9 @@ function ModerateMenu() {
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
           <Link to="/admin/companies">{t("nav.moderate.companies")}</Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link to="/admin/alumni">{t("nav.moderate.alumni")}</Link>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
