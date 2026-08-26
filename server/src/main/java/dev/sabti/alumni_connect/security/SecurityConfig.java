@@ -72,6 +72,8 @@ public class SecurityConfig {
                     // Public job-offer browse; POST stays authenticated (authority in JobOfferService).
                     .requestMatchers(HttpMethod.GET, "/api/job-offers", "/api/job-offers/**").permitAll()
                     .requestMatchers(HttpMethod.POST, "/api/job-offers/*/apply").hasRole("CANDIDATE")
+                    // Claim links are their own credential, so these are open by design.
+                    .requestMatchers("/api/alumni/claim/**").permitAll()
                     .requestMatchers("/api/admin/**").hasRole("ADMINISTRATOR")
                     .anyRequest().authenticated()
                 )
