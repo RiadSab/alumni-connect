@@ -61,8 +61,10 @@ public class AlumniClaimService {
                 emailSender.send(record.getEmail(), "Claim your Alumni Connect account", inviteBody(record, issue(record)));
                 sent++;
             } catch (Exception e) {
-                // One bad address must not stop the rest of the promotion being invited.
-                log.warn("Could not email a claim link for alumni record {}", record.getId(), e);
+                // One bad address must not stop the rest of the promotion being invited. The message
+                // alone is enough here (usually the provider rejecting the recipient) — a stack trace
+                // per bad row buries the log.
+                log.warn("Could not email a claim link for alumni record {}: {}", record.getId(), e.getMessage());
             }
         }
         return new ClaimInviteResultDTO(sent, targets.size() - sent);
