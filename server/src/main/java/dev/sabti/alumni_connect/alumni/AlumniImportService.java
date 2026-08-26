@@ -74,7 +74,9 @@ public class AlumniImportService {
                     record.setLastName(required(row, "last_name"));
                     record.setFieldOfStudy(field(row));
                     record.setPromotionYear(promotionYear(row));
-                    record.setEmail(email(row));
+                    String email = email(row);
+                    // Re-importing the school's file must not undo an opt-out.
+                    if (record.getOptedOutAt() == null) record.setEmail(email);
 
                     if (!dryRun) alumniRecordRepository.save(record);
                     if (existing.isPresent()) updated++; else created++;
