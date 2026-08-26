@@ -1,14 +1,23 @@
 // Alumni roster (/admin/alumni): import the school's CSV of graduates and browse the result.
 
 import { useState } from "react";
-import { CloudOff, RefreshCw, Upload } from "lucide-react";
-import { useAlumniRecords, useImportRoster } from "@/features/alumni/hooks";
+import { CloudOff, Mail, RefreshCw, Upload } from "lucide-react";
+import { useAlumniRecords, useImportRoster, useInviteRoster, useLinkAccount } from "@/features/alumni/hooks";
 import { useT } from "@/features/i18n/lang-context";
 import { isApiError } from "@/lib/http";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { fieldsOptions } from "@/types/enums";
 import type { AlumniRecordDTO, AlumniRecordFilters } from "@/types/alumni";
 
@@ -49,6 +58,9 @@ export function AdminAlumniPage() {
           </Button>
         )}
       </div>
+
+      {/* Invites follow the promotion filter above, so an admin can do one promotion at a time. */}
+      <InviteRow promotionYear={promotionYear} />
 
       {isLoading ? (
         <div className="space-y-3">
@@ -197,9 +209,109 @@ function RecordRow({ record }: { record: AlumniRecordDTO }) {
           {record.email ?? t("admin.alumni.noEmail")}
         </p>
       </div>
-      <Badge variant={record.claimed ? "default" : "secondary"} className="shrink-0">
-        {record.claimed ? t("admin.alumni.claimed") : t("admin.alumni.unclaimed")}
-      </Badge>
+      <div className="flex shrink-0 flex-col items-end gap-2">
+        <Badge variant={record.claimed ? "default" : "secondary"}>
+          {record.claimed
+            ? t("admin.alumni.claimed")
+            : record.optedOutAt !== null
+              ? t("admin.alumni.optedOut")
+              : t("admin.alumni.unclaimed")}
+        </Badge>
+        {!record.claimed && record.optedOutAt === null && <LinkDialog record={record} />}
+      </div>
     </article>
+  );
+}
+
+function InviteRow({ promotionYear }: { promotionYear: number | undefined }) {
+  const { t } = useT();
+  const invite = useInviteRoster();
+  const [error, setError] = useState<string | null>(null);
+
+  return (
+    <div className="flex flex-wrap items-center gap-3">
+      <Button
+        variant="outline"
+        size="sm"
+        disabled={invite.isPending}
+        onClick={() => {
+          setError(null);
+          invite.mutate(promotionYear, {
+            onError: (e) => setError(isApiError(e) ? e.message : t("admin.alumni.inviteError")),
+          });
+        }}
+      >
+        <Mail className="size-4" />
+        {invite.isPending ? t("admin.alumni.inviting") : t("admin.alumni.invite")}
+      </Button>
+      <p className="text-sm text-[var(--color-slate)]">
+        {invite.data
+          ? t("admin.alumni.inviteResult", { sent: invite.data.sent, skipped: invite.data.skipped })
+          : t("admin.alumni.inviteHint")}
+      </p>
+      {error && <p className="text-sm text-destructive">{error}</p>}
+    </div>
+  );
+}
+
+function LinkDialog({ record }: { record: AlumniRecordDTO }) {
+  const { t } = useT();
+  const link = useLinkAccount();
+  const [open, setOpen] = useState(false);
+  const [email, setEmail] = useState("");
+  const [error, setError] = useState<string | null>(null);
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next);
+        if (!next) {
+          setError(null);
+          link.reset();
+        }
+      }}
+    >
+      <DialogTrigger asChild>
+        <Button variant="ghost" size="sm">
+          {t("admin.alumni.link")}
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogTitle>{t("admin.alumni.linkTitle")}</DialogTitle>
+        <DialogDescription>{t("admin.alumni.linkPrompt")}</DialogDescription>
+        <Input
+          className="mt-3"
+          type="email"
+          placeholder={t("admin.alumni.linkEmail")}
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+        />
+        {error && <p className="mt-2 text-sm text-destructive">{error}</p>}
+        <DialogFooter>
+          <DialogClose asChild>
+            <Button variant="ghost" size="sm">
+              {t("claim.optOutCancel")}
+            </Button>
+          </DialogClose>
+          <Button
+            size="sm"
+            disabled={email.trim() === "" || link.isPending}
+            onClick={() => {
+              setError(null);
+              link.mutate(
+                { recordId: record.id, email: email.trim() },
+                {
+                  onSuccess: () => setOpen(false),
+                  onError: (e) => setError(isApiError(e) ? e.message : t("admin.alumni.linkError")),
+                },
+              );
+            }}
+          >
+            {t("admin.alumni.linkConfirm")}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
