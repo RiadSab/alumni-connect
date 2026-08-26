@@ -127,15 +127,15 @@ public class AlumniClaimService {
     // Fallback for graduates the school has no address for: they register normally and an admin
     // links the account to their row.
     @Transactional
-    public AlumniRecordDTO link(Long recordId, Long userId) {
+    public AlumniRecordDTO link(Long recordId, String email) {
         AlumniRecord record = alumniRecordRepository.findById(recordId)
                 .orElseThrow(() -> new NotFoundException("Alumni record not found"));
         if (record.getClaimedBy() != null) {
             throw new ConflictException("This graduate is already linked to an account");
         }
 
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new NotFoundException("User not found"));
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new NotFoundException("No account with that email"));
         if (user.getUserType() != UserType.CANDIDATE) {
             throw new BadRequestException("Only a candidate account can be linked to a graduate");
         }

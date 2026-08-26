@@ -1,10 +1,12 @@
 package dev.sabti.alumni_connect.alumni;
 
-import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
 @Data
 public class LinkAccountDTO {
-    @NotNull(message = "Field 'userId' is required")
-    private Long userId;
+    @NotBlank(message = "Field 'email' is required")
+    @Email
+    private String email;
 }

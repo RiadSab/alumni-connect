@@ -36,6 +36,8 @@ class AlumniClaimServiceTest {
     @Mock private EmailSender emailSender;
     @InjectMocks private AlumniClaimService service;
 
+    private static final String CANDIDATE_EMAIL = "graduate@example.com";
+
     private AlumniRecord record(long id) {
         AlumniRecord record = new AlumniRecord();
         record.setId(id);
@@ -61,11 +63,11 @@ class AlumniClaimServiceTest {
         profile.setGraduationYear(2019);
 
         when(alumniRecordRepository.findById(1L)).thenReturn(Optional.of(record));
-        when(userRepository.findById(7L)).thenReturn(Optional.of(user));
+        when(userRepository.findByEmail(CANDIDATE_EMAIL)).thenReturn(Optional.of(user));
         when(alumniRecordRepository.existsByClaimedBy(user)).thenReturn(false);
         when(candidateProfileRepository.findByUser(user)).thenReturn(Optional.of(profile));
 
-        service.link(1L, 7L);
+        service.link(1L, CANDIDATE_EMAIL);
 
         assertThat(profile.getFieldOfStudy()).isEqualTo(Fields.DATA_SCIENCE);
         assertThat(profile.getGraduationYear()).isEqualTo(2024);
@@ -78,7 +80,7 @@ class AlumniClaimServiceTest {
     void link_recordNotFound_throwsNotFound() {
         when(alumniRecordRepository.findById(1L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> service.link(1L, 7L))
+        assertThatThrownBy(() -> service.link(1L, CANDIDATE_EMAIL))
                 .isInstanceOf(NotFoundException.class)
                 .hasMessage("Alumni record not found");
     }
@@ -90,7 +92,7 @@ class AlumniClaimServiceTest {
         record.setClaimedAt(LocalDateTime.now());
         when(alumniRecordRepository.findById(1L)).thenReturn(Optional.of(record));
 
-        assertThatThrownBy(() -> service.link(1L, 7L))
+        assertThatThrownBy(() -> service.link(1L, CANDIDATE_EMAIL))
                 .isInstanceOf(ConflictException.class)
                 .hasMessage("This graduate is already linked to an account");
     }
@@ -98,9 +100,9 @@ class AlumniClaimServiceTest {
     @Test
     void link_companyAccount_throwsBadRequest() {
         when(alumniRecordRepository.findById(1L)).thenReturn(Optional.of(record(1L)));
-        when(userRepository.findById(7L)).thenReturn(Optional.of(user(7L, UserType.COMPANY_USER)));
+        when(userRepository.findByEmail(CANDIDATE_EMAIL)).thenReturn(Optional.of(user(7L, UserType.COMPANY_USER)));
 
-        assertThatThrownBy(() -> service.link(1L, 7L))
+        assertThatThrownBy(() -> service.link(1L, CANDIDATE_EMAIL))
                 .isInstanceOf(BadRequestException.class)
                 .hasMessage("Only a candidate account can be linked to a graduate");
     }
@@ -109,10 +111,10 @@ class AlumniClaimServiceTest {
     void link_accountAlreadyLinkedElsewhere_throwsConflict() {
         User user = user(7L, UserType.CANDIDATE);
         when(alumniRecordRepository.findById(1L)).thenReturn(Optional.of(record(1L)));
-        when(userRepository.findById(7L)).thenReturn(Optional.of(user));
+        when(userRepository.findByEmail(CANDIDATE_EMAIL)).thenReturn(Optional.of(user));
         when(alumniRecordRepository.existsByClaimedBy(user)).thenReturn(true);
 
-        assertThatThrownBy(() -> service.link(1L, 7L))
+        assertThatThrownBy(() -> service.link(1L, CANDIDATE_EMAIL))
                 .isInstanceOf(ConflictException.class)
                 .hasMessage("That account is already linked to another graduate");
     }

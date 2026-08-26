@@ -33,7 +33,7 @@ public class AlumniAdminController {
     // Fallback for graduates with no address on the school's list: link an account they made themselves.
     @PostMapping("/{id}/link")
     public ResponseEntity<AlumniRecordDTO> link(@PathVariable Long id, @RequestBody @Valid LinkAccountDTO dto) {
-        return ResponseEntity.ok(alumniClaimService.link(id, dto.getUserId()));
+        return ResponseEntity.ok(alumniClaimService.link(id, dto.getEmail()));
     }
 
     @GetMapping
