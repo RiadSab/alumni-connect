@@ -60,6 +60,7 @@ export const queryKeys = {
   alumni: {
     all: () => ["alumni"] as const,
     records: (filters?: AlumniRecordFilters) => ["alumni", "records", filters] as const,
+    claim: (token: string) => ["alumni", "claim", token] as const,
   },
 
   admin: {
