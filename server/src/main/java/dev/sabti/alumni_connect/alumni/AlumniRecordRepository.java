@@ -1,5 +1,6 @@
 package dev.sabti.alumni_connect.alumni;
 
+import dev.sabti.alumni_connect.auth.entities.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -13,4 +14,11 @@ public interface AlumniRecordRepository extends JpaRepository<AlumniRecord, Long
     List<AlumniRecord> findByStudentIdIn(List<String> studentIds);
 
     Page<AlumniRecord> findByPromotionYear(Integer promotionYear, Pageable pageable);
+
+    // Invite targets: not claimed, not opted out, and the school has an address for them.
+    List<AlumniRecord> findByClaimedByIsNullAndOptedOutAtIsNullAndEmailIsNotNull();
+
+    List<AlumniRecord> findByPromotionYearAndClaimedByIsNullAndOptedOutAtIsNullAndEmailIsNotNull(Integer promotionYear);
+
+    boolean existsByClaimedBy(User user);
 }
