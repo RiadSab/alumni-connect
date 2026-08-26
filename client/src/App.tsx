@@ -10,6 +10,7 @@ import { RequireCandidate } from "@/routes/RequireCandidate";
 import { HomePage } from "@/pages/HomePage";
 import { JobDetailPage } from "@/pages/JobDetailPage";
 import { LoginPage } from "@/pages/LoginPage";
+import { ClaimAccountPage } from "@/pages/ClaimAccountPage";
 import { ForgotPasswordPage } from "@/pages/ForgotPasswordPage";
 import { RegisterCandidatePage } from "@/pages/RegisterCandidatePage";
 import { RegisterCompanyPage } from "@/pages/RegisterCompanyPage";
@@ -43,6 +44,7 @@ function App() {
           <Route path="jobs/:id" element={<JobDetailPage />} />
           <Route path="login" element={<LoginPage />} />
           <Route path="forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="claim/:token" element={<ClaimAccountPage />} />
           <Route path="register/candidate" element={<RegisterCandidatePage />} />
           <Route path="register/company" element={<RegisterCompanyPage />} />
           <Route path="register/company-member" element={<RegisterCompanyMemberPage />} />
