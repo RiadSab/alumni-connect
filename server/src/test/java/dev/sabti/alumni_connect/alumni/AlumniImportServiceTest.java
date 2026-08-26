@@ -118,6 +118,19 @@ class AlumniImportServiceTest {
     }
 
     @Test
+    void import_optedOutRecord_keepsItsEmailCleared() {
+        AlumniRecord optedOut = new AlumniRecord();
+        optedOut.setStudentId("2210");
+        optedOut.setOptedOutAt(java.time.LocalDateTime.now());
+        when(alumniRecordRepository.findByStudentId("2210")).thenReturn(Optional.of(optedOut));
+
+        service.importCsv(csv("2210,Reda,Naciri,Physics,2024,reda@example.com\n"), false);
+
+        assertThat(optedOut.getEmail()).isNull();
+        assertThat(optedOut.getFirstName()).isEqualTo("Reda");
+    }
+
+    @Test
     void import_dryRun_writesNothing() {
         when(alumniRecordRepository.findByStudentId(anyString())).thenReturn(Optional.empty());
 
