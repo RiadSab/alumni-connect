@@ -79,7 +79,8 @@ public class AlumniImportService {
                     if (!dryRun) alumniRecordRepository.save(record);
                     if (existing.isPresent()) updated++; else created++;
                 } catch (BadRequestException e) {
-                    errors.add(new AlumniImportResultDTO.RowError(row.getRecordNumber(), e.getMessage()));
+                    // +1 so the number matches the line the admin sees in the file, header included.
+                    errors.add(new AlumniImportResultDTO.RowError(row.getRecordNumber() + 1, e.getMessage()));
                 }
             }
         } catch (IOException e) {
