@@ -124,9 +124,14 @@ function ProfileHeader({ profile }: { profile: CandidateProfileDTO }) {
             {photoError && <p className="mt-1 text-sm text-destructive">{photoError}</p>}
           </div>
         </div>
-        <Button variant="outline" size="sm" asChild>
-          <Link to="/profile/edit">{t("profile.edit")}</Link>
-        </Button>
+        <div className="flex shrink-0 flex-wrap gap-2">
+          <Button variant="outline" size="sm" asChild>
+            <Link to="/profile/employment">{t("employment.link")}</Link>
+          </Button>
+          <Button variant="outline" size="sm" asChild>
+            <Link to="/profile/edit">{t("profile.edit")}</Link>
+          </Button>
+        </div>
       </div>
       <div className="mt-5 grid gap-3 sm:grid-cols-2">
         <Row label={t("profile.email")}>
