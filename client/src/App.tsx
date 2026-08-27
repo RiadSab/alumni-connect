@@ -33,6 +33,7 @@ import { CompanyTeamPage } from "@/pages/CompanyTeamPage";
 import { AdminPendingPage } from "@/pages/AdminPendingPage";
 import { AdminUsersPage } from "@/pages/AdminUsersPage";
 import { AdminAlumniPage } from "@/pages/AdminAlumniPage";
+import { AdminReportsPage } from "@/pages/AdminReportsPage";
 import { AdminCompaniesPage } from "@/pages/AdminCompaniesPage";
 import { NotFoundPage } from "@/pages/NotFoundPage";
 
@@ -85,6 +86,7 @@ function App() {
               <Route path="admin/users" element={<AdminUsersPage />} />
               <Route path="admin/companies" element={<AdminCompaniesPage />} />
               <Route path="admin/alumni" element={<AdminAlumniPage />} />
+              <Route path="admin/reports" element={<AdminReportsPage />} />
             </Route>
           </Route>
 
