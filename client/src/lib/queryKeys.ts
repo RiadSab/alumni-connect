@@ -57,6 +57,12 @@ export const queryKeys = {
     resume: (id: number) => ["jobApplications", "byId", id, "resume"] as const,
   },
 
+  reports: {
+    all: () => ["reports"] as const,
+    promotions: () => ["reports", "promotions"] as const,
+    employment: (promotionYear: number | null) => ["reports", "employment", promotionYear] as const,
+  },
+
   employment: {
     all: () => ["employment"] as const,
     mine: () => ["employment", "mine"] as const,
