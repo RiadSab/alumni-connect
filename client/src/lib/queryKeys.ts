@@ -57,6 +57,12 @@ export const queryKeys = {
     resume: (id: number) => ["jobApplications", "byId", id, "resume"] as const,
   },
 
+  employment: {
+    all: () => ["employment"] as const,
+    mine: () => ["employment", "mine"] as const,
+    confirm: (token: string) => ["employment", "confirm", token] as const,
+  },
+
   alumni: {
     all: () => ["alumni"] as const,
     records: (filters?: AlumniRecordFilters) => ["alumni", "records", filters] as const,
