@@ -156,6 +156,10 @@ export const Priority = ["LOW", "MEDIUM", "HIGH"] as const;
 export type Priority = (typeof Priority)[number];
 export const priorityOptions = toOptions(Priority);
 
+export const EmploymentStatus = ["EMPLOYED", "STUDYING", "SEEKING"] as const;
+export type EmploymentStatus = (typeof EmploymentStatus)[number];
+export const employmentStatusOptions = toOptions(EmploymentStatus, { SEEKING: "Looking for a role" });
+
 export const InterviewMode = ["ONLINE", "ONSITE"] as const;
 export type InterviewMode = (typeof InterviewMode)[number];
 export const interviewModeOptions = toOptions(InterviewMode, { ONSITE: "On site" });
