@@ -40,4 +40,6 @@ public class EmploymentEntry extends BaseEntity {
 
     // Set when the alumnus answers the yearly nudge or edits the entry: how stale the row is.
     private LocalDateTime lastConfirmedAt;
+
+    private LocalDateTime lastNudgedAt;
 }
