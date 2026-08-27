@@ -10,6 +10,7 @@ import { RequireCandidate } from "@/routes/RequireCandidate";
 import { HomePage } from "@/pages/HomePage";
 import { JobDetailPage } from "@/pages/JobDetailPage";
 import { LoginPage } from "@/pages/LoginPage";
+import { ConfirmEmploymentPage } from "@/pages/ConfirmEmploymentPage";
 import { ClaimAccountPage } from "@/pages/ClaimAccountPage";
 import { ForgotPasswordPage } from "@/pages/ForgotPasswordPage";
 import { RegisterCandidatePage } from "@/pages/RegisterCandidatePage";
@@ -18,6 +19,7 @@ import { RegisterCompanyMemberPage } from "@/pages/RegisterCompanyMemberPage";
 import { DashboardPage } from "@/pages/DashboardPage";
 import { MyApplicationsPage } from "@/pages/MyApplicationsPage";
 import { ApplicationDetailPage } from "@/pages/ApplicationDetailPage";
+import { EmploymentPage } from "@/pages/EmploymentPage";
 import { SavedJobsPage } from "@/pages/SavedJobsPage";
 import { ProfilePage } from "@/pages/ProfilePage";
 import { ProfileEditPage } from "@/pages/ProfileEditPage";
@@ -45,6 +47,7 @@ function App() {
           <Route path="login" element={<LoginPage />} />
           <Route path="forgot-password" element={<ForgotPasswordPage />} />
           <Route path="claim/:token" element={<ClaimAccountPage />} />
+          <Route path="employment/confirm/:token" element={<ConfirmEmploymentPage />} />
           <Route path="register/candidate" element={<RegisterCandidatePage />} />
           <Route path="register/company" element={<RegisterCompanyPage />} />
           <Route path="register/company-member" element={<RegisterCompanyMemberPage />} />
@@ -63,6 +66,7 @@ function App() {
               <Route path="applications" element={<MyApplicationsPage />} />
               <Route path="applications/:id" element={<ApplicationDetailPage />} />
               <Route path="saved" element={<SavedJobsPage />} />
+              <Route path="profile/employment" element={<EmploymentPage />} />
             </Route>
 
             {/* Company users only */}
