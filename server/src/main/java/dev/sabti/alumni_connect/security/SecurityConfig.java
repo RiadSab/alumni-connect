@@ -74,6 +74,8 @@ public class SecurityConfig {
                     .requestMatchers(HttpMethod.POST, "/api/job-offers/*/apply").hasRole("CANDIDATE")
                     // Claim links are their own credential, so these are open by design.
                     .requestMatchers("/api/alumni/claim/**").permitAll()
+                    // Answering the yearly nudge: the token in the link is the authentication.
+                    .requestMatchers("/api/employment/confirm/**").permitAll()
                     .requestMatchers("/api/admin/**").hasRole("ADMINISTRATOR")
                     .anyRequest().authenticated()
                 )
