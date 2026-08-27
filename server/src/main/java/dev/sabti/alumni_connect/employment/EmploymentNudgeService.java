@@ -110,7 +110,7 @@ public class EmploymentNudgeService {
                 + "Still right? Confirm it here:\n"
                 + frontendUrl + "/employment/confirm/" + rawToken + "\n\n"
                 + "If it has changed, sign in and update it:\n"
-                + frontendUrl + "/profile/edit";
+                + frontendUrl + "/profile/employment";
     }
 
     private String summary(EmploymentEntry entry) {
