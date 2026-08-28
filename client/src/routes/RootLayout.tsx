@@ -2,10 +2,11 @@
 
 import { useState } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { ChevronDown, LogOut, Menu, Settings, User } from "lucide-react";
+import { Bell, ChevronDown, LogOut, Menu, Settings, User } from "lucide-react";
 import { useAuth } from "@/features/auth/auth-context";
 import { useMyPhotoUrl } from "@/features/candidates/hooks";
 import { useT, type Lang } from "@/features/i18n/lang-context";
+import { useUnreadNotificationCount } from "@/features/notifications/hooks";
 import type { AuthUser } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -91,6 +92,7 @@ export function RootLayout() {
           </div>
 
           <div className="hidden items-center gap-3 md:flex">
+            {isCandidate && <NotificationBell />}
             <LangToggle />
             {isAuthenticated && user ? (
               <UserMenu user={user} onLogout={handleLogout} />
@@ -127,6 +129,11 @@ export function RootLayout() {
                     {item.label}
                   </NavLink>
                 ))}
+                {isCandidate && (
+                  <NavLink to="/notifications" className={navLinkClass} onClick={() => setMenuOpen(false)}>
+                    {t("nav.notifications")}
+                  </NavLink>
+                )}
                 {isAdmin && (
                   <>
                     <p className="mt-3 px-3 text-xs font-medium uppercase tracking-wider text-[var(--color-stone)]">
@@ -298,6 +305,28 @@ function ModerateMenu() {
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
+  );
+}
+
+// Unread count only: the list itself lives on /notifications.
+function NotificationBell() {
+  const { t } = useT();
+  const { data } = useUnreadNotificationCount();
+  const count = data?.count ?? 0;
+
+  return (
+    <Link
+      to="/notifications"
+      aria-label={t("nav.notifications")}
+      className="relative grid size-9 place-items-center rounded-md text-[var(--color-steel)] transition-colors hover:bg-[var(--color-surface)] hover:text-foreground"
+    >
+      <Bell className="size-5" />
+      {count > 0 && (
+        <span className="absolute -right-0.5 -top-0.5 grid min-w-4 place-items-center rounded-full bg-[var(--color-brand-purple-800)] px-1 text-[10px] font-semibold text-white">
+          {count > 9 ? "9+" : count}
+        </span>
+      )}
+    </Link>
   );
 }
 
