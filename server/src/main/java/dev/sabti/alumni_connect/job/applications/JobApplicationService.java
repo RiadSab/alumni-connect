@@ -15,6 +15,8 @@ import dev.sabti.alumni_connect.job.entities.JobOffer;
 import dev.sabti.alumni_connect.job.entities.JobStatus;
 import dev.sabti.alumni_connect.job.repositories.JobApplicationRepository;
 import dev.sabti.alumni_connect.job.repositories.JobOfferRepository;
+import dev.sabti.alumni_connect.notification.NotificationService;
+import dev.sabti.alumni_connect.notification.NotificationType;
 import dev.sabti.alumni_connect.shared.email.EmailSender;
 import dev.sabti.alumni_connect.shared.exception.BadRequestException;
 import dev.sabti.alumni_connect.shared.exception.ConflictException;
@@ -52,6 +54,7 @@ public class JobApplicationService {
     private final CompanyUserProfileRepository companyUserProfileRepository;
     private final StoredFileService storedFileService;
     private final EmailSender emailSender;
+    private final NotificationService notificationService;
 
     @Value("${app.frontend-url}")
     private String frontendUrl;
@@ -214,6 +217,7 @@ public class JobApplicationService {
         boolean outcomeChanged = saved.getApplicationStatus() != previousStatus
                 && NOTIFIED_STATUSES.contains(saved.getApplicationStatus());
         if (scheduling || outcomeChanged) {
+            recordNotification(saved);
             notifyApplicant(saved);
         }
 
@@ -250,6 +254,22 @@ public class JobApplicationService {
 
     private boolean isBlank(String value) {
         return value == null || value.isBlank();
+    }
+
+    // The in-app copy of the same news. Written before the email so a mail outage can't lose it.
+    private void recordNotification(JobApplication application) {
+        NotificationType type = switch (application.getApplicationStatus()) {
+            case ACCEPTED -> NotificationType.APPLICATION_ACCEPTED;
+            case REJECTED -> NotificationType.APPLICATION_REJECTED;
+            case SCHEDULED_INTERVIEW -> NotificationType.INTERVIEW_SCHEDULED;
+            default -> null;
+        };
+        if (type == null) return;
+
+        notificationService.notify(application.getApplicant().getUser(), type,
+                application.getJobOffer().getTitle(),
+                application.getJobOffer().getCompany().getName(),
+                "/applications/" + application.getId());
     }
 
     private void notifyApplicant(JobApplication application) {
