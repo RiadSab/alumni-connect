@@ -23,6 +23,7 @@ import { EmploymentPage } from "@/pages/EmploymentPage";
 import { SavedJobsPage } from "@/pages/SavedJobsPage";
 import { ProfilePage } from "@/pages/ProfilePage";
 import { ProfileEditPage } from "@/pages/ProfileEditPage";
+import { NotificationsPage } from "@/pages/NotificationsPage";
 import { ChangePasswordPage } from "@/pages/ChangePasswordPage";
 import { CompanyJobOffersPage } from "@/pages/CompanyJobOffersPage";
 import { CompanyJobOfferCreatePage } from "@/pages/CompanyJobOfferCreatePage";
@@ -58,6 +59,7 @@ function App() {
             {/* Shared by every role */}
             <Route path="dashboard" element={<DashboardPage />} />
             <Route path="settings/password" element={<ChangePasswordPage />} />
+            <Route path="notifications" element={<NotificationsPage />} />
             {/* Candidate + company; the page dispatches by type (admins sent home) */}
             <Route path="profile" element={<ProfilePage />} />
             <Route path="profile/edit" element={<ProfileEditPage />} />
