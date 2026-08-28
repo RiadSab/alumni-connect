@@ -1,5 +1,6 @@
 package dev.sabti.alumni_connect.auth.register;
 
+import dev.sabti.alumni_connect.alumni.AlumniClaimService;
 import dev.sabti.alumni_connect.candidate.CandidateProfile;
 import dev.sabti.alumni_connect.auth.entities.User;
 import dev.sabti.alumni_connect.auth.entities.UserType;
@@ -26,6 +27,7 @@ public class RegisterService {
     private final CompanyRepository companyRepository;
     private final CompanyUserProfileRepository companyUserProfileRepository;
     private final PasswordEncoder passwordEncoder;
+    private final AlumniClaimService alumniClaimService;
 
     @Transactional
     public User registerCandidate(RegisterCandidateDTO dto) {
@@ -53,6 +55,10 @@ public class RegisterService {
         profile.setPortfolioUrl(dto.getPortfolioUrl());
         profile.setBio(dto.getBio());
         candidateProfileRepository.save(profile);
+
+        // If the school's roster already has this address, this is the graduate the claim invite
+        // would have gone to: link them now so they count in their promotion's figures.
+        alumniClaimService.linkByEmail(user, profile);
 
         return user;
     }
