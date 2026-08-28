@@ -7,6 +7,7 @@ import type { CompanyListParams } from "@/types/company";
 import type { JobOfferFilters } from "@/types/jobOffer";
 import type { ApplicationFilters, MyApplicationFilters } from "@/types/jobApplication";
 import type { AlumniRecordFilters } from "@/types/alumni";
+import type { NotificationFilters } from "@/types/notification";
 import type { AdminUserFilters, AdminCompanyFilters } from "@/types/admin";
 
 export const queryKeys = {
@@ -55,6 +56,13 @@ export const queryKeys = {
     byId: (id: number) => ["jobApplications", "byId", id] as const,
     applicant: (id: number) => ["jobApplications", "byId", id, "applicant"] as const,
     resume: (id: number) => ["jobApplications", "byId", id, "resume"] as const,
+  },
+
+  notifications: {
+    all: () => ["notifications"] as const,
+    list: (params?: NotificationFilters) => ["notifications", "list", params] as const,
+    unread: () => ["notifications", "unread"] as const,
+    unreadCount: () => ["notifications", "unreadCount"] as const,
   },
 
   reports: {
