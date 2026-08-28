@@ -16,6 +16,8 @@ import dev.sabti.alumni_connect.job.entities.Priority;
 import dev.sabti.alumni_connect.job.entities.JobStatus;
 import dev.sabti.alumni_connect.job.repositories.JobApplicationRepository;
 import dev.sabti.alumni_connect.job.repositories.JobOfferRepository;
+import dev.sabti.alumni_connect.notification.NotificationService;
+import dev.sabti.alumni_connect.notification.NotificationType;
 import dev.sabti.alumni_connect.shared.email.EmailSender;
 import dev.sabti.alumni_connect.shared.exception.BadRequestException;
 import dev.sabti.alumni_connect.shared.exception.ConflictException;
@@ -67,6 +69,7 @@ class JobApplicationServiceTest {
     @Mock private CompanyUserProfileRepository companyUserProfileRepository;
     @Mock private StoredFileService storedFileService;
     @Mock private EmailSender emailSender;
+    @Mock private NotificationService notificationService;
     @InjectMocks private JobApplicationService service;
 
     // Both are @Value fields, so Mockito leaves them null.
@@ -537,6 +540,8 @@ class JobApplicationServiceTest {
 
         verify(emailSender).send(eq("applicant@example.com"),
                 contains("Backend Engineer"), contains("accepted"));
+        verify(notificationService).notify(any(), eq(NotificationType.APPLICATION_ACCEPTED),
+                eq("Backend Engineer"), eq("Acme"), eq("/applications/5"));
     }
 
     @Test
