@@ -7,6 +7,7 @@ import dev.sabti.alumni_connect.auth.entities.User;
 import dev.sabti.alumni_connect.auth.entities.UserStatus;
 import dev.sabti.alumni_connect.auth.entities.UserType;
 import dev.sabti.alumni_connect.auth.repositories.UserRepository;
+import dev.sabti.alumni_connect.candidate.CandidateProfile;
 import dev.sabti.alumni_connect.candidate.CandidateProfileRepository;
 import dev.sabti.alumni_connect.shared.email.EmailSender;
 import org.junit.jupiter.api.BeforeEach;
@@ -185,5 +186,33 @@ class AlumniClaimIntegrationTest {
     void unknownTokenIsRejected() throws Exception {
         mvc.perform(get("/api/alumni/claim/not-a-real-token"))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void registeringWithARosterAddressLinksTheGraduateWithoutAnAdmin() throws Exception {
+        AlumniRecord before = graduate("2409", "mohammed@example.com");
+        assertThat(before.getClaimedBy()).isNull();
+
+        mvc.perform(post("/api/auth/register/candidate")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "firstName": "Mohammed", "lastName": "El Fassi",
+                                  "email": "%s", "password": "%s",
+                                  "phoneNumber": "0600000000", "isStudent": false,
+                                  "fieldOfStudy": "PHYSICS", "graduationYear": 1999
+                                }
+                                """.formatted(before.getEmail(), PASSWORD)))
+                .andExpect(status().isCreated());
+
+        AlumniRecord after = records.findByStudentId("2409").orElseThrow();
+        assertThat(after.getClaimedBy()).isNotNull();
+        assertThat(after.getClaimedAt()).isNotNull();
+
+        // The school's list overrides what they typed about themselves.
+        CandidateProfile profile = profiles.findByUser(after.getClaimedBy()).orElseThrow();
+        assertThat(profile.getGraduationYear()).isEqualTo(after.getPromotionYear());
+        assertThat(profile.getFieldOfStudy()).isEqualTo(after.getFieldOfStudy());
+        assertThat(profile.getStudentId()).isEqualTo("2409");
     }
 }
