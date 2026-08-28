@@ -11,6 +11,12 @@ import { useRecommendedJobOffers } from "@/features/jobOffers/hooks";
 import { useMyCandidateProfile } from "@/features/candidates/hooks";
 import { CompanyLogo } from "@/features/jobOffers/CompanyLogo";
 import { useT } from "@/features/i18n/lang-context";
+import {
+  useMarkNotificationRead,
+  useUnreadNotifications,
+} from "@/features/notifications/hooks";
+import { notificationTextKeys } from "@/features/notifications/labels";
+import type { NotificationDTO } from "@/types/notification";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { applicationStatusOptions } from "@/types/enums";
@@ -39,12 +45,8 @@ export function CandidateDashboardPage() {
   const stats = useMyApplicationStats();
   const recentQuery = useMyApplications({ size: 5 });
   const recent = recentQuery.data?.content ?? [];
-  // An acceptance or scheduled interview to surface at the top, accepted first.
-  const highlightQuery = useMyApplications({ status: ["ACCEPTED", "SCHEDULED_INTERVIEW"], size: 10 });
-  const highlights = highlightQuery.data?.content ?? [];
-  const highlight =
-    highlights.find((a) => a.applicationStatus === "ACCEPTED") ??
-    highlights.find((a) => a.applicationStatus === "SCHEDULED_INTERVIEW");
+  // Unread notifications only: opening one marks it read, which is what takes it off this page.
+  const unread = useUnreadNotifications();
   const recommendedQuery = useRecommendedJobOffers({ size: 5 });
   const recommended = recommendedQuery.data?.content ?? [];
   const profile = useMyCandidateProfile();
@@ -56,7 +58,9 @@ export function CandidateDashboardPage() {
         {t("dash.welcome", { name: user?.firstName ?? "" })}
       </h1>
 
-      {highlight && <HighlightBanner application={highlight} />}
+      {(unread.data ?? []).slice(0, 3).map((notification) => (
+        <NotificationBanner key={notification.id} notification={notification} />
+      ))}
       {needsResume && <ResumeNudge />}
 
       {/* Compact stat tiles + inline shortcuts. */}
@@ -187,10 +191,11 @@ function RecentRow({ application }: { application: JobApplicationDTO }) {
   );
 }
 
-// A celebratory/actionable banner for the candidate's most important live status.
-function HighlightBanner({ application }: { application: JobApplicationDTO }) {
-  const { t, lang } = useT();
-  const accepted = application.applicationStatus === "ACCEPTED";
+// One unread notification, dismissed by opening it.
+function NotificationBanner({ notification }: { notification: NotificationDTO }) {
+  const { t } = useT();
+  const markRead = useMarkNotificationRead();
+  const accepted = notification.type === "APPLICATION_ACCEPTED";
   const tint = accepted
     ? "border-[var(--color-brand-green)] bg-[color-mix(in_srgb,var(--color-brand-green)_8%,#fff)]"
     : "border-[var(--color-brand-purple-800)] bg-[var(--color-tint-lavender)]";
@@ -199,25 +204,19 @@ function HighlightBanner({ application }: { application: JobApplicationDTO }) {
 
   return (
     <Link
-      to={`/applications/${application.id}`}
+      to={notification.link ?? "/notifications"}
+      onClick={() => markRead.mutate(notification.id)}
       className={`flex items-center gap-3 rounded-lg border px-4 py-3 transition-shadow hover:shadow-sm ${tint}`}
     >
       <Icon className={`size-5 shrink-0 ${iconColor}`} />
-      <div className="min-w-0 flex-1">
-        <span className="text-sm font-semibold text-foreground">
-          {accepted ? t("dash.highlight.accepted") : t("dash.highlight.interview")}
-        </span>
-        <span className="ml-2 text-sm text-[var(--color-slate)]">
-          {application.jobOfferTitle} · {application.companyName}
-          {application.interviewAt &&
-            ` · ${new Date(application.interviewAt).toLocaleString(lang, {
-              dateStyle: "medium",
-              timeStyle: "short",
-            })}`}
-        </span>
-      </div>
+      <span className="min-w-0 flex-1 text-sm font-semibold text-foreground">
+        {t(notificationTextKeys[notification.type], {
+          subject: notification.subject ?? "",
+          context: notification.context ?? "",
+        })}
+      </span>
       <span className="shrink-0 text-xs font-medium text-[var(--color-link-blue)]">
-        {t("dash.highlight.view")}
+        {t("dash.viewAll")}
       </span>
     </Link>
   );
