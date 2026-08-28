@@ -126,6 +126,20 @@ public class AlumniClaimService {
         claimTokenRepository.save(token);
     }
 
+    // Someone who registers with the address the school has on file is the person the invite would
+    // have reached, so link them straight away instead of leaving it to an admin. The account still
+    // waits for the usual approval — the address was never proven, only claimed.
+    @Transactional
+    public void linkByEmail(User user, CandidateProfile profile) {
+        if (user.getEmail() == null) return;
+        alumniRecordRepository
+                .findByEmailIgnoreCaseAndClaimedByIsNullAndOptedOutAtIsNull(user.getEmail())
+                .ifPresent(record -> {
+                    applySchoolFacts(profile, record);
+                    markClaimed(record, user);
+                });
+    }
+
     // Fallback for graduates the school has no address for: they register normally and an admin
     // links the account to their row.
     @Transactional
@@ -147,15 +161,17 @@ public class AlumniClaimService {
 
         CandidateProfile profile = candidateProfileRepository.findByUser(user)
                 .orElseThrow(() -> new BadRequestException("That account has no candidate profile"));
-        // The school's list outranks what the person typed about themselves — that's what
-        // linking is for.
+        applySchoolFacts(profile, record);
+        markClaimed(record, user);
+        return AlumniRecordDTO.from(record);
+    }
+
+    // The school's list outranks what the person typed about themselves — that's what linking is for.
+    private void applySchoolFacts(CandidateProfile profile, AlumniRecord record) {
         profile.setStudentId(record.getStudentId());
         profile.setFieldOfStudy(record.getFieldOfStudy());
         profile.setGraduationYear(record.getPromotionYear());
         candidateProfileRepository.save(profile);
-
-        markClaimed(record, user);
-        return AlumniRecordDTO.from(record);
     }
 
     private void markClaimed(AlumniRecord record, User user) {

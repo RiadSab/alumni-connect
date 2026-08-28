@@ -26,6 +26,8 @@ public interface AlumniRecordRepository extends JpaRepository<AlumniRecord, Long
 
     boolean existsByClaimedBy(User user);
 
+    Optional<AlumniRecord> findByEmailIgnoreCaseAndClaimedByIsNullAndOptedOutAtIsNull(String email);
+
     long countByPromotionYear(Integer promotionYear);
 
     long countByPromotionYearAndClaimedByIsNotNull(Integer promotionYear);
