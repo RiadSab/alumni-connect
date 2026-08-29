@@ -6,10 +6,13 @@ import { candidatesApi } from "@/api/candidates";
 import { queryKeys } from "@/lib/queryKeys";
 import type { UpdateCandidateProfileDTO } from "@/types/candidate";
 
-export function useMyCandidateProfile() {
+// enabled is passed by callers that render for every user type — /candidates/me is a 403 for the
+// rest, and a failing query on every page would retry on every navigation.
+export function useMyCandidateProfile(enabled = true) {
   return useQuery({
     queryKey: queryKeys.candidate.me(),
     queryFn: () => candidatesApi.me(),
+    enabled,
   });
 }
 
