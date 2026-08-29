@@ -132,7 +132,9 @@ public class MentoringService {
             throw new BadRequestException("You can't book your own slot");
         }
 
-        long used = bookingsThisSemester(student);
+        // Counted against the semester the session falls in, not today's: booking August for
+        // September must spend September's quota, or a student books next term's supply for free.
+        long used = bookingsInSemesterOf(student, slot.getStartsAt());
         if (used >= bookingsPerSemester) {
             throw new ConflictException("You've used your " + bookingsPerSemester + " sessions for this semester");
         }
@@ -160,9 +162,11 @@ public class MentoringService {
                 .toList();
     }
 
+    // What the booking page shows: the quota for the semester we are in now.
     @Transactional(readOnly = true)
     public long remainingBookings(String email) {
-        return Math.max(0, bookingsPerSemester - bookingsThisSemester(studentProfile(email)));
+        CandidateProfile student = studentProfile(email);
+        return Math.max(0, bookingsPerSemester - bookingsInSemesterOf(student, OffsetDateTime.now()));
     }
 
     @Transactional
@@ -187,15 +191,16 @@ public class MentoringService {
 
     // --- helpers -------------------------------------------------------------
 
-    private long bookingsThisSemester(CandidateProfile student) {
+    private long bookingsInSemesterOf(CandidateProfile student, OffsetDateTime moment) {
         ZoneId zone = ZoneId.of(timezone);
-        LocalDate today = LocalDate.now(zone);
+        LocalDate day = moment.atZoneSameInstant(zone).toLocalDate();
+
         // The Moroccan academic year splits in two: September to January, February to August.
-        LocalDate from = today.getMonthValue() >= 9
-                ? LocalDate.of(today.getYear(), 9, 1)
-                : today.getMonthValue() <= 1
-                        ? LocalDate.of(today.getYear() - 1, 9, 1)
-                        : LocalDate.of(today.getYear(), 2, 1);
+        LocalDate from = day.getMonthValue() >= 9
+                ? LocalDate.of(day.getYear(), 9, 1)
+                : day.getMonthValue() <= 1
+                        ? LocalDate.of(day.getYear() - 1, 9, 1)
+                        : LocalDate.of(day.getYear(), 2, 1);
         LocalDate until = from.getMonthValue() == 9 ? from.plusMonths(5) : from.plusMonths(7);
 
         return bookingRepository.countInWindow(student, QUOTA_STATES,
