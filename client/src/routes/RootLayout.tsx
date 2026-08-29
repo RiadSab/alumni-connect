@@ -4,7 +4,7 @@ import { Suspense, useState } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { Bell, ChevronDown, LogOut, Menu, Settings, User } from "lucide-react";
 import { useAuth } from "@/features/auth/auth-context";
-import { useMyPhotoUrl } from "@/features/candidates/hooks";
+import { useMyCandidateProfile, useMyPhotoUrl } from "@/features/candidates/hooks";
 import { useT, type Lang } from "@/features/i18n/lang-context";
 import { useUnreadNotificationCount } from "@/features/notifications/hooks";
 import { PageFallback } from "@/routes/PageFallback";
@@ -44,6 +44,9 @@ export function RootLayout() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   const isCandidate = user?.userType === "CANDIDATE";
+  // Only candidates have a profile to read, so the query stays off for everyone else.
+  const profile = useMyCandidateProfile(isCandidate);
+  const isStudent = profile.data?.isStudent === true;
   const isCompany = user?.userType === "COMPANY_USER";
   const isAdmin = user?.userType === "ADMINISTRATOR";
   function handleLogout() {
@@ -57,6 +60,10 @@ export function RootLayout() {
     ...(isAuthenticated ? [{ to: "/dashboard", label: t("nav.dashboard") }] : []),
     ...(isCandidate ? [{ to: "/applications", label: t("nav.myApplications") }] : []),
     ...(isCandidate ? [{ to: "/saved", label: t("nav.saved") }] : []),
+    // Students book, graduates publish. The server still refuses a publish from anyone the
+    // school's roster doesn't know.
+    ...(isCandidate && isStudent ? [{ to: "/mentoring", label: t("nav.mentoring") }] : []),
+    ...(isCandidate && !isStudent ? [{ to: "/mentoring/slots", label: t("nav.mentorSlots") }] : []),
     ...(isCompany ? [{ to: "/company/jobs", label: t("nav.companyJobs") }] : []),
     ...(isCompany ? [{ to: "/company/team", label: t("nav.companyTeam") }] : []),
   ];

@@ -56,6 +56,8 @@ const MyApplicationsPage = lazyPage(() => import("@/pages/MyApplicationsPage"), 
 const ApplicationDetailPage = lazyPage(() => import("@/pages/ApplicationDetailPage"), "ApplicationDetailPage");
 const SavedJobsPage = lazyPage(() => import("@/pages/SavedJobsPage"), "SavedJobsPage");
 const EmploymentPage = lazyPage(() => import("@/pages/EmploymentPage"), "EmploymentPage");
+const MentoringPage = lazyPage(() => import("@/pages/MentoringPage"), "MentoringPage");
+const MentorSlotsPage = lazyPage(() => import("@/pages/MentorSlotsPage"), "MentorSlotsPage");
 
 const CompanyJobOffersPage = lazyPage(() => import("@/pages/CompanyJobOffersPage"), "CompanyJobOffersPage");
 const CompanyJobOfferCreatePage = lazyPage(() => import("@/pages/CompanyJobOfferCreatePage"), "CompanyJobOfferCreatePage");
@@ -102,6 +104,8 @@ function App() {
               <Route path="applications/:id" element={<ApplicationDetailPage />} />
               <Route path="saved" element={<SavedJobsPage />} />
               <Route path="profile/employment" element={<EmploymentPage />} />
+              <Route path="mentoring" element={<MentoringPage />} />
+              <Route path="mentoring/slots" element={<MentorSlotsPage />} />
             </Route>
 
             {/* Company users only */}
