@@ -57,6 +57,10 @@ app:
   frontend-url: ${FRONTEND_URL:http://localhost:5173}
   # Timezone interview times are written in when emailed.
   timezone: ${APP_TIMEZONE:Africa/Casablanca}
+  mentoring:
+    # Per student, per semester. The supply is volunteers, so it is deliberately small.
+    bookings-per-semester: ${MENTORING_BOOKINGS_PER_SEMESTER:3}
+    default-slot-minutes: 20
   auth:
     cookie-secure: ${COOKIE_SECURE:true} # set false for local http dev
   cors:
