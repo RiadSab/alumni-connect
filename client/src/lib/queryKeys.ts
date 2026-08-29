@@ -8,6 +8,7 @@ import type { JobOfferFilters } from "@/types/jobOffer";
 import type { ApplicationFilters, MyApplicationFilters } from "@/types/jobApplication";
 import type { AlumniRecordFilters } from "@/types/alumni";
 import type { NotificationFilters } from "@/types/notification";
+import type { SlotFilters } from "@/types/mentoring";
 import type { AdminUserFilters, AdminCompanyFilters } from "@/types/admin";
 
 export const queryKeys = {
@@ -56,6 +57,14 @@ export const queryKeys = {
     byId: (id: number) => ["jobApplications", "byId", id] as const,
     applicant: (id: number) => ["jobApplications", "byId", id, "applicant"] as const,
     resume: (id: number) => ["jobApplications", "byId", id, "resume"] as const,
+  },
+
+  mentoring: {
+    all: () => ["mentoring"] as const,
+    slots: (filters?: SlotFilters) => ["mentoring", "slots", filters] as const,
+    mySlots: () => ["mentoring", "mySlots"] as const,
+    myBookings: () => ["mentoring", "myBookings"] as const,
+    remaining: () => ["mentoring", "remaining"] as const,
   },
 
   notifications: {
