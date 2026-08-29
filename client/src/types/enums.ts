@@ -156,6 +156,20 @@ export const Priority = ["LOW", "MEDIUM", "HIGH"] as const;
 export type Priority = (typeof Priority)[number];
 export const priorityOptions = toOptions(Priority);
 
+export const MentoringTrack = [
+  "DSA",
+  "SYSTEM_DESIGN",
+  "BEHAVIORAL",
+  "FRENCH_PRACTICE",
+  "ENGLISH_PRACTICE",
+] as const;
+export type MentoringTrack = (typeof MentoringTrack)[number];
+export const mentoringTrackOptions = toOptions(MentoringTrack, {
+  DSA: "Data structures & algorithms",
+  FRENCH_PRACTICE: "French practice",
+  ENGLISH_PRACTICE: "English practice",
+});
+
 export const EmploymentStatus = ["EMPLOYED", "STUDYING", "SEEKING"] as const;
 export type EmploymentStatus = (typeof EmploymentStatus)[number];
 export const employmentStatusOptions = toOptions(EmploymentStatus, { SEEKING: "Looking for a role" });
