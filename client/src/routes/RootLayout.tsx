@@ -1,12 +1,13 @@
 // App shell: a sticky header (nav links, language toggle, user menu) over the routed page.
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { Bell, ChevronDown, LogOut, Menu, Settings, User } from "lucide-react";
 import { useAuth } from "@/features/auth/auth-context";
 import { useMyPhotoUrl } from "@/features/candidates/hooks";
 import { useT, type Lang } from "@/features/i18n/lang-context";
 import { useUnreadNotificationCount } from "@/features/notifications/hooks";
+import { PageFallback } from "@/routes/PageFallback";
 import type { AuthUser } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -195,7 +196,10 @@ export function RootLayout() {
       </header>
 
       <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
-        <Outlet />
+        {/* Pages load on demand; the header stays put while the chunk arrives. */}
+        <Suspense fallback={<PageFallback />}>
+          <Outlet />
+        </Suspense>
       </main>
     </div>
   );
