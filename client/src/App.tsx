@@ -1,42 +1,74 @@
-// Route table. RootLayout wraps every page (shared header). Pages under
-// RequireAuth need a logged-in user; the rest are public.
+// Route table. RootLayout wraps every page (shared header, and the Suspense boundary the lazy
+// pages below resolve into). Pages under RequireAuth need a logged-in user; the rest are public.
 
+import { lazy, type ComponentType } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { RootLayout } from "@/routes/RootLayout";
 import { RequireAuth } from "@/routes/RequireAuth";
 import { RequireCompany } from "@/routes/RequireCompany";
 import { RequireAdmin } from "@/routes/RequireAdmin";
 import { RequireCandidate } from "@/routes/RequireCandidate";
+
+// Eager: the first screen anyone sees, and the two pages that must work even when a chunk doesn't.
 import { HomePage } from "@/pages/HomePage";
-import { JobDetailPage } from "@/pages/JobDetailPage";
 import { LoginPage } from "@/pages/LoginPage";
-import { ConfirmEmploymentPage } from "@/pages/ConfirmEmploymentPage";
-import { ClaimAccountPage } from "@/pages/ClaimAccountPage";
-import { ForgotPasswordPage } from "@/pages/ForgotPasswordPage";
-import { RegisterCandidatePage } from "@/pages/RegisterCandidatePage";
-import { RegisterCompanyPage } from "@/pages/RegisterCompanyPage";
-import { RegisterCompanyMemberPage } from "@/pages/RegisterCompanyMemberPage";
-import { DashboardPage } from "@/pages/DashboardPage";
-import { MyApplicationsPage } from "@/pages/MyApplicationsPage";
-import { ApplicationDetailPage } from "@/pages/ApplicationDetailPage";
-import { EmploymentPage } from "@/pages/EmploymentPage";
-import { SavedJobsPage } from "@/pages/SavedJobsPage";
-import { ProfilePage } from "@/pages/ProfilePage";
-import { ProfileEditPage } from "@/pages/ProfileEditPage";
-import { NotificationsPage } from "@/pages/NotificationsPage";
-import { ChangePasswordPage } from "@/pages/ChangePasswordPage";
-import { CompanyJobOffersPage } from "@/pages/CompanyJobOffersPage";
-import { CompanyJobOfferCreatePage } from "@/pages/CompanyJobOfferCreatePage";
-import { CompanyJobOfferEditPage } from "@/pages/CompanyJobOfferEditPage";
-import { CompanyApplicantsPage } from "@/pages/CompanyApplicantsPage";
-import { CompanyApplicationReviewPage } from "@/pages/CompanyApplicationReviewPage";
-import { CompanyTeamPage } from "@/pages/CompanyTeamPage";
-import { AdminPendingPage } from "@/pages/AdminPendingPage";
-import { AdminUsersPage } from "@/pages/AdminUsersPage";
-import { AdminAlumniPage } from "@/pages/AdminAlumniPage";
-import { AdminReportsPage } from "@/pages/AdminReportsPage";
-import { AdminCompaniesPage } from "@/pages/AdminCompaniesPage";
 import { NotFoundPage } from "@/pages/NotFoundPage";
+
+const RELOADED = "chunk-reloaded";
+
+// Pages are named exports and lazy() wants a default. A failed import almost always means a deploy
+// replaced the hashed chunks under an open tab, so reload once to pick up the new index.
+function lazyPage<M extends Record<string, ComponentType>, K extends keyof M>(
+  load: () => Promise<M>,
+  name: K,
+) {
+  return lazy(() =>
+    load()
+      .then((module) => {
+        sessionStorage.removeItem(RELOADED);
+        return { default: module[name] };
+      })
+      .catch((error: unknown) => {
+        if (sessionStorage.getItem(RELOADED) !== null) throw error;
+        sessionStorage.setItem(RELOADED, "1");
+        window.location.reload();
+        // The reload takes over; never resolving keeps the fallback on screen until it does.
+        return new Promise<never>(() => {});
+      }),
+  );
+}
+
+const JobDetailPage = lazyPage(() => import("@/pages/JobDetailPage"), "JobDetailPage");
+const ForgotPasswordPage = lazyPage(() => import("@/pages/ForgotPasswordPage"), "ForgotPasswordPage");
+const ClaimAccountPage = lazyPage(() => import("@/pages/ClaimAccountPage"), "ClaimAccountPage");
+const ConfirmEmploymentPage = lazyPage(() => import("@/pages/ConfirmEmploymentPage"), "ConfirmEmploymentPage");
+const RegisterCandidatePage = lazyPage(() => import("@/pages/RegisterCandidatePage"), "RegisterCandidatePage");
+const RegisterCompanyPage = lazyPage(() => import("@/pages/RegisterCompanyPage"), "RegisterCompanyPage");
+const RegisterCompanyMemberPage = lazyPage(() => import("@/pages/RegisterCompanyMemberPage"), "RegisterCompanyMemberPage");
+
+const DashboardPage = lazyPage(() => import("@/pages/DashboardPage"), "DashboardPage");
+const ChangePasswordPage = lazyPage(() => import("@/pages/ChangePasswordPage"), "ChangePasswordPage");
+const NotificationsPage = lazyPage(() => import("@/pages/NotificationsPage"), "NotificationsPage");
+const ProfilePage = lazyPage(() => import("@/pages/ProfilePage"), "ProfilePage");
+const ProfileEditPage = lazyPage(() => import("@/pages/ProfileEditPage"), "ProfileEditPage");
+
+const MyApplicationsPage = lazyPage(() => import("@/pages/MyApplicationsPage"), "MyApplicationsPage");
+const ApplicationDetailPage = lazyPage(() => import("@/pages/ApplicationDetailPage"), "ApplicationDetailPage");
+const SavedJobsPage = lazyPage(() => import("@/pages/SavedJobsPage"), "SavedJobsPage");
+const EmploymentPage = lazyPage(() => import("@/pages/EmploymentPage"), "EmploymentPage");
+
+const CompanyJobOffersPage = lazyPage(() => import("@/pages/CompanyJobOffersPage"), "CompanyJobOffersPage");
+const CompanyJobOfferCreatePage = lazyPage(() => import("@/pages/CompanyJobOfferCreatePage"), "CompanyJobOfferCreatePage");
+const CompanyJobOfferEditPage = lazyPage(() => import("@/pages/CompanyJobOfferEditPage"), "CompanyJobOfferEditPage");
+const CompanyApplicantsPage = lazyPage(() => import("@/pages/CompanyApplicantsPage"), "CompanyApplicantsPage");
+const CompanyApplicationReviewPage = lazyPage(() => import("@/pages/CompanyApplicationReviewPage"), "CompanyApplicationReviewPage");
+const CompanyTeamPage = lazyPage(() => import("@/pages/CompanyTeamPage"), "CompanyTeamPage");
+
+const AdminPendingPage = lazyPage(() => import("@/pages/AdminPendingPage"), "AdminPendingPage");
+const AdminUsersPage = lazyPage(() => import("@/pages/AdminUsersPage"), "AdminUsersPage");
+const AdminCompaniesPage = lazyPage(() => import("@/pages/AdminCompaniesPage"), "AdminCompaniesPage");
+const AdminAlumniPage = lazyPage(() => import("@/pages/AdminAlumniPage"), "AdminAlumniPage");
+const AdminReportsPage = lazyPage(() => import("@/pages/AdminReportsPage"), "AdminReportsPage");
 
 function App() {
   return (
