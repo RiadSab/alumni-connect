@@ -36,6 +36,7 @@ class MentoringServiceTest {
     @Mock private CandidateProfileRepository candidateProfileRepository;
     @Mock private UserRepository userRepository;
     @Mock private AlumniRecordRepository alumniRecordRepository;
+    @Mock private MentoringSessionService sessionService;
     @InjectMocks private MentoringService service;
 
     private static final String MENTOR = "mentor@example.com";
@@ -186,7 +187,7 @@ class MentoringServiceTest {
     }
 
     @Test
-    void book_marksTheSlotTakenAndReturnsTheLink() {
+    void book_marksTheSlotTakenAndHoldsTheLinkBackUntilTheSession() {
         CandidateProfile student = profile(2L, STUDENT, true);
         MentoringSlot slot = openSlot(plainProfile(1L));
         when(slotRepository.findById(9L)).thenReturn(Optional.of(slot));
@@ -197,8 +198,52 @@ class MentoringServiceTest {
 
         assertThat(slot.getStatus()).isEqualTo(SlotStatus.BOOKED);
         assertThat(result.state()).isEqualTo(BookingState.BOOKED);
-        // The two parties get the link; the browse list never does.
-        assertThat(result.meetingLink()).isEqualTo("https://meet.example.com/room");
+        // Three days out: the room address is not handed over yet.
+        assertThat(result.meetingLink()).isNull();
+    }
+
+    @Test
+    void book_whenTwoSessionsWereMissed_isRefused() {
+        CandidateProfile student = profile(2L, STUDENT, true);
+        MentoringSlot slot = openSlot(plainProfile(1L));
+        when(slotRepository.findById(9L)).thenReturn(Optional.of(slot));
+        when(bookingRepository.countByStudentAndState(student, BookingState.NO_SHOW)).thenReturn(2L);
+
+        assertThatThrownBy(() -> service.book(STUDENT, 9L))
+                .isInstanceOf(ForbiddenException.class)
+                .hasMessageContaining("paused after two missed sessions");
+        verify(bookingRepository, never()).save(any());
+    }
+
+    @Test
+    void markAttendance_beforeTheSession_throwsBadRequest() {
+        CandidateProfile mentor = asMentor();
+        MentoringSlot slot = openSlot(mentor);
+        MentoringBooking booking = new MentoringBooking();
+        booking.setId(4L);
+        booking.setSlot(slot);
+        booking.setState(BookingState.CONFIRMED);
+        when(bookingRepository.findById(4L)).thenReturn(Optional.of(booking));
+
+        assertThatThrownBy(() -> service.markAttendance(MENTOR, 4L, true))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessage("The session hasn't happened yet");
+    }
+
+    @Test
+    void markAttendance_afterTheSession_recordsTheNoShow() {
+        CandidateProfile mentor = asMentor();
+        MentoringSlot slot = openSlot(mentor);
+        slot.setStartsAt(OffsetDateTime.now().minusHours(2));
+        MentoringBooking booking = new MentoringBooking();
+        booking.setId(4L);
+        booking.setSlot(slot);
+        booking.setState(BookingState.CONFIRMED);
+        when(bookingRepository.findById(4L)).thenReturn(Optional.of(booking));
+
+        service.markAttendance(MENTOR, 4L, false);
+
+        assertThat(booking.getState()).isEqualTo(BookingState.NO_SHOW);
     }
 
     @Test

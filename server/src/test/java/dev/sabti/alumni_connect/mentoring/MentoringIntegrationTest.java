@@ -166,8 +166,8 @@ class MentoringIntegrationTest {
                         .header("Authorization", "Bearer " + student))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.state").value("BOOKED"))
-                // The two parties do get the link.
-                .andExpect(jsonPath("$.meetingLink").value("https://meet.example.com/room-4"))
+                // Four days out: the link is withheld until the join window opens.
+                .andExpect(jsonPath("$.meetingLink").doesNotExist())
                 .andReturn();
         long bookingId = json.readTree(booked.getResponse().getContentAsString()).get("id").asLong();
 
