@@ -2,8 +2,14 @@
 // the server unless the person is on the school's roster.
 
 import { useState } from "react";
-import { CalendarClock, Plus } from "lucide-react";
-import { useCancelSlot, useMySlots, usePublishSlot } from "@/features/mentoring/hooks";
+import { CalendarClock, Plus, Video } from "lucide-react";
+import {
+  useCancelSlot,
+  useMarkAttendance,
+  useMentorBookings,
+  useMySlots,
+  usePublishSlot,
+} from "@/features/mentoring/hooks";
 import { useT } from "@/features/i18n/lang-context";
 import { isApiError } from "@/lib/http";
 import { Button } from "@/components/ui/button";
@@ -18,7 +24,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { fieldsOptions, mentoringTrackOptions } from "@/types/enums";
-import type { MentoringSlotDTO } from "@/types/mentoring";
+import type { MentoringBookingDTO, MentoringSlotDTO } from "@/types/mentoring";
 
 export function MentorSlotsPage() {
   const { t } = useT();
@@ -32,6 +38,8 @@ export function MentorSlotsPage() {
       </div>
 
       <PublishForm />
+
+      <BookedSessions />
 
       {slots.isLoading ? (
         <Skeleton className="h-24 w-full rounded-lg" />
@@ -47,6 +55,91 @@ export function MentorSlotsPage() {
         </ul>
       )}
     </div>
+  );
+}
+
+// Who booked what, with the join link inside the window and the attendance call after it.
+function BookedSessions() {
+  const { t, lang } = useT();
+  const bookings = useMentorBookings();
+  const live = (bookings.data ?? []).filter(
+    (b) => b.state !== "CANCELLED_BY_STUDENT" && b.state !== "CANCELLED_BY_MENTOR",
+  );
+
+  if (live.length === 0) return null;
+
+  return (
+    <section className="space-y-3">
+      <h2 className="text-sm font-semibold uppercase tracking-wider text-[var(--color-stone)]">
+        {t("mentorSlots.sessions")}
+      </h2>
+      {live.map((booking) => (
+        <SessionRow key={booking.id} booking={booking} lang={lang} />
+      ))}
+    </section>
+  );
+}
+
+function SessionRow({ booking, lang }: { booking: MentoringBookingDTO; lang: string }) {
+  const { t } = useT();
+  const attendance = useMarkAttendance();
+  const track =
+    mentoringTrackOptions.find((o) => o.value === booking.slot.track)?.label ?? booking.slot.track;
+  // Read once on mount: a clock read during render is impure, and the attendance button doesn't
+  // need to be second-accurate.
+  const [now] = useState(() => Date.now());
+  const past = new Date(booking.slot.startsAt).getTime() < now;
+  const decided = booking.state === "ATTENDED" || booking.state === "NO_SHOW";
+
+  return (
+    <article className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-border bg-card p-4">
+      <div className="min-w-0">
+        <h3 className="text-base font-semibold text-foreground">{track}</h3>
+        <p className="mt-1 text-sm text-[var(--color-steel)]">
+          {new Date(booking.slot.startsAt).toLocaleString(lang, {
+            dateStyle: "medium",
+            timeStyle: "short",
+          })}
+          {" · "}
+          {t("mentorSlots.with", { name: booking.studentName })}
+        </p>
+      </div>
+
+      <div className="flex shrink-0 flex-wrap items-center gap-2">
+        {booking.meetingLink !== null && (
+          <Button size="sm" asChild>
+            <a href={booking.meetingLink} target="_blank" rel="noreferrer">
+              <Video className="size-4" /> {t("mentoring.join")}
+            </a>
+          </Button>
+        )}
+        {past && !decided && (
+          <>
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={attendance.isPending}
+              onClick={() => attendance.mutate({ id: booking.id, attended: true })}
+            >
+              {t("mentorSlots.attended")}
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              disabled={attendance.isPending}
+              onClick={() => attendance.mutate({ id: booking.id, attended: false })}
+            >
+              {t("mentorSlots.noShow")}
+            </Button>
+          </>
+        )}
+        {decided && (
+          <Badge variant="outline">
+            {booking.state === "ATTENDED" ? t("mentorSlots.attended") : t("mentorSlots.noShow")}
+          </Badge>
+        )}
+      </div>
+    </article>
   );
 }
 
