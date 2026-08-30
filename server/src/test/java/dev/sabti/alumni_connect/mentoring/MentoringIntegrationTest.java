@@ -35,7 +35,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 // The loop against a real Postgres: a graduate publishes, a student books, the cap bites, and
 // cancelling puts the hour back in the pool.
-@SpringBootTest(properties = "app.mentoring.bookings-per-semester=2")
+@SpringBootTest(properties = {
+        "app.mentoring.bookings-per-semester=2",
+        "app.mentoring.cron.confirm=-",
+        "app.mentoring.cron.release=-",
+        "app.mentoring.cron.remind=-"
+})
 @AutoConfigureMockMvc
 @Testcontainers
 class MentoringIntegrationTest {

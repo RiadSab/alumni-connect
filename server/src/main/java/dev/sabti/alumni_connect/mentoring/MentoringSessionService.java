@@ -103,7 +103,9 @@ public class MentoringSessionService {
     // --- sweeps -------------------------------------------------------------
 
     // Hourly rather than daily: a session booked 20 hours ahead still gets asked to confirm.
-    @Scheduled(cron = "0 5 * * * *")
+    // Cron is a property so a test can switch the sweep off with "-": a sweep firing mid-test
+    // would release the very bookings the test is asserting on.
+    @Scheduled(cron = "${app.mentoring.cron.confirm:0 5 * * * *}")
     @Transactional
     public void askForConfirmations() {
         OffsetDateTime now = OffsetDateTime.now();
@@ -124,7 +126,7 @@ public class MentoringSessionService {
         }
     }
 
-    @Scheduled(cron = "0 10 * * * *")
+    @Scheduled(cron = "${app.mentoring.cron.release:0 10 * * * *}")
     @Transactional
     public void releaseUnconfirmed() {
         OffsetDateTime cutoff = OffsetDateTime.now().plusHours(RELEASE_AFTER_HOURS);
@@ -151,7 +153,7 @@ public class MentoringSessionService {
         }
     }
 
-    @Scheduled(cron = "0 */15 * * * *")
+    @Scheduled(cron = "${app.mentoring.cron.remind:0 */15 * * * *}")
     @Transactional
     public void sendReminders() {
         OffsetDateTime now = OffsetDateTime.now();

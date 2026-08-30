@@ -45,7 +45,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 // The lifecycle around a booked session: the invite that lands in a calendar, the confirmation
 // asked a day out, the release of what nobody confirmed, and the join window.
-@SpringBootTest
+@SpringBootTest(properties = {
+        "app.mentoring.cron.confirm=-",
+        "app.mentoring.cron.release=-",
+        "app.mentoring.cron.remind=-"
+})
 @AutoConfigureMockMvc
 @Testcontainers
 class MentoringSessionIntegrationTest {
