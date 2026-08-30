@@ -35,6 +35,7 @@ public class MentoringService {
     private final CandidateProfileRepository candidateProfileRepository;
     private final UserRepository userRepository;
     private final AlumniRecordRepository alumniRecordRepository;
+    private final MentoringSessionService sessionService;
 
     @Value("${app.mentoring.bookings-per-semester}")
     private int bookingsPerSemester;
@@ -53,6 +54,9 @@ public class MentoringService {
     // A booking that currently holds its slot.
     private static final Set<BookingState> LIVE_STATES =
             Set.of(BookingState.BOOKED, BookingState.CONFIRMED);
+
+    // Supply is volunteers' time. Miss two sessions and booking stops until someone looks at it.
+    private static final int NO_SHOW_LIMIT = 2;
 
     private static final int MIN_MINUTES = 10;
     private static final int MAX_MINUTES = 90;
@@ -105,6 +109,7 @@ public class MentoringService {
             booking.setState(BookingState.CANCELLED_BY_MENTOR);
             booking.setCancelledAt(LocalDateTime.now());
             bookingRepository.save(booking);
+            sessionService.sessionCancelled(booking, true);
         });
 
         slot.setStatus(SlotStatus.CANCELLED);
@@ -134,6 +139,10 @@ public class MentoringService {
 
         // Counted against the semester the session falls in, not today's: booking August for
         // September must spend September's quota, or a student books next term's supply for free.
+        if (bookingRepository.countByStudentAndState(student, BookingState.NO_SHOW) >= NO_SHOW_LIMIT) {
+            throw new ForbiddenException("Booking is paused after two missed sessions — talk to the school");
+        }
+
         long used = bookingsInSemesterOf(student, slot.getStartsAt());
         if (used >= bookingsPerSemester) {
             throw new ConflictException("You've used your " + bookingsPerSemester + " sessions for this semester");
@@ -152,14 +161,47 @@ public class MentoringService {
         booking.setSlot(slot);
         booking.setStudent(student);
         booking.setState(BookingState.BOOKED);
-        return MentoringBookingDTO.from(bookingRepository.save(booking), true);
+        booking = bookingRepository.save(booking);
+
+        // Both sides get an email with a calendar invite; the mentor also gets an in-app notice.
+        sessionService.sessionBooked(booking);
+        return MentoringBookingDTO.from(booking, JoinWindow.isOpen(slot));
     }
 
+    // The link is only handed over inside the join window — see JoinWindow.
     @Transactional(readOnly = true)
     public List<MentoringBookingDTO> getMyBookings(String email) {
         return bookingRepository.findByStudentOrderByIdDesc(studentProfile(email)).stream()
-                .map(booking -> MentoringBookingDTO.from(booking, true))
+                .map(booking -> MentoringBookingDTO.from(booking, JoinWindow.isOpen(booking.getSlot())))
                 .toList();
+    }
+
+    // What the mentor sees: who booked which of their upcoming slots, and the attendance control.
+    @Transactional(readOnly = true)
+    public List<MentoringBookingDTO> getMentorBookings(String email) {
+        return bookingRepository.findForMentor(mentorProfile(email), OffsetDateTime.now().minusDays(7)).stream()
+                .map(booking -> MentoringBookingDTO.from(booking, JoinWindow.isOpen(booking.getSlot())))
+                .toList();
+    }
+
+    // Attendance is the mentor's call, and only once the session has actually happened.
+    @Transactional
+    public void markAttendance(String email, Long bookingId, boolean attended) {
+        CandidateProfile mentor = mentorProfile(email);
+        MentoringBooking booking = bookingRepository.findById(bookingId)
+                .orElseThrow(() -> new NotFoundException("Booking not found"));
+        if (!booking.getSlot().getMentor().getId().equals(mentor.getId())) {
+            throw new NotFoundException("Booking not found"); // not yours -> 404
+        }
+        if (booking.getSlot().getStartsAt().isAfter(OffsetDateTime.now())) {
+            throw new BadRequestException("The session hasn't happened yet");
+        }
+        if (!LIVE_STATES.contains(booking.getState())) {
+            throw new ConflictException("That booking is already closed");
+        }
+
+        booking.setState(attended ? BookingState.ATTENDED : BookingState.NO_SHOW);
+        bookingRepository.save(booking);
     }
 
     // What the booking page shows: the quota for the semester we are in now.
@@ -180,6 +222,7 @@ public class MentoringService {
         booking.setState(BookingState.CANCELLED_BY_STUDENT);
         booking.setCancelledAt(LocalDateTime.now());
         bookingRepository.save(booking);
+        sessionService.sessionCancelled(booking, false);
 
         // Back in the pool, so somebody else can still use the hour.
         MentoringSlot slot = booking.getSlot();

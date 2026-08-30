@@ -30,4 +30,11 @@ public class MentoringBooking extends BaseEntity {
     private LocalDateTime confirmedAt;
 
     private LocalDateTime cancelledAt;
+
+    // The 24h confirmation link: hashed, one live token per booking, spent when confirmedAt is set.
+    private String confirmTokenHash;
+
+    private LocalDateTime confirmSentAt;
+
+    private LocalDateTime remindedAt;
 }

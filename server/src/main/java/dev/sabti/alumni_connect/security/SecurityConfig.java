@@ -76,6 +76,8 @@ public class SecurityConfig {
                     .requestMatchers("/api/alumni/claim/**").permitAll()
                     // Answering the yearly nudge: the token in the link is the authentication.
                     .requestMatchers("/api/employment/confirm/**").permitAll()
+                    // Confirming a mock interview from the email link.
+                    .requestMatchers("/api/mentoring/confirm/**").permitAll()
                     .requestMatchers("/api/admin/**").hasRole("ADMINISTRATOR")
                     .anyRequest().authenticated()
                 )

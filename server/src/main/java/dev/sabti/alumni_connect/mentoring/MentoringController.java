@@ -64,6 +64,19 @@ public class MentoringController {
         return Map.of("remaining", mentoringService.remainingBookings(principal.getUsername()));
     }
 
+    @GetMapping("/bookings/mentor")
+    public List<MentoringBookingDTO> getMentorBookings(@AuthenticationPrincipal UserDetails principal) {
+        return mentoringService.getMentorBookings(principal.getUsername());
+    }
+
+    @PostMapping("/bookings/{id}/attendance")
+    public ResponseEntity<Void> markAttendance(@AuthenticationPrincipal UserDetails principal,
+                                               @PathVariable Long id,
+                                               @RequestParam boolean attended) {
+        mentoringService.markAttendance(principal.getUsername(), id, attended);
+        return ResponseEntity.noContent().build();
+    }
+
     @DeleteMapping("/bookings/{id}")
     public ResponseEntity<Void> cancelBooking(@AuthenticationPrincipal UserDetails principal, @PathVariable Long id) {
         mentoringService.cancelBooking(principal.getUsername(), id);
