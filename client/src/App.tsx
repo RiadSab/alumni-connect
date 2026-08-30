@@ -42,6 +42,7 @@ const JobDetailPage = lazyPage(() => import("@/pages/JobDetailPage"), "JobDetail
 const ForgotPasswordPage = lazyPage(() => import("@/pages/ForgotPasswordPage"), "ForgotPasswordPage");
 const ClaimAccountPage = lazyPage(() => import("@/pages/ClaimAccountPage"), "ClaimAccountPage");
 const ConfirmEmploymentPage = lazyPage(() => import("@/pages/ConfirmEmploymentPage"), "ConfirmEmploymentPage");
+const ConfirmSessionPage = lazyPage(() => import("@/pages/ConfirmSessionPage"), "ConfirmSessionPage");
 const RegisterCandidatePage = lazyPage(() => import("@/pages/RegisterCandidatePage"), "RegisterCandidatePage");
 const RegisterCompanyPage = lazyPage(() => import("@/pages/RegisterCompanyPage"), "RegisterCompanyPage");
 const RegisterCompanyMemberPage = lazyPage(() => import("@/pages/RegisterCompanyMemberPage"), "RegisterCompanyMemberPage");
@@ -84,6 +85,7 @@ function App() {
           <Route path="forgot-password" element={<ForgotPasswordPage />} />
           <Route path="claim/:token" element={<ClaimAccountPage />} />
           <Route path="employment/confirm/:token" element={<ConfirmEmploymentPage />} />
+          <Route path="mentoring/confirm/:token" element={<ConfirmSessionPage />} />
           <Route path="register/candidate" element={<RegisterCandidatePage />} />
           <Route path="register/company" element={<RegisterCompanyPage />} />
           <Route path="register/company-member" element={<RegisterCompanyMemberPage />} />
