@@ -193,6 +193,9 @@ function BookingRow({ booking }: { booking: MentoringBookingDTO }) {
         </p>
       </div>
       <div className="flex shrink-0 items-center gap-2">
+        {booking.meetingLink === null && (
+          <span className="text-xs text-[var(--color-slate)]">{t("mentoring.linkNote")}</span>
+        )}
         {booking.meetingLink !== null && (
           <Button size="sm" variant="outline" asChild>
             <a href={booking.meetingLink} target="_blank" rel="noreferrer">
