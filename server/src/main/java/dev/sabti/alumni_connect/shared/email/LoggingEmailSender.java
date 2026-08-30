@@ -14,4 +14,9 @@ public class LoggingEmailSender implements EmailSender {
     public void send(String to, String subject, String body) {
         log.info("[email] to={} subject=\"{}\"\n{}", to, subject, body);
     }
+
+    @Override
+    public void send(String to, String subject, String body, EmailAttachment attachment) {
+        log.info("[email] to={} subject=\"{}\" attachment={}\n{}", to, subject, attachment.filename(), body);
+    }
 }
