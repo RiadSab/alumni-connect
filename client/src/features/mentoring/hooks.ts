@@ -57,6 +57,36 @@ export function useBookSlot() {
   });
 }
 
+export function useMentorBookings() {
+  return useQuery({
+    queryKey: queryKeys.mentoring.mentorBookings(),
+    queryFn: () => mentoringApi.mentorBookings(),
+  });
+}
+
+export function useMarkAttendance() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { id: number; attended: boolean }) =>
+      mentoringApi.markAttendance(input.id, input.attended),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.mentoring.all() }),
+  });
+}
+
+export function useSessionConfirmDetails(token: string) {
+  return useQuery({
+    queryKey: queryKeys.mentoring.confirm(token),
+    queryFn: () => mentoringApi.confirmDetails(token),
+    retry: false,
+  });
+}
+
+export function useConfirmSession() {
+  return useMutation({
+    mutationFn: (token: string) => mentoringApi.confirm(token),
+  });
+}
+
 export function useCancelBooking() {
   const queryClient = useQueryClient();
   return useMutation({

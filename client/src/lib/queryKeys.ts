@@ -64,6 +64,8 @@ export const queryKeys = {
     slots: (filters?: SlotFilters) => ["mentoring", "slots", filters] as const,
     mySlots: () => ["mentoring", "mySlots"] as const,
     myBookings: () => ["mentoring", "myBookings"] as const,
+    mentorBookings: () => ["mentoring", "mentorBookings"] as const,
+    confirm: (token: string) => ["mentoring", "confirm", token] as const,
     remaining: () => ["mentoring", "remaining"] as const,
   },
 

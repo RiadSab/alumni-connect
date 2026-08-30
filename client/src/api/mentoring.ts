@@ -28,4 +28,15 @@ export const mentoringApi = {
   remaining: () => http.get<{ remaining: number }>("/mentoring/bookings/me/remaining"),
 
   cancelBooking: (id: number) => http.del<void>(`/mentoring/bookings/${id}`),
+
+  // Mentor side: who booked which of my slots, and did they turn up.
+  mentorBookings: () => http.get<MentoringBookingDTO[]>("/mentoring/bookings/mentor"),
+
+  markAttendance: (id: number, attended: boolean) =>
+    http.post<void>(`/mentoring/bookings/${id}/attendance`, { query: { attended } }),
+
+  // Public: the token from the confirmation email is the authentication.
+  confirmDetails: (token: string) => http.get<MentoringBookingDTO>(`/mentoring/confirm/${token}`),
+
+  confirm: (token: string) => http.post<void>(`/mentoring/confirm/${token}`),
 };
