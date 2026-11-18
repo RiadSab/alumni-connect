@@ -204,13 +204,10 @@ public class JobApplicationService {
 
     @Transactional
     public JobApplicationDTO review(String reviewerEmail, Long applicationId, ReviewApplicationDTO dto) {
-        // TODO: Reject all company review of withdrawn applications, including note-only updates.
-        // TODO recruiter review should not withdraw a candidate application, only candidate can withdraw his application
         JobApplication application = jobApplicationRepository.findById(applicationId)
                 .orElseThrow(() -> new NotFoundException("Application not found"));
 
-        Long postingCompanyId = application.getJobOffer().getCompany().getId();
-        CompanyUserProfile reviewer = resolveReviewerForCompany(reviewerEmail, postingCompanyId)
+        CompanyUserProfile reviewer = resolveReviewerForApplication(reviewerEmail, application)
                 .orElseThrow(() -> new NotFoundException("Application not found"));  // not your company -> 404
 
         ApplicationStatus previousStatus = application.getApplicationStatus();
@@ -218,10 +215,6 @@ public class JobApplicationService {
 
         if(requestedStatus == ApplicationStatus.WITHDRAWN){
             throw new BadRequestException("Only candidates can withdraw an application");
-        }
-
-        if(previousStatus == ApplicationStatus.WITHDRAWN && requestedStatus != null){
-            throw new BadRequestException("A withdrawn application cannot change status");
         }
 
         // TODO : validate interview requirements: link...
@@ -339,7 +332,6 @@ public class JobApplicationService {
 
     @Transactional(readOnly = true)
     public JobApplicationDTO getApplicationById(String callerEmail, Long applicationId) {
-        // TODO: Hide withdrawn applications from company users; preserve applicant access.
         JobApplication application = jobApplicationRepository.findById(applicationId)
                 .orElseThrow(() -> new NotFoundException("Application not found"));
         if (isApplicant(callerEmail, application)) {
@@ -347,7 +339,7 @@ public class JobApplicationService {
             // in JobApplicationDTO.forApplicant; cover all applicant response paths.
             return JobApplicationDTO.forApplicant(application);
         }
-        if (resolveReviewerForCompany(callerEmail, application.getJobOffer().getCompany().getId()).isEmpty()) {
+        if (resolveReviewerForApplication(callerEmail, application).isEmpty()) {
             throw new NotFoundException("Application not found");  // not yours -> 404, not probeable
         }
         return JobApplicationDTO.from(application);
@@ -356,7 +348,6 @@ public class JobApplicationService {
 
     @Transactional(readOnly = true)
     public FileDownload getApplicationResume(String callerEmail, Long applicationId) {
-        // TODO: Deny company access to withdrawn application resumes; preserve applicant access.
         JobApplication application = jobApplicationRepository.findById(applicationId)
                 .orElseThrow(() -> new NotFoundException("Application resume not found"));
         if (!canAccessApplication(callerEmail, application) || application.getResumeStorageId() == null) {
@@ -369,12 +360,10 @@ public class JobApplicationService {
 
     @Transactional(readOnly = true)
     public CandidateProfileDTO getApplicantProfile(String reviewerEmail, Long applicationId) {
-        // TODO: Deny company access to applicant profiles through withdrawn applications.
         JobApplication application = jobApplicationRepository.findById(applicationId)
                 .orElseThrow(() -> new NotFoundException("Application not found"));
 
-        Long postingCompanyId = application.getJobOffer().getCompany().getId();
-        if (resolveReviewerForCompany(reviewerEmail, postingCompanyId).isEmpty()) {
+        if (resolveReviewerForApplication(reviewerEmail, application).isEmpty()) {
             throw new NotFoundException("Application not found");  // not your company -> 404, not probeable
         }
 
@@ -398,10 +387,13 @@ public class JobApplicationService {
     }
 
     private boolean canAccessApplication(String callerEmail, JobApplication application) {
-        if (isApplicant(callerEmail, application)) return true;
+        return isApplicant(callerEmail, application) || resolveReviewerForApplication(callerEmail, application).isPresent();
+    }
 
+    private Optional<CompanyUserProfile> resolveReviewerForApplication(String callerEmail, JobApplication application) {
         Long postingCompanyId = application.getJobOffer().getCompany().getId();
-        return resolveReviewerForCompany(callerEmail, postingCompanyId).isPresent();
+        return resolveReviewerForCompany(callerEmail, postingCompanyId)
+                .filter(reviewer -> application.getApplicationStatus() != ApplicationStatus.WITHDRAWN);
     }
 
     private Optional<CompanyUserProfile> resolveReviewerForCompany(String email, Long companyId) {

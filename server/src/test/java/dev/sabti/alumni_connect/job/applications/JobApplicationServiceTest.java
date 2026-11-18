@@ -6,6 +6,7 @@ import dev.sabti.alumni_connect.candidate.CandidateProfile;
 import dev.sabti.alumni_connect.candidate.CandidateProfileRepository;
 import dev.sabti.alumni_connect.company.entities.Company;
 import dev.sabti.alumni_connect.company.entities.CompanyRole;
+import dev.sabti.alumni_connect.company.entities.CompanyStatus;
 import dev.sabti.alumni_connect.company.entities.CompanyUserProfile;
 import dev.sabti.alumni_connect.company.repositories.CompanyUserProfileRepository;
 import dev.sabti.alumni_connect.job.entities.ApplicationStatus;
@@ -103,6 +104,7 @@ class JobApplicationServiceTest {
     private Company company(long id) {
         Company c = new Company();
         c.setId(id);
+        c.setStatus(CompanyStatus.ACTIVE);
         return c;
     }
 
@@ -208,6 +210,19 @@ class JobApplicationServiceTest {
         assertThatThrownBy(() -> service.apply(CANDIDATE_EMAIL, 1L, new ApplyToJobOfferDTO(), null, null))
                 .isInstanceOf(ConflictException.class)
                 .hasMessage("This offer is no longer accepting applications");
+    }
+
+    @Test
+    void apply_inactiveCompany_throwsBadRequestBeforeStoringResume() {
+        asCandidate(CANDIDATE_EMAIL, 1L);
+        Company company = company(COMPANY_ID);
+        company.setStatus(CompanyStatus.PENDING);
+        when(jobOfferRepository.findById(1L)).thenReturn(Optional.of(offer(1L, company, JobStatus.OPEN)));
+
+        assertThatThrownBy(() -> service.apply(CANDIDATE_EMAIL, 1L, new ApplyToJobOfferDTO(), null, null))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessage("The company owning the offer is no longer active");
+        verify(jobApplicationRepository, never()).save(any());
     }
 
     @Test
@@ -473,6 +488,32 @@ class JobApplicationServiceTest {
     }
 
     // --- review() ------------------------------------------------------------
+
+    @Test
+    void withdrawnApplicationRemainsAccessibleOnlyToItsApplicant() {
+        Company company = company(COMPANY_ID);
+        CandidateProfile applicant = asCandidate(CANDIDATE_EMAIL, 1L);
+        CompanyUserProfile reviewer = asReviewer(REVIEWER_EMAIL, 9L, company, CompanyRole.RECRUITER);
+        when(candidateProfileRepository.findByUser(reviewer.getUser())).thenReturn(Optional.empty());
+        JobApplication application = application(5L, offer(1L, company, JobStatus.OPEN),
+                applicant, ApplicationStatus.WITHDRAWN);
+        application.setResumeStorageId("resume");
+        when(jobApplicationRepository.findById(5L)).thenReturn(Optional.of(application));
+        FileDownload download = new FileDownload(storedFile("resume"), mock(Resource.class));
+        when(storedFileService.load("resume")).thenReturn(Optional.of(download));
+
+        assertThatThrownBy(() -> service.getApplicationById(REVIEWER_EMAIL, 5L)).isInstanceOf(NotFoundException.class);
+        assertThatThrownBy(() -> service.getApplicantProfile(REVIEWER_EMAIL, 5L)).isInstanceOf(NotFoundException.class);
+        assertThatThrownBy(() -> service.getApplicationResume(REVIEWER_EMAIL, 5L)).isInstanceOf(NotFoundException.class);
+        ReviewApplicationDTO notesOnly = new ReviewApplicationDTO();
+        notesOnly.setCompanyUserNote("A private note");
+        assertThatThrownBy(() -> service.review(REVIEWER_EMAIL, 5L, notesOnly)).isInstanceOf(NotFoundException.class);
+
+        assertThat(service.getApplicationById(CANDIDATE_EMAIL, 5L).getApplicationStatus())
+                .isEqualTo(ApplicationStatus.WITHDRAWN);
+        assertThat(service.getApplicationResume(CANDIDATE_EMAIL, 5L)).isSameAs(download);
+        verify(storedFileService).load("resume");
+    }
 
     @Test
     void review_applicationNotFound_throwsNotFound() {
