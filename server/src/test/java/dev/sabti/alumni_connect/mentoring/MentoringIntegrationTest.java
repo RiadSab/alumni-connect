@@ -9,6 +9,8 @@ import dev.sabti.alumni_connect.auth.entities.User;
 import dev.sabti.alumni_connect.auth.entities.UserStatus;
 import dev.sabti.alumni_connect.auth.repositories.UserRepository;
 import dev.sabti.alumni_connect.candidate.CandidateProfileRepository;
+import dev.sabti.alumni_connect.shared.email.EmailAttachment;
+import dev.sabti.alumni_connect.shared.email.EmailSender;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,17 +18,33 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
+import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.clearInvocations;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -60,6 +78,9 @@ class MentoringIntegrationTest {
     @Autowired private AlumniRecordRepository records;
     @Autowired private MentoringSlotRepository slots;
     @Autowired private MentoringBookingRepository bookings;
+    @Autowired private JdbcTemplate jdbc;
+    @Autowired private PlatformTransactionManager transactionManager;
+    @MockitoBean private EmailSender emailSender;
 
     private final ObjectMapper json = new ObjectMapper();
 
@@ -206,6 +227,50 @@ class MentoringIntegrationTest {
                 .andExpect(status().isConflict());
 
         assertThat(slots.findById(third).orElseThrow().getStatus()).isEqualTo(SlotStatus.OPEN);
+    }
+
+    @Test
+    void concurrentBookingsReturnOneConflictAndSendInvitesOnlyForTheWinner() throws Exception {
+        String mentor = tokenFor(MENTOR);
+        String student = tokenFor(STUDENT);
+        long existing = publish(mentor, 5);
+        long first = publish(mentor, 5);
+        long second = publish(mentor, 5);
+        book(student, existing);
+        clearInvocations(emailSender);
+
+        try (var executor = Executors.newFixedThreadPool(2)) {
+            var requests = new TransactionTemplate(transactionManager).execute(status -> {
+                // Let both requests read the same remaining quota, then block their slot writes here.
+                jdbc.queryForList("select id from mentoring_slots where id in (?, ?) for update", first, second);
+                var firstRequest = executor.submit(() -> book(student, first));
+                var secondRequest = executor.submit(() -> book(student, second));
+                await().atMost(Duration.ofSeconds(15)).until(() -> jdbc.queryForObject("""
+                        select count(*) from pg_stat_activity
+                        where wait_event_type = 'Lock' and query like 'update mentoring_slots set%'
+                        """, Integer.class) == 2);
+                return List.of(firstRequest, secondRequest);
+            });
+            var responses = List.of(
+                    requests.get(0).get(15, TimeUnit.SECONDS).getResponse(),
+                    requests.get(1).get(15, TimeUnit.SECONDS).getResponse());
+            assertThat(responses).extracting(response -> response.getStatus()).containsExactlyInAnyOrder(201, 409);
+            for (var response : responses) {
+                if (response.getStatus() == 409) {
+                    assertThat(response.getContentAsString()).contains("You've used your 2 sessions");
+                }
+            }
+        }
+
+        assertThat(bookings.count()).isEqualTo(2);
+        verify(emailSender).send(eq(STUDENT), eq("Your mock interview is booked"), anyString(), any(EmailAttachment.class));
+        verify(emailSender).send(eq(MENTOR), eq("A student booked one of your slots"), anyString(), any(EmailAttachment.class));
+        verifyNoMoreInteractions(emailSender);
+    }
+
+    private MvcResult book(String studentToken, long slotId) throws Exception {
+        return mvc.perform(post("/api/mentoring/slots/" + slotId + "/book")
+                .header("Authorization", "Bearer " + studentToken)).andReturn();
     }
 
     @Test

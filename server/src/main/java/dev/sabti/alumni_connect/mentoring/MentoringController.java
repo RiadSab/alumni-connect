@@ -1,8 +1,10 @@
 package dev.sabti.alumni_connect.mentoring;
 
 import dev.sabti.alumni_connect.auth.entities.Fields;
+import dev.sabti.alumni_connect.shared.exception.ConflictException;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.ConcurrencyFailureException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -50,7 +52,19 @@ public class MentoringController {
     @PostMapping("/slots/{id}/book")
     public ResponseEntity<MentoringBookingDTO> book(@AuthenticationPrincipal UserDetails principal,
                                                     @PathVariable Long id) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(mentoringService.book(principal.getUsername(), id));
+        String email = principal.getUsername();
+        MentoringBookingDTO booking;
+        try {
+            booking = mentoringService.book(email, id);
+        } catch (ConcurrencyFailureException firstAttempt) {
+            // The service transaction has already rolled back. The second call rechecks quota and slot state.
+            try {
+                booking = mentoringService.book(email, id);
+            } catch (ConcurrencyFailureException secondAttempt) {
+                throw new ConflictException("Bookings changed while you were booking. Refresh and try again.");
+            }
+        }
+        return ResponseEntity.status(HttpStatus.CREATED).body(booking);
     }
 
     @GetMapping("/bookings/me")

@@ -12,6 +12,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -209,12 +211,25 @@ public class MentoringSessionService {
     private void invite(User recipient, String subject, String body, String sessionPath,
                         MentoringBooking booking, boolean cancelled) {
         String sessionPage = frontendUrl + sessionPath;
-        EmailAttachment ics = CalendarInvite.forSession(booking, recipient.getEmail(), mailFrom, sessionPage, cancelled);
-        try {
-            emailSender.send(recipient.getEmail(), subject, body + "\n\n" + sessionPage, ics);
-        } catch (Exception e) {
-            log.warn("Could not email {} about booking {}: {}", recipient.getId(), booking.getId(), e.getMessage());
-        }
+        String email = recipient.getEmail();
+        Long bookingId = booking.getId();
+        EmailAttachment ics = CalendarInvite.forSession(booking, email, mailFrom, sessionPage, cancelled);
+        afterCommit(() -> {
+            try {
+                emailSender.send(email, subject, body + "\n\n" + sessionPage, ics);
+            } catch (Exception e) {
+                log.warn("Could not email about booking {}: {}", bookingId, e.getMessage());
+            }
+        });
+    }
+
+    private void afterCommit(Runnable send) {
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                send.run();
+            }
+        });
     }
 
     private void safeSend(String to, String subject, String body) {
