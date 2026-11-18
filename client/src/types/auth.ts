@@ -3,7 +3,7 @@
 
 import { z } from "zod";
 import { CompanySize, CompanyUserPosition, Fields, type UserType } from "@/types/enums";
-import { nonBlank, optionalUrl } from "@/lib/validation";
+import { nonBlank, optionalUrl, passwordInput } from "@/lib/validation";
 
 // POST /api/auth/register/candidate
 export const registerCandidateSchema = z
@@ -11,7 +11,7 @@ export const registerCandidateSchema = z
     firstName: nonBlank(),
     lastName: nonBlank(),
     email: z.email(),
-    password: nonBlank(),
+    password: passwordInput,
     phoneNumber: nonBlank(),
     isStudent: z.boolean(),
     studentId: z.string().trim().optional(),
@@ -37,7 +37,7 @@ export const registerCompanySchema = z.object({
   firstName: nonBlank(),
   lastName: nonBlank(),
   email: z.email(),
-  password: nonBlank(),
+  password: passwordInput,
   phoneNumber: z.string().optional(),
   position: z.enum(CompanyUserPosition),
   companyName: nonBlank(),
@@ -56,7 +56,7 @@ export const registerCompanyMemberSchema = z.object({
   firstName: nonBlank(),
   lastName: nonBlank(),
   email: z.email(),
-  password: nonBlank(),
+  password: passwordInput,
   phoneNumber: z.string().optional(),
   position: z.enum(CompanyUserPosition),
   companyId: z.number().int(),
@@ -66,14 +66,14 @@ export type RegisterCompanyMemberDTO = z.infer<typeof registerCompanyMemberSchem
 // POST /api/auth/login
 export const loginSchema = z.object({
   email: nonBlank(),
-  password: nonBlank(),
+  password: passwordInput,
 });
 export type LoginRequestDTO = z.infer<typeof loginSchema>;
 
 // POST /api/auth/change-password
 export const changePasswordSchema = z.object({
-  oldPassword: nonBlank(),
-  newPassword: nonBlank(),
+  oldPassword: passwordInput,
+  newPassword: passwordInput,
 });
 export type ChangePasswordDTO = z.infer<typeof changePasswordSchema>;
 
@@ -87,7 +87,7 @@ export type ForgotPasswordDTO = z.infer<typeof forgotPasswordSchema>;
 export const resetPasswordSchema = z.object({
   email: z.email(),
   code: nonBlank(),
-  newPassword: nonBlank(),
+  newPassword: passwordInput,
 });
 export type ResetPasswordDTO = z.infer<typeof resetPasswordSchema>;
 

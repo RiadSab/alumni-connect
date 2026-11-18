@@ -1,7 +1,7 @@
 // Alumni roster DTOs (admin-only). The roster is the school's own list of graduates.
 
 import { z } from "zod";
-import { nonBlank } from "@/lib/validation";
+import { nonBlank, passwordInput } from "@/lib/validation";
 import type { Fields } from "@/types/enums";
 import type { PageParams } from "@/types/common";
 
@@ -42,7 +42,7 @@ export interface AlumniClaimDetailsDTO {
 // POST /api/alumni/claim
 export const claimAccountSchema = z.object({
   token: nonBlank(),
-  password: nonBlank(),
+  password: passwordInput,
   phoneNumber: z.string().optional(),
 });
 export type ClaimAccountInput = z.infer<typeof claimAccountSchema>;

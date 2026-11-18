@@ -1,4 +1,4 @@
-// React Query hooks for authentication (§1). Login/register/change-password are
+// React Query hooks for authentication. Login/register/change-password are
 // all mutations. useLogin persists the JWT on success; routing/session state is
 // handled by the caller (auth context lands in a later phase).
 
