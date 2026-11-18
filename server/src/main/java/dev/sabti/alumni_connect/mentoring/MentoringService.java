@@ -16,6 +16,7 @@ import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
@@ -124,7 +125,7 @@ public class MentoringService {
                 .map(MentoringSlotDTO::from);
     }
 
-    @Transactional
+    @Transactional(isolation = Isolation.SERIALIZABLE)
     public MentoringBookingDTO book(String email, Long slotId) {
         CandidateProfile student = studentProfile(email);
 
