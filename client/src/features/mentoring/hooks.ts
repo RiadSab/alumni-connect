@@ -5,6 +5,9 @@ import { mentoringApi } from "@/api/mentoring";
 import { queryKeys } from "@/lib/queryKeys";
 import type { PublishSlotInput, SlotFilters } from "@/types/mentoring";
 
+// The server can change which room links are available while the page is open.
+const bookingRefresh = { refetchInterval: 30_000, refetchOnWindowFocus: "always" } as const;
+
 export function useOpenSlots(filters?: SlotFilters) {
   return useQuery({
     queryKey: queryKeys.mentoring.slots(filters),
@@ -23,6 +26,7 @@ export function useMyBookings() {
   return useQuery({
     queryKey: queryKeys.mentoring.myBookings(),
     queryFn: () => mentoringApi.myBookings(),
+    ...bookingRefresh,
   });
 }
 
@@ -61,6 +65,7 @@ export function useMentorBookings() {
   return useQuery({
     queryKey: queryKeys.mentoring.mentorBookings(),
     queryFn: () => mentoringApi.mentorBookings(),
+    ...bookingRefresh,
   });
 }
 

@@ -26,6 +26,8 @@ import java.time.ZoneId;
 import java.util.List;
 import java.util.Set;
 
+import static dev.sabti.alumni_connect.mentoring.BookingState.LIVE_STATES;
+
 // Alumni publish interview slots, students book them. Supply is the scarce side, so the rules here
 // protect the mentor's time: only verified graduates publish, and one student can't take the lot.
 @Service
@@ -51,10 +53,6 @@ public class MentoringService {
     // session gives the quota back; not turning up does not.
     private static final Set<BookingState> QUOTA_STATES =
             Set.of(BookingState.BOOKED, BookingState.CONFIRMED, BookingState.ATTENDED, BookingState.NO_SHOW);
-
-    // A booking that currently holds its slot.
-    private static final Set<BookingState> LIVE_STATES =
-            Set.of(BookingState.BOOKED, BookingState.CONFIRMED);
 
     // Supply is volunteers' time. Miss two sessions and booking stops until someone looks at it.
     private static final int NO_SHOW_LIMIT = 2;
@@ -166,14 +164,14 @@ public class MentoringService {
 
         // Both sides get an email with a calendar invite; the mentor also gets an in-app notice.
         sessionService.sessionBooked(booking);
-        return MentoringBookingDTO.from(booking, JoinWindow.isOpen(slot));
+        return MentoringBookingDTO.forParticipant(booking);
     }
 
     // The link is only handed over inside the join window — see JoinWindow.
     @Transactional(readOnly = true)
     public List<MentoringBookingDTO> getMyBookings(String email) {
         return bookingRepository.findByStudentOrderByIdDesc(studentProfile(email)).stream()
-                .map(booking -> MentoringBookingDTO.from(booking, JoinWindow.isOpen(booking.getSlot())))
+                .map(MentoringBookingDTO::forParticipant)
                 .toList();
     }
 
@@ -181,7 +179,7 @@ public class MentoringService {
     @Transactional(readOnly = true)
     public List<MentoringBookingDTO> getMentorBookings(String email) {
         return bookingRepository.findForMentor(mentorProfile(email), OffsetDateTime.now().minusDays(7)).stream()
-                .map(booking -> MentoringBookingDTO.from(booking, JoinWindow.isOpen(booking.getSlot())))
+                .map(MentoringBookingDTO::forParticipant)
                 .toList();
     }
 

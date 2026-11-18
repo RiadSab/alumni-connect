@@ -52,6 +52,8 @@ public class MentoringSessionService {
     private static final int RELEASE_AFTER_HOURS = 12;
     private static final int REMINDER_MINUTES = 60;
     private static final String LINK_FAILED = "This link is invalid or has expired";
+    private static final String STUDENT_SESSIONS_PATH = "/mentoring";
+    private static final String MENTOR_SESSIONS_PATH = "/mentoring/slots";
 
     private static final DateTimeFormatter WHEN =
             DateTimeFormatter.ofPattern("EEEE d MMMM, HH:mm (OOOO)", Locale.ENGLISH);
@@ -67,16 +69,14 @@ public class MentoringSessionService {
         String when = when(slot);
         invite(student, "Your mock interview is booked",
                 "Your session with " + name(mentor) + " is booked for " + when + ".\n\n"
-                        + "The joining link appears on your session page ten minutes before we start:\n"
-                        + frontendUrl + "/mentoring",
-                booking, false);
+                        + "The joining link appears on your session page ten minutes before we start:",
+                STUDENT_SESSIONS_PATH, booking, false);
         invite(mentor, "A student booked one of your slots",
-                name(student) + " booked your " + track(slot) + " slot on " + when + ".\n\n"
-                        + frontendUrl + "/mentoring/slots",
-                booking, false);
+                name(student) + " booked your " + track(slot) + " slot on " + when + ".",
+                MENTOR_SESSIONS_PATH, booking, false);
 
         notificationService.notify(mentor, NotificationType.MENTORING_SLOT_BOOKED,
-                track(slot), name(student), "/mentoring/slots");
+                track(slot), name(student), MENTOR_SESSIONS_PATH);
     }
 
     @Transactional
@@ -90,14 +90,14 @@ public class MentoringSessionService {
         invite(student, "Your mock interview was cancelled",
                 (byMentor ? name(mentor) + " cancelled" : "You cancelled") + " the session on " + when + "."
                         + (byMentor ? "\n\nYour session allowance was not used." : ""),
-                booking, true);
+                STUDENT_SESSIONS_PATH, booking, true);
         invite(mentor, "A mock interview was cancelled",
                 (byMentor ? "You cancelled" : name(student) + " cancelled") + " the session on " + when + ".",
-                booking, true);
+                MENTOR_SESSIONS_PATH, booking, true);
 
         User other = byMentor ? student : mentor;
         notificationService.notify(other, NotificationType.MENTORING_SESSION_CANCELLED,
-                track(slot), when, byMentor ? "/mentoring" : "/mentoring/slots");
+                track(slot), when, byMentor ? STUDENT_SESSIONS_PATH : MENTOR_SESSIONS_PATH);
     }
 
     // --- sweeps -------------------------------------------------------------
@@ -145,9 +145,9 @@ public class MentoringSessionService {
             User student = booking.getStudent().getUser();
             safeSend(student.getEmail(), "Your mock interview slot was released",
                     "You didn't confirm the session on " + when(slot) + ", so it went back to another student.\n\n"
-                            + "You can book another one:\n" + frontendUrl + "/mentoring");
+                            + "You can book another one:\n" + frontendUrl + STUDENT_SESSIONS_PATH);
             notificationService.notify(student, NotificationType.MENTORING_SESSION_RELEASED,
-                    track(slot), when(slot), "/mentoring");
+                    track(slot), when(slot), STUDENT_SESSIONS_PATH);
             safeSend(slot.getMentor().getUser().getEmail(), "A slot was released",
                     "The student didn't confirm, so your " + when(slot) + " slot is open again.");
         }
@@ -160,9 +160,11 @@ public class MentoringSessionService {
         for (MentoringBooking booking : bookingRepository.findDueReminder(now, now.plusMinutes(REMINDER_MINUTES))) {
             MentoringSlot slot = booking.getSlot();
             String body = "Your mock interview starts at " + when(slot) + ".\n\n"
-                    + "Join here: " + slot.getMeetingLink();
-            safeSend(booking.getStudent().getUser().getEmail(), "Your mock interview is in an hour", body);
-            safeSend(slot.getMentor().getUser().getEmail(), "Your mock interview is in an hour", body);
+                    + "The joining link appears on your session page ten minutes before we start:\n";
+            safeSend(booking.getStudent().getUser().getEmail(), "Your mock interview is in an hour",
+                    body + frontendUrl + STUDENT_SESSIONS_PATH);
+            safeSend(slot.getMentor().getUser().getEmail(), "Your mock interview is in an hour",
+                    body + frontendUrl + MENTOR_SESSIONS_PATH);
             booking.setRemindedAt(LocalDateTime.now());
             bookingRepository.save(booking);
         }
@@ -172,7 +174,7 @@ public class MentoringSessionService {
 
     @Transactional(readOnly = true)
     public MentoringBookingDTO getConfirmDetails(String rawToken) {
-        return MentoringBookingDTO.from(validate(rawToken), false);
+        return MentoringBookingDTO.forConfirmation(validate(rawToken));
     }
 
     @Transactional
@@ -204,10 +206,12 @@ public class MentoringSessionService {
 
     // --- helpers ------------------------------------------------------------
 
-    private void invite(User recipient, String subject, String body, MentoringBooking booking, boolean cancelled) {
-        EmailAttachment ics = CalendarInvite.forSession(booking, recipient.getEmail(), mailFrom, cancelled);
+    private void invite(User recipient, String subject, String body, String sessionPath,
+                        MentoringBooking booking, boolean cancelled) {
+        String sessionPage = frontendUrl + sessionPath;
+        EmailAttachment ics = CalendarInvite.forSession(booking, recipient.getEmail(), mailFrom, sessionPage, cancelled);
         try {
-            emailSender.send(recipient.getEmail(), subject, body, ics);
+            emailSender.send(recipient.getEmail(), subject, body + "\n\n" + sessionPage, ics);
         } catch (Exception e) {
             log.warn("Could not email {} about booking {}: {}", recipient.getId(), booking.getId(), e.getMessage());
         }

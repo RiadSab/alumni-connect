@@ -18,7 +18,7 @@ final class CalendarInvite {
     private static final DateTimeFormatter STAMP = DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmss'Z'");
 
     static EmailAttachment forSession(MentoringBooking booking, String recipientEmail,
-                                      String organiser, boolean cancelled) {
+                                      String organiser, String sessionPage, boolean cancelled) {
         MentoringSlot slot = booking.getSlot();
         OffsetDateTime start = slot.getStartsAt().withOffsetSameInstant(ZoneOffset.UTC);
         OffsetDateTime end = start.plusMinutes(slot.getDurationMinutes());
@@ -57,7 +57,7 @@ final class CalendarInvite {
                 STAMP.format(end),
                 escape("Mock interview · " + label(slot.getTrack())),
                 escape("Twenty minutes: an exercise, then feedback."),
-                escape(slot.getMeetingLink()),
+                escape(sessionPage),
                 cancelled ? "CANCELLED" : "CONFIRMED",
                 organiser,
                 recipientEmail);

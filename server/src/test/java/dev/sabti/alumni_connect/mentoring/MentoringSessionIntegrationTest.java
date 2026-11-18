@@ -12,6 +12,8 @@ import dev.sabti.alumni_connect.shared.email.EmailAttachment;
 import dev.sabti.alumni_connect.shared.email.EmailSender;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -33,11 +35,9 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.verify;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -46,6 +46,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 // The lifecycle around a booked session: the invite that lands in a calendar, the confirmation
 // asked a day out, the release of what nobody confirmed, and the join window.
 @SpringBootTest(properties = {
+        "app.frontend-url=https://app.example.test",
         "app.mentoring.cron.confirm=-",
         "app.mentoring.cron.release=-",
         "app.mentoring.cron.remind=-"
@@ -77,6 +78,7 @@ class MentoringSessionIntegrationTest {
     private static final String PASSWORD = "s3cret-pw";
     private static final String MENTOR = "session-mentor@example.com";
     private static final String STUDENT = "session-student@example.com";
+    private static final String ROOM_URL = "https://meet.example.com/room";
 
     @BeforeEach
     void people() throws Exception {
@@ -151,28 +153,39 @@ class MentoringSessionIntegrationTest {
     void bookingSendsBothSidesACalendarInvite() throws Exception {
         bookSlotStartingIn(60 * 30);
 
-        ArgumentCaptor<EmailAttachment> ics = ArgumentCaptor.forClass(EmailAttachment.class);
-        verify(emailSender, atLeastOnce()).send(anyString(), anyString(), anyString(), ics.capture());
+        assertCalendarEmail(STUDENT, "Your mock interview is booked", "/mentoring", "REQUEST");
+        assertCalendarEmail(MENTOR, "A student booked one of your slots", "/mentoring/slots", "REQUEST");
+    }
 
-        String calendar = new String(ics.getAllValues().get(0).content(), StandardCharsets.UTF_8);
-        assertThat(ics.getAllValues().get(0).filename()).isEqualTo("session.ics");
-        assertThat(calendar).contains("BEGIN:VEVENT").contains("METHOD:REQUEST")
-                .contains("LOCATION:https://meet.example.com/room");
+    private void assertCalendarEmail(String recipient, String subject, String path, String method) {
+        String sessionPage = "https://app.example.test" + path;
+        ArgumentCaptor<String> body = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<EmailAttachment> ics = ArgumentCaptor.forClass(EmailAttachment.class);
+        verify(emailSender).send(eq(recipient), eq(subject), body.capture(), ics.capture());
+
+        assertThat(body.getValue()).endsWith(sessionPage).doesNotContain(ROOM_URL);
+        assertThat(ics.getValue().filename()).isEqualTo("session.ics");
+        String calendar = new String(ics.getValue().content(), StandardCharsets.UTF_8);
+        assertThat(calendar).contains("BEGIN:VEVENT", "METHOD:" + method, "LOCATION:" + sessionPage + "\r\n")
+                .doesNotContain(ROOM_URL);
         // One attendee per invite: neither party learns the other's address from it.
         assertThat(calendar.lines().filter(line -> line.startsWith("ATTENDEE")).count()).isEqualTo(1);
     }
 
-    @Test
-    void confirmingKeepsTheSlot() throws Exception {
-        long bookingId = bookSlotStartingIn(60 * 20).bookingId();
-
+    private String requestConfirmation() {
         sessionService.askForConfirmations();
 
         ArgumentCaptor<String> body = ArgumentCaptor.forClass(String.class);
         verify(emailSender).send(eq(STUDENT), eq("Confirm your mock interview"), body.capture());
         Matcher matcher = Pattern.compile("/mentoring/confirm/([A-Za-z0-9_-]+)").matcher(body.getValue());
         assertThat(matcher.find()).isTrue();
-        String token = matcher.group(1);
+        return matcher.group(1);
+    }
+
+    @Test
+    void confirmingKeepsTheSlot() throws Exception {
+        long bookingId = bookSlotStartingIn(60 * 20).bookingId();
+        String token = requestConfirmation();
 
         mvc.perform(get("/api/mentoring/confirm/" + token))
                 .andExpect(status().isOk())
@@ -207,17 +220,73 @@ class MentoringSessionIntegrationTest {
 
     @Test
     void theLinkArrivesTenMinutesBeforeTheSession() throws Exception {
-        bookSlotStartingIn(5);
+        Session session = bookSlotStartingIn(5);
+        String token = requestConfirmation();
 
         mvc.perform(get("/api/mentoring/bookings/me").header("Authorization", "Bearer " + tokenFor(STUDENT)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].meetingLink").value("https://meet.example.com/room"));
+                .andExpect(jsonPath("$[0].meetingLink").value(ROOM_URL));
 
         // The mentor's own view of the same session.
         mvc.perform(get("/api/mentoring/bookings/mentor").header("Authorization", "Bearer " + tokenFor(MENTOR)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].studentName").value("Omar Idrissi"))
-                .andExpect(jsonPath("$[0].meetingLink").value("https://meet.example.com/room"));
+                .andExpect(jsonPath("$[0].meetingLink").value(ROOM_URL));
+
+        mvc.perform(get("/api/mentoring/confirm/" + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.meetingLink").doesNotExist());
+
+        MentoringSlot slot = slots.findById(session.slotId()).orElseThrow();
+        slot.setStartsAt(OffsetDateTime.now().minusHours(2));
+        slots.save(slot);
+        mvc.perform(get("/api/mentoring/bookings/me").header("Authorization", "Bearer " + tokenFor(STUDENT)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].meetingLink").doesNotExist());
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = BookingState.class, names = {"CANCELLED_BY_STUDENT", "RELEASED_UNCONFIRMED"})
+    void formerStudentCannotSeeTheRoomAfterRebooking(BookingState formerState) throws Exception {
+        Session session = bookSlotStartingIn(5);
+        String formerStudentToken = tokenFor(STUDENT);
+        if (formerState == BookingState.CANCELLED_BY_STUDENT) {
+            mvc.perform(delete("/api/mentoring/bookings/" + session.bookingId())
+                            .header("Authorization", "Bearer " + formerStudentToken))
+                    .andExpect(status().isNoContent());
+            assertCalendarEmail(STUDENT, "Your mock interview was cancelled", "/mentoring", "CANCEL");
+            assertCalendarEmail(MENTOR, "A mock interview was cancelled", "/mentoring/slots", "CANCEL");
+        } else {
+            sessionService.askForConfirmations();
+            sessionService.releaseUnconfirmed();
+        }
+
+        String nextStudent = "next-student@example.com";
+        register(nextStudent, "Sara", "Bennani", true);
+        mvc.perform(post("/api/mentoring/slots/" + session.slotId() + "/book")
+                        .header("Authorization", "Bearer " + tokenFor(nextStudent)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.meetingLink").value(ROOM_URL));
+
+        mvc.perform(get("/api/mentoring/bookings/me").header("Authorization", "Bearer " + formerStudentToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].state").value(formerState.name()))
+                .andExpect(jsonPath("$[0].meetingLink").doesNotExist());
+    }
+
+    @Test
+    void remindersLinkEachParticipantToTheirSessionPage() throws Exception {
+        bookSlotStartingIn(45);
+        mvc.perform(post("/api/mentoring/confirm/" + requestConfirmation())).andExpect(status().isNoContent());
+        sessionService.sendReminders();
+        sessionService.sendReminders();
+
+        ArgumentCaptor<String> studentBody = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<String> mentorBody = ArgumentCaptor.forClass(String.class);
+        verify(emailSender).send(eq(STUDENT), eq("Your mock interview is in an hour"), studentBody.capture());
+        verify(emailSender).send(eq(MENTOR), eq("Your mock interview is in an hour"), mentorBody.capture());
+        assertThat(studentBody.getValue()).endsWith("https://app.example.test/mentoring").doesNotContain(ROOM_URL);
+        assertThat(mentorBody.getValue()).endsWith("https://app.example.test/mentoring/slots").doesNotContain(ROOM_URL);
     }
 
     @Test
