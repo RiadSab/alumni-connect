@@ -6,6 +6,7 @@ import dev.sabti.alumni_connect.job.entities.SavedJob;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
@@ -22,4 +23,8 @@ public interface SavedJobRepository extends JpaRepository<SavedJob, Long> {
     // The candidate's saved offer ids, so the board can mark bookmarks in one query, not N.
     @Query("select s.jobOffer.id from SavedJob s where s.candidate = :candidate")
     List<Long> findSavedOfferIds(CandidateProfile candidate);
+
+    @Modifying
+    @Query("delete from SavedJob s where s.jobOffer.id = :id")
+    void deleteSavedJobByJobOffer_Id(Long id);
 }

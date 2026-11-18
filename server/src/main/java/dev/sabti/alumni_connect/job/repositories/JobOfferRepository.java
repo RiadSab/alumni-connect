@@ -12,6 +12,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.Collection;
+import java.util.List;
 
 // JpaSpecificationExecutor backs the dynamic offers search; the derived findBy* are fixed lookups.
 @Repository
@@ -32,4 +33,6 @@ public interface JobOfferRepository extends JpaRepository<JobOffer, Long>, JpaSp
             countQuery = "SELECT COUNT(DISTINCT o) FROM JobOffer o JOIN o.skillsRequired s "
             + "WHERE o.status = dev.sabti.alumni_connect.job.entities.JobStatus.OPEN AND lower(s) IN :skills")
     Page<JobOffer> findOpenOffersMatchingSkills(@Param("skills") Collection<String> skills, Pageable pageable);
+
+    JobOffer findJobOfferById(Long id);
 }

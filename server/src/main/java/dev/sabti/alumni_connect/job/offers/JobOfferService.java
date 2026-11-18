@@ -13,6 +13,7 @@ import dev.sabti.alumni_connect.company.repositories.CompanyUserProfileRepositor
 import dev.sabti.alumni_connect.job.entities.ApplicationStatus;
 import dev.sabti.alumni_connect.job.entities.JobOffer;
 import dev.sabti.alumni_connect.job.entities.JobStatus;
+import dev.sabti.alumni_connect.job.entities.SavedJob;
 import dev.sabti.alumni_connect.job.repositories.JobApplicationRepository;
 import dev.sabti.alumni_connect.job.repositories.JobOfferRepository;
 import dev.sabti.alumni_connect.job.repositories.SavedJobRepository;
@@ -88,6 +89,7 @@ public class JobOfferService {
     // Post a job offer — the company's own OWNER/RECRUITER only, and only while the company is ACTIVE.
     @Transactional
     public JobOfferDTO postJobOffer(String posterEmail, CreateJobOfferDTO dto) {
+        //TODO : validate the DTO values
         User user = userRepository.findByEmail(posterEmail)
                 .orElseThrow(() -> new ForbiddenException("Only a company owner or recruiter can post job offers"));
         CompanyUserProfile profile = companyUserProfileRepository.findByUser(user)
@@ -166,6 +168,7 @@ public class JobOfferService {
             throw new NotFoundException("Job offer not found");
         }
 
+
         if (dto.getTitle() != null) offer.setTitle(dto.getTitle());
         if (dto.getDescription() != null) offer.setDescription(dto.getDescription());
         if (dto.getRequirements() != null) offer.setRequirements(dto.getRequirements());
@@ -174,7 +177,12 @@ public class JobOfferService {
         if (dto.getMaxSalary() != null) offer.setMaxSalary(dto.getMaxSalary());
         if (dto.getEmploymentType() != null) offer.setEmploymentType(dto.getEmploymentType());
         if (dto.getApplicationDeadline() != null) offer.setApplicationDeadline(dto.getApplicationDeadline());
-        if (dto.getStatus() != null) offer.setStatus(dto.getStatus());
+        if (dto.getStatus() != null) {
+            offer.setStatus(dto.getStatus());
+            if(dto.getStatus() != JobStatus.OPEN && dto.getStatus() != JobStatus.CLOSED){
+                savedJobRepository.deleteSavedJobByJobOffer_Id(id);
+            }
+        }
         if (dto.getExperienceYears() != null) offer.setExperienceYears(dto.getExperienceYears());
         if (dto.getSkillsRequired() != null) offer.setSkillsRequired(dto.getSkillsRequired());
         if (dto.getIsRemote() != null) offer.setIsRemote(dto.getIsRemote());
