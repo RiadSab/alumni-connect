@@ -14,6 +14,7 @@ export type ApiErrorCode =
   | "INVALID_TOKEN"
   | "ACCESS_DENIED"
   | "ACCOUNT_DISABLED"
+  | "RATE_LIMITED"
   // plus HttpStatus names for everything else: "NOT_FOUND", "CONFLICT", ...
   | (string & {});
 
@@ -33,14 +34,16 @@ export class ApiError extends Error {
   readonly code?: ApiErrorCode;
   readonly fieldErrors?: Record<string, string[]>;
   readonly body?: ApiErrorBody;
+  readonly retryAfterSeconds?: number;
 
-  constructor(status: number, message: string, body?: ApiErrorBody) {
+  constructor(status: number, message: string, body?: ApiErrorBody, retryAfterSeconds?: number) {
     super(message);
     this.name = "ApiError";
     this.status = status;
     this.code = body?.code;
     this.fieldErrors = body?.fieldErrors;
     this.body = body;
+    this.retryAfterSeconds = retryAfterSeconds;
   }
 }
 
@@ -129,12 +132,17 @@ function refreshAccessToken(): Promise<boolean> {
 async function doRefresh(): Promise<boolean> {
   try {
     const res = await fetch(buildUrl("/auth/refresh"), { method: "POST", credentials: "include" });
+    // Throttling and temporary server failures do not invalidate the refresh cookie.
+    // Propagate the error instead of signing the user out or retrying immediately.
+    if (res.status === 429 || res.status >= 500) throw await toApiError(res);
     if (!res.ok) return false;
     const data = (await res.json()) as { token: string };
     setToken(data.token);
     return true;
-  } catch {
-    return false;
+  } catch (error) {
+    if (isApiError(error)) throw error;
+    // A network failure is not proof that the refresh credential is invalid.
+    throw new ApiError(0, "Unable to refresh your session. Please try again.");
   }
 }
 
@@ -157,7 +165,20 @@ async function toApiError(res: Response): Promise<ApiError> {
     // non-JSON / empty error body — fall back to status text below
   }
   const message = body?.message ?? res.statusText ?? `HTTP ${res.status}`;
-  return new ApiError(res.status, message, body);
+  const retryAfter = res.headers.get("Retry-After");
+  let retryAfterSeconds: number | undefined;
+  if (retryAfter !== null) {
+    if (/^\d+$/.test(retryAfter.trim())) {
+      const seconds = Number(retryAfter);
+      if (Number.isSafeInteger(seconds)) retryAfterSeconds = seconds;
+    } else {
+      const deadline = Date.parse(retryAfter);
+      if (Number.isFinite(deadline)) {
+        retryAfterSeconds = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
+      }
+    }
+  }
+  return new ApiError(res.status, message, body, retryAfterSeconds);
 }
 
 async function parseJson<T>(res: Response): Promise<T> {

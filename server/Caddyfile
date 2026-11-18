@@ -3,5 +3,9 @@
 }
 
 {$API_DOMAIN} {
-	reverse_proxy app:8080
+	reverse_proxy app:8080 {
+        # Caddy is the public edge. Overwrite, rather than trust, client IP headers.
+        header_up -Forwarded
+        header_up X-Forwarded-For {remote_host}
+    }
 }

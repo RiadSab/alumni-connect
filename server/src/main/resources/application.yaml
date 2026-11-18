@@ -66,3 +66,47 @@ app:
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:}
 
+
+  # Local token buckets. These are starting budgets, not measured traffic guarantees.
+  # Each refill progressively restores capacity; all values can be overridden by environment.
+  rate-limit:
+    enabled: ${RATE_LIMIT_ENABLED:true}
+    maximum-bucket-entries: ${RATE_LIMIT_MAXIMUM_BUCKET_ENTRIES:10000}
+    bucket-idle-lifetime: ${RATE_LIMIT_BUCKET_IDLE_LIFETIME:2h}
+    policies:
+      source-default:
+        capacity: ${RATE_LIMIT_SOURCE_DEFAULT_CAPACITY:120}
+        refill-period: ${RATE_LIMIT_SOURCE_DEFAULT_REFILL_PERIOD:1m}
+      source-public-read:
+        capacity: ${RATE_LIMIT_SOURCE_PUBLIC_READ_CAPACITY:60}
+        refill-period: ${RATE_LIMIT_SOURCE_PUBLIC_READ_REFILL_PERIOD:1m}
+      source-login:
+        capacity: ${RATE_LIMIT_SOURCE_LOGIN_CAPACITY:10}
+        refill-period: ${RATE_LIMIT_SOURCE_LOGIN_REFILL_PERIOD:1m}
+      source-registration:
+        capacity: ${RATE_LIMIT_SOURCE_REGISTRATION_CAPACITY:5}
+        refill-period: ${RATE_LIMIT_SOURCE_REGISTRATION_REFILL_PERIOD:1h}
+      source-forgot-password:
+        capacity: ${RATE_LIMIT_SOURCE_FORGOT_PASSWORD_CAPACITY:5}
+        refill-period: ${RATE_LIMIT_SOURCE_FORGOT_PASSWORD_REFILL_PERIOD:1h}
+      source-reset-password:
+        capacity: ${RATE_LIMIT_SOURCE_RESET_PASSWORD_CAPACITY:10}
+        refill-period: ${RATE_LIMIT_SOURCE_RESET_PASSWORD_REFILL_PERIOD:1m}
+      source-refresh:
+        capacity: ${RATE_LIMIT_SOURCE_REFRESH_CAPACITY:20}
+        refill-period: ${RATE_LIMIT_SOURCE_REFRESH_REFILL_PERIOD:1m}
+      source-logout:
+        capacity: ${RATE_LIMIT_SOURCE_LOGOUT_CAPACITY:60}
+        refill-period: ${RATE_LIMIT_SOURCE_LOGOUT_REFILL_PERIOD:1m}
+      source-confirmation:
+        capacity: ${RATE_LIMIT_SOURCE_CONFIRMATION_CAPACITY:10}
+        refill-period: ${RATE_LIMIT_SOURCE_CONFIRMATION_REFILL_PERIOD:1m}
+      user-default:
+        capacity: ${RATE_LIMIT_USER_DEFAULT_CAPACITY:120}
+        refill-period: ${RATE_LIMIT_USER_DEFAULT_REFILL_PERIOD:1m}
+      user-upload:
+        capacity: ${RATE_LIMIT_USER_UPLOAD_CAPACITY:5}
+        refill-period: ${RATE_LIMIT_USER_UPLOAD_REFILL_PERIOD:1m}
+      user-change-password:
+        capacity: ${RATE_LIMIT_USER_CHANGE_PASSWORD_CAPACITY:5}
+        refill-period: ${RATE_LIMIT_USER_CHANGE_PASSWORD_REFILL_PERIOD:15m}

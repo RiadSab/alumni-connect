@@ -1,6 +1,8 @@
 package dev.sabti.alumni_connect.security;
 
 import lombok.AllArgsConstructor;
+import dev.sabti.alumni_connect.rate_limiting.SourceRateLimitFilter;
+import dev.sabti.alumni_connect.rate_limiting.AuthenticatedRateLimitFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.http.HttpMethod;
 import org.springframework.context.annotation.Configuration;
@@ -22,6 +24,8 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @AllArgsConstructor
 public class SecurityConfig {
     private final JwtRequestFilter jwtRequestFilter;
+    private final SourceRateLimitFilter sourceRateLimitFilter;
+    private final AuthenticatedRateLimitFilter authenticatedRateLimitFilter;
     private final RestAuthenticationEntryPoint restAuthenticationEntryPoint;
     private final RestAccessDeniedHandler restAccessDeniedHandler;
 
@@ -83,7 +87,9 @@ public class SecurityConfig {
                 )
                 // Before UsernamePasswordAuthenticationFilter so the SecurityContext is populated
                 // from the JWT before any username/password handling runs.
-                .addFilterBefore(jwtRequestFilter, UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(jwtRequestFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(sourceRateLimitFilter, JwtRequestFilter.class)
+                .addFilterAfter(authenticatedRateLimitFilter, JwtRequestFilter.class);
         return http.build();
     }
 
