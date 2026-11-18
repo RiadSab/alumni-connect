@@ -31,6 +31,7 @@ public class JobApplication extends BaseEntity {
     @ElementCollection
     @CollectionTable(name = "job_application_certificates", joinColumns = @JoinColumn(name = "job_application_id"))
     private Set<String> certificatesStorageIds;
+    //TODO handle the UI for certificates
 
     @Column(columnDefinition = "TEXT")
     private String coverLetter;

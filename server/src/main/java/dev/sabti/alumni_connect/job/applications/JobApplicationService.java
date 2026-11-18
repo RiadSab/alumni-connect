@@ -6,6 +6,7 @@ import dev.sabti.alumni_connect.auth.entities.User;
 import dev.sabti.alumni_connect.candidate.CandidateProfileRepository;
 import dev.sabti.alumni_connect.auth.repositories.UserRepository;
 import dev.sabti.alumni_connect.company.entities.CompanyRole;
+import dev.sabti.alumni_connect.company.entities.CompanyStatus;
 import dev.sabti.alumni_connect.company.entities.CompanyUserProfile;
 import dev.sabti.alumni_connect.company.repositories.CompanyUserProfileRepository;
 import dev.sabti.alumni_connect.job.entities.ApplicationStatus;
@@ -34,6 +35,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
@@ -75,26 +77,26 @@ public class JobApplicationService {
             Set.of(ApplicationStatus.SCHEDULED_INTERVIEW, ApplicationStatus.ACCEPTED, ApplicationStatus.REJECTED);
 
     @Transactional
-    public JobApplicationDTO apply(String applicantEmail, Long jobOfferId, ApplyToJobOfferDTO dto,
-                                   MultipartFile resume, Boolean useProfileResume) {
+    public JobApplicationDTO apply(String applicantEmail, Long jobOfferId, ApplyToJobOfferDTO dto, MultipartFile resume, Boolean useProfileResume) {
         CandidateProfile applicant = requireCandidate(applicantEmail, "Only candidates can apply");
-
         JobOffer offer = jobOfferRepository.findById(jobOfferId)
                 .orElseThrow(() -> new NotFoundException("Job offer not found"));
         if (offer.getStatus() != JobStatus.OPEN) {
             throw new ConflictException("This offer is no longer open");
         }
 
-        if (jobApplicationRepository.existsByJobOfferAndApplicantAndApplicationStatusNot(
-                offer, applicant, ApplicationStatus.WITHDRAWN)) {
+        if (jobApplicationRepository.existsByJobOfferAndApplicantAndApplicationStatusNot(offer, applicant, ApplicationStatus.WITHDRAWN)) {
             throw new ConflictException("You have already applied to this offer");
         }
 
-        if (offer.getMaxApplications() != null
-                && offer.getCurrentApplicationCount() >= offer.getMaxApplications()) {
+        if (offer.getMaxApplications() != null && offer.getCurrentApplicationCount() >= offer.getMaxApplications()) {
             throw new ConflictException("This offer is no longer accepting applications");
         }
 
+        if(offer.getCompany().getStatus() != CompanyStatus.ACTIVE) throw new BadRequestException("The company owning the offer is no longer active");
+
+        LocalDateTime deadline = offer.getApplicationDeadline();
+        if(deadline != null &&  !deadline.isAfter(LocalDateTime.now())) throw new BadRequestException("The application deadline is over");
         // An uploaded resume wins; reusing the profile resume copies it so the application keeps its own snapshot.
         String resumeStorageId = null;
         if (resume != null && !resume.isEmpty()) {
@@ -105,7 +107,10 @@ public class JobApplicationService {
             }
             resumeStorageId = storedFileService.copy(applicant.getResumeId()).getStorageId();
         }
-
+        else {
+            throw new BadRequestException("No resume is provided");
+        }
+        //TODO: if the transaction failed, the file should be removed from R2
         JobApplication application = new JobApplication();
         application.setJobOffer(offer);
         application.setApplicant(applicant);
@@ -127,9 +132,13 @@ public class JobApplicationService {
         if (!isApplicant(applicantEmail, application)) {
             throw new NotFoundException("Application not found");  // not yours -> 404, not probeable
         }
-
         if (application.getApplicationStatus() == ApplicationStatus.WITHDRAWN) {
             return JobApplicationDTO.forApplicant(application);
+        }
+
+        //TODO block withdrawing rejected and accepted
+        if(application.getApplicationStatus() == ApplicationStatus.ACCEPTED || application.getApplicationStatus() == ApplicationStatus.REJECTED){
+            throw new ConflictException("Cannot withdraw a finalized application");
         }
 
         application.setApplicationStatus(ApplicationStatus.WITHDRAWN);
@@ -174,7 +183,10 @@ public class JobApplicationService {
             throw new NotFoundException("Job offer not found");  // not your offer -> 404, not probeable
         }
 
-        Specification<JobApplication> spec = JobApplicationSpecs.forOffer(offer);
+        Specification<JobApplication> spec = JobApplicationSpecs.forOffer(offer)
+                .and((root, query, cb) ->
+                    cb.notEqual(root.get("applicationStatus"), ApplicationStatus.WITHDRAWN)
+                );
         if (criteria != null) {
             if (criteria.getStatus() != null) {
                 spec = spec.and(JobApplicationSpecs.hasStatus(criteria.getStatus()));
@@ -192,6 +204,8 @@ public class JobApplicationService {
 
     @Transactional
     public JobApplicationDTO review(String reviewerEmail, Long applicationId, ReviewApplicationDTO dto) {
+        // TODO: Reject all company review of withdrawn applications, including note-only updates.
+        // TODO recruiter review should not withdraw a candidate application, only candidate can withdraw his application
         JobApplication application = jobApplicationRepository.findById(applicationId)
                 .orElseThrow(() -> new NotFoundException("Application not found"));
 
@@ -200,6 +214,17 @@ public class JobApplicationService {
                 .orElseThrow(() -> new NotFoundException("Application not found"));  // not your company -> 404
 
         ApplicationStatus previousStatus = application.getApplicationStatus();
+        ApplicationStatus requestedStatus = dto.getApplicationStatus();
+
+        if(requestedStatus == ApplicationStatus.WITHDRAWN){
+            throw new BadRequestException("Only candidates can withdraw an application");
+        }
+
+        if(previousStatus == ApplicationStatus.WITHDRAWN && requestedStatus != null){
+            throw new BadRequestException("A withdrawn application cannot change status");
+        }
+
+        // TODO : validate interview requirements: link...
         boolean scheduling = dto.getApplicationStatus() == ApplicationStatus.SCHEDULED_INTERVIEW;
         if (scheduling) applyInterviewDetails(application, dto);
 
@@ -314,9 +339,12 @@ public class JobApplicationService {
 
     @Transactional(readOnly = true)
     public JobApplicationDTO getApplicationById(String callerEmail, Long applicationId) {
+        // TODO: Hide withdrawn applications from company users; preserve applicant access.
         JobApplication application = jobApplicationRepository.findById(applicationId)
                 .orElseThrow(() -> new NotFoundException("Application not found"));
         if (isApplicant(callerEmail, application)) {
+            // TODO: Remove reviewedById, reviewedByName and reviewedAt from candidate responses
+            // in JobApplicationDTO.forApplicant; cover all applicant response paths.
             return JobApplicationDTO.forApplicant(application);
         }
         if (resolveReviewerForCompany(callerEmail, application.getJobOffer().getCompany().getId()).isEmpty()) {
@@ -328,6 +356,7 @@ public class JobApplicationService {
 
     @Transactional(readOnly = true)
     public FileDownload getApplicationResume(String callerEmail, Long applicationId) {
+        // TODO: Deny company access to withdrawn application resumes; preserve applicant access.
         JobApplication application = jobApplicationRepository.findById(applicationId)
                 .orElseThrow(() -> new NotFoundException("Application resume not found"));
         if (!canAccessApplication(callerEmail, application) || application.getResumeStorageId() == null) {
@@ -340,6 +369,7 @@ public class JobApplicationService {
 
     @Transactional(readOnly = true)
     public CandidateProfileDTO getApplicantProfile(String reviewerEmail, Long applicationId) {
+        // TODO: Deny company access to applicant profiles through withdrawn applications.
         JobApplication application = jobApplicationRepository.findById(applicationId)
                 .orElseThrow(() -> new NotFoundException("Application not found"));
 

@@ -6,6 +6,7 @@ import dev.sabti.alumni_connect.job.applications.JobApplicationService;
 import dev.sabti.alumni_connect.job.applications.JobApplicationSearchCriteria;
 import dev.sabti.alumni_connect.job.entities.ApplicationStatus;
 import dev.sabti.alumni_connect.job.entities.EmploymentType;
+import dev.sabti.alumni_connect.job.entities.JobApplication;
 import dev.sabti.alumni_connect.job.entities.JobCity;
 import dev.sabti.alumni_connect.shared.exception.BadRequestException;
 import jakarta.validation.Valid;
@@ -36,6 +37,7 @@ import java.util.List;
 @RequestMapping("/api/job-offers")
 @RequiredArgsConstructor
 public class JobOfferController {
+    //TODO add job offer deletion
     private final JobOfferService jobOfferService;
     private final JobApplicationService jobApplicationService;
 
@@ -104,6 +106,7 @@ public class JobOfferController {
                                                            @RequestParam(required = false) Boolean reviewed,
                                                            @RequestParam(required = false) Integer minRating,
                                                            @PageableDefault(sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        if(status == ApplicationStatus.WITHDRAWN) throw new BadRequestException("only candidate can view his withdrawn applications");
         JobApplicationSearchCriteria criteria = new JobApplicationSearchCriteria(status, reviewed, minRating);
         return jobApplicationService.getApplicationsForOffer(principal.getUsername(), id, criteria, pageable);
     }
