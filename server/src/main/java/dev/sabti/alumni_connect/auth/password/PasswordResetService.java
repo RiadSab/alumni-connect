@@ -7,6 +7,7 @@ import dev.sabti.alumni_connect.auth.repositories.PasswordResetTokenRepository;
 import dev.sabti.alumni_connect.auth.repositories.UserRepository;
 import dev.sabti.alumni_connect.shared.email.EmailSender;
 import dev.sabti.alumni_connect.shared.exception.BadRequestException;
+import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -26,7 +27,6 @@ public class PasswordResetService {
     private final PasswordResetTokenRepository tokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final EmailSender emailSender;
-
     private static final SecureRandom RANDOM = new SecureRandom();
     private static final int CODE_TTL_MINUTES = 15;
     private static final int MAX_ATTEMPTS = 5;
@@ -56,7 +56,7 @@ public class PasswordResetService {
                 "Your password reset code is " + code + ". It expires in " + CODE_TTL_MINUTES + " minutes.");
     }
 
-    @Transactional
+    @Transactional(noRollbackFor = BadRequestException.class)
     public void reset(ResetPasswordDTO dto) {
         User user = userRepository.findByEmail(dto.getEmail()).orElse(null);
         if (user == null) throw new BadRequestException(RESET_FAILED);
