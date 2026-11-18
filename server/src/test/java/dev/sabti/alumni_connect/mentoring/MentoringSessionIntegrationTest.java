@@ -29,13 +29,16 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -177,6 +180,7 @@ class MentoringSessionIntegrationTest {
 
         ArgumentCaptor<String> body = ArgumentCaptor.forClass(String.class);
         verify(emailSender).send(eq(STUDENT), eq("Confirm your mock interview"), body.capture());
+        assertThat(body.getValue()).contains("Please confirm by");
         Matcher matcher = Pattern.compile("/mentoring/confirm/([A-Za-z0-9_-]+)").matcher(body.getValue());
         assertThat(matcher.find()).isTrue();
         return matcher.group(1);
@@ -203,11 +207,19 @@ class MentoringSessionIntegrationTest {
     }
 
     @Test
-    void ignoringTheConfirmationPutsTheSlotBack() throws Exception {
+    void releasesAnUnconfirmedSlotOnlyAfterTheResponseDeadline() throws Exception {
         Session session = bookSlotStartingIn(60 * 6);
         long bookingId = session.bookingId();
-        sessionService.askForConfirmations();
+        String token = requestConfirmation();
 
+        ageConfirmationRequest(bookingId, 119);
+        sessionService.releaseUnconfirmed();
+        assertThat(bookings.findById(bookingId).orElseThrow().getState()).isEqualTo(BookingState.BOOKED);
+        assertThat(slots.findById(session.slotId()).orElseThrow().getStatus()).isEqualTo(SlotStatus.BOOKED);
+        mvc.perform(get("/api/mentoring/confirm/" + token)).andExpect(status().isOk());
+
+        ageConfirmationRequest(bookingId, 121);
+        mvc.perform(post("/api/mentoring/confirm/" + token)).andExpect(status().isBadRequest());
         sessionService.releaseUnconfirmed();
 
         assertThat(bookings.findById(bookingId).orElseThrow().getState()).isEqualTo(BookingState.RELEASED_UNCONFIRMED);
@@ -218,10 +230,23 @@ class MentoringSessionIntegrationTest {
                 .andExpect(jsonPath("$.totalElements").value(1));
     }
 
+    private void ageConfirmationRequest(long bookingId, long minutes) {
+        MentoringBooking booking = bookings.findById(bookingId).orElseThrow();
+        booking.setConfirmSentAt(LocalDateTime.now().minusMinutes(minutes));
+        bookings.save(booking);
+    }
+
+    private void moveSlot(long slotId, OffsetDateTime startsAt) {
+        MentoringSlot slot = slots.findById(slotId).orElseThrow();
+        slot.setStartsAt(startsAt);
+        slots.save(slot);
+    }
+
     @Test
     void theLinkArrivesTenMinutesBeforeTheSession() throws Exception {
-        Session session = bookSlotStartingIn(5);
+        Session session = bookSlotStartingIn(60 * 6);
         String token = requestConfirmation();
+        moveSlot(session.slotId(), OffsetDateTime.now().plusMinutes(5));
 
         mvc.perform(get("/api/mentoring/bookings/me").header("Authorization", "Bearer " + tokenFor(STUDENT)))
                 .andExpect(status().isOk())
@@ -237,9 +262,7 @@ class MentoringSessionIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.meetingLink").doesNotExist());
 
-        MentoringSlot slot = slots.findById(session.slotId()).orElseThrow();
-        slot.setStartsAt(OffsetDateTime.now().minusHours(2));
-        slots.save(slot);
+        moveSlot(session.slotId(), OffsetDateTime.now().minusHours(2));
         mvc.perform(get("/api/mentoring/bookings/me").header("Authorization", "Bearer " + tokenFor(STUDENT)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].meetingLink").doesNotExist());
@@ -248,7 +271,7 @@ class MentoringSessionIntegrationTest {
     @ParameterizedTest
     @EnumSource(value = BookingState.class, names = {"CANCELLED_BY_STUDENT", "RELEASED_UNCONFIRMED"})
     void formerStudentCannotSeeTheRoomAfterRebooking(BookingState formerState) throws Exception {
-        Session session = bookSlotStartingIn(5);
+        Session session = bookSlotStartingIn(60 * 6);
         String formerStudentToken = tokenFor(STUDENT);
         if (formerState == BookingState.CANCELLED_BY_STUDENT) {
             mvc.perform(delete("/api/mentoring/bookings/" + session.bookingId())
@@ -258,9 +281,11 @@ class MentoringSessionIntegrationTest {
             assertCalendarEmail(MENTOR, "A mock interview was cancelled", "/mentoring/slots", "CANCEL");
         } else {
             sessionService.askForConfirmations();
+            ageConfirmationRequest(session.bookingId(), 121);
             sessionService.releaseUnconfirmed();
         }
 
+        moveSlot(session.slotId(), OffsetDateTime.now().plusMinutes(5));
         String nextStudent = "next-student@example.com";
         register(nextStudent, "Sara", "Bennani", true);
         mvc.perform(post("/api/mentoring/slots/" + session.slotId() + "/book")
@@ -276,8 +301,8 @@ class MentoringSessionIntegrationTest {
 
     @Test
     void remindersLinkEachParticipantToTheirSessionPage() throws Exception {
-        bookSlotStartingIn(45);
-        mvc.perform(post("/api/mentoring/confirm/" + requestConfirmation())).andExpect(status().isNoContent());
+        Session session = bookSlotStartingIn(45);
+        assertThat(bookings.findById(session.bookingId()).orElseThrow().getState()).isEqualTo(BookingState.CONFIRMED);
         sessionService.sendReminders();
         sessionService.sendReminders();
 
@@ -287,6 +312,18 @@ class MentoringSessionIntegrationTest {
         verify(emailSender).send(eq(MENTOR), eq("Your mock interview is in an hour"), mentorBody.capture());
         assertThat(studentBody.getValue()).endsWith("https://app.example.test/mentoring").doesNotContain(ROOM_URL);
         assertThat(mentorBody.getValue()).endsWith("https://app.example.test/mentoring/slots").doesNotContain(ROOM_URL);
+    }
+
+    @Test
+    void delayedConfirmationSweepKeepsTheSlotWhenTheSessionIsTooClose() throws Exception {
+        Session session = bookSlotStartingIn(60 * 6);
+        moveSlot(session.slotId(), OffsetDateTime.now().plusMinutes(45));
+        sessionService.askForConfirmations();
+        sessionService.releaseUnconfirmed();
+
+        assertThat(bookings.findById(session.bookingId()).orElseThrow().getState()).isEqualTo(BookingState.CONFIRMED);
+        assertThat(slots.findById(session.slotId()).orElseThrow().getStatus()).isEqualTo(SlotStatus.BOOKED);
+        verify(emailSender, never()).send(eq(STUDENT), eq("Confirm your mock interview"), anyString());
     }
 
     @Test

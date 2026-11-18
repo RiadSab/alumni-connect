@@ -129,7 +129,8 @@ public class MentoringService {
 
         MentoringSlot slot = slotRepository.findById(slotId)
                 .orElseThrow(() -> new NotFoundException("Slot not found"));
-        if (slot.getStatus() != SlotStatus.OPEN || slot.getStartsAt().isBefore(OffsetDateTime.now())) {
+        OffsetDateTime now = OffsetDateTime.now();
+        if (slot.getStatus() != SlotStatus.OPEN || !slot.getStartsAt().isAfter(now)) {
             throw new ConflictException("That slot is no longer available");
         }
         if (slot.getMentor().getId().equals(student.getId())) {
@@ -160,6 +161,10 @@ public class MentoringService {
         booking.setSlot(slot);
         booking.setStudent(student);
         booking.setState(BookingState.BOOKED);
+        if (!MentoringSessionService.hasTimeForConfirmation(slot.getStartsAt(), now)) {
+            booking.setState(BookingState.CONFIRMED);
+            booking.setConfirmedAt(now.toLocalDateTime());
+        }
         booking = bookingRepository.save(booking);
 
         // Both sides get an email with a calendar invite; the mentor also gets an in-app notice.

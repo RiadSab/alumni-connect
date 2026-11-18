@@ -25,7 +25,6 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Base64;
 import java.util.HexFormat;
-import java.util.List;
 import java.util.Locale;
 
 // Everything that happens around a booked session: the invitations, the 24h confirmation, the
@@ -51,7 +50,9 @@ public class MentoringSessionService {
     private static final SecureRandom RANDOM = new SecureRandom();
     private static final int TOKEN_BYTES = 32;
     private static final int CONFIRM_ASKED_HOURS = 24;
-    private static final int RELEASE_AFTER_HOURS = 12;
+    private static final int RELEASE_LEAD_HOURS = 12;
+    private static final int CONFIRMATION_GRACE_HOURS = 2;
+    private static final int REBOOKING_BUFFER_HOURS = 1;
     private static final int REMINDER_MINUTES = 60;
     private static final String LINK_FAILED = "This link is invalid or has expired";
     private static final String STUDENT_SESSIONS_PATH = "/mentoring";
@@ -112,15 +113,25 @@ public class MentoringSessionService {
     public void askForConfirmations() {
         OffsetDateTime now = OffsetDateTime.now();
         for (MentoringBooking booking : bookingRepository.findAwaitingConfirmation(now, now.plusHours(CONFIRM_ASKED_HOURS))) {
+            OffsetDateTime sentAt = OffsetDateTime.now();
+            MentoringSlot slot = booking.getSlot();
+            OffsetDateTime deadline = confirmationDeadline(slot.getStartsAt(), sentAt);
+            if (!hasRebookingTime(slot.getStartsAt(), deadline)) {
+                markConfirmed(booking, sentAt);
+                continue;
+            }
             try {
-                String raw = issueConfirmToken(booking);
+                byte[] bytes = new byte[TOKEN_BYTES];
+                RANDOM.nextBytes(bytes);
+                String raw = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
                 emailSender.send(booking.getStudent().getUser().getEmail(),
                         "Confirm your mock interview",
-                        "Your session with " + name(booking.getSlot().getMentor().getUser())
-                                + " is on " + when(booking.getSlot()) + ".\n\n"
-                                + "Confirm you're coming, or the slot goes back to another student:\n"
+                        "Your session with " + name(slot.getMentor().getUser())
+                                + " is on " + when(slot) + ".\n\n"
+                                + "Please confirm by " + formatTime(deadline) + " to keep your slot:\n"
                                 + frontendUrl + "/mentoring/confirm/" + raw);
-                booking.setConfirmSentAt(LocalDateTime.now());
+                booking.setConfirmTokenHash(hash(raw));
+                booking.setConfirmSentAt(sentAt.toLocalDateTime());
                 bookingRepository.save(booking);
             } catch (Exception e) {
                 log.warn("Could not ask for confirmation on booking {}: {}", booking.getId(), e.getMessage());
@@ -131,27 +142,40 @@ public class MentoringSessionService {
     @Scheduled(cron = "${app.mentoring.cron.release:0 10 * * * *}")
     @Transactional
     public void releaseUnconfirmed() {
-        OffsetDateTime cutoff = OffsetDateTime.now().plusHours(RELEASE_AFTER_HOURS);
-        for (MentoringBooking booking : bookingRepository.findUnconfirmed(cutoff)) {
+        OffsetDateTime now = OffsetDateTime.now();
+        for (MentoringBooking booking : bookingRepository.findUnconfirmed(now, now.plusHours(RELEASE_LEAD_HOURS))) {
+            if (now.isBefore(confirmationDeadline(booking))) continue;
+
             MentoringSlot slot = booking.getSlot();
+            // A delayed sweep should keep the appointment when it is too late to offer it again.
+            if (!hasRebookingTime(slot.getStartsAt(), now)) {
+                markConfirmed(booking, now);
+                continue;
+            }
+
             booking.setState(BookingState.RELEASED_UNCONFIRMED);
-            booking.setCancelledAt(LocalDateTime.now());
+            booking.setCancelledAt(now.toLocalDateTime());
             bookingRepository.save(booking);
 
             // Back in the pool if there is still time for someone else to take it.
-            if (slot.getStatus() == SlotStatus.BOOKED && slot.getStartsAt().isAfter(OffsetDateTime.now())) {
+            if (slot.getStatus() == SlotStatus.BOOKED) {
                 slot.setStatus(SlotStatus.OPEN);
                 slotRepository.save(slot);
             }
 
             User student = booking.getStudent().getUser();
-            safeSend(student.getEmail(), "Your mock interview slot was released",
-                    "You didn't confirm the session on " + when(slot) + ", so it went back to another student.\n\n"
-                            + "You can book another one:\n" + frontendUrl + STUDENT_SESSIONS_PATH);
+            String studentEmail = student.getEmail();
+            String mentorEmail = slot.getMentor().getUser().getEmail();
+            String when = when(slot);
+            afterCommit(() -> {
+                safeSend(studentEmail, "Your mock interview slot was released",
+                        "You didn't confirm the session on " + when + ", so it went back to another student.\n\n"
+                                + "You can book another one:\n" + frontendUrl + STUDENT_SESSIONS_PATH);
+                safeSend(mentorEmail, "A slot was released",
+                        "The student didn't confirm, so your " + when + " slot is open again.");
+            });
             notificationService.notify(student, NotificationType.MENTORING_SESSION_RELEASED,
-                    track(slot), when(slot), STUDENT_SESSIONS_PATH);
-            safeSend(slot.getMentor().getUser().getEmail(), "A slot was released",
-                    "The student didn't confirm, so your " + when(slot) + " slot is open again.");
+                    track(slot), when, STUDENT_SESSIONS_PATH);
         }
     }
 
@@ -182,9 +206,9 @@ public class MentoringSessionService {
     @Transactional
     public void confirm(String rawToken) {
         MentoringBooking booking = validate(rawToken);
-        booking.setState(BookingState.CONFIRMED);
-        booking.setConfirmedAt(LocalDateTime.now());
-        bookingRepository.save(booking);
+        if (booking.getState() == BookingState.BOOKED) {
+            markConfirmed(booking, OffsetDateTime.now());
+        }
     }
 
     private MentoringBooking validate(String rawToken) {
@@ -192,18 +216,38 @@ public class MentoringSessionService {
         MentoringBooking booking = bookingRepository.findByConfirmTokenHash(hash(rawToken))
                 .orElseThrow(() -> new BadRequestException(LINK_FAILED));
         // Only a live booking can be confirmed: released or cancelled ones are done.
-        if (booking.getState() != BookingState.BOOKED && booking.getState() != BookingState.CONFIRMED) {
+        if (booking.getState() == BookingState.CONFIRMED) return booking;
+        OffsetDateTime now = OffsetDateTime.now();
+        if (booking.getState() != BookingState.BOOKED || booking.getConfirmSentAt() == null
+                || !now.isBefore(confirmationDeadline(booking)) || !now.isBefore(booking.getSlot().getStartsAt())) {
             throw new BadRequestException(LINK_FAILED);
         }
         return booking;
     }
 
-    private String issueConfirmToken(MentoringBooking booking) {
-        byte[] bytes = new byte[TOKEN_BYTES];
-        RANDOM.nextBytes(bytes);
-        String raw = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
-        booking.setConfirmTokenHash(hash(raw));
-        return raw;
+    private void markConfirmed(MentoringBooking booking, OffsetDateTime now) {
+        booking.setState(BookingState.CONFIRMED);
+        booking.setConfirmedAt(now.toLocalDateTime());
+        bookingRepository.save(booking);
+    }
+
+    static boolean hasTimeForConfirmation(OffsetDateTime startsAt, OffsetDateTime now) {
+        return hasRebookingTime(startsAt, confirmationDeadline(startsAt, now));
+    }
+
+    private static boolean hasRebookingTime(OffsetDateTime startsAt, OffsetDateTime now) {
+        return now.isBefore(startsAt.minusHours(REBOOKING_BUFFER_HOURS));
+    }
+
+    private static OffsetDateTime confirmationDeadline(MentoringBooking booking) {
+        OffsetDateTime sentAt = booking.getConfirmSentAt().atZone(ZoneId.systemDefault()).toOffsetDateTime();
+        return confirmationDeadline(booking.getSlot().getStartsAt(), sentAt);
+    }
+
+    private static OffsetDateTime confirmationDeadline(OffsetDateTime startsAt, OffsetDateTime sentAt) {
+        OffsetDateTime usualDeadline = startsAt.minusHours(RELEASE_LEAD_HOURS);
+        OffsetDateTime gracePeriodEnd = sentAt.plusHours(CONFIRMATION_GRACE_HOURS);
+        return usualDeadline.isAfter(gracePeriodEnd) ? usualDeadline : gracePeriodEnd;
     }
 
     // --- helpers ------------------------------------------------------------
@@ -241,7 +285,11 @@ public class MentoringSessionService {
     }
 
     private String when(MentoringSlot slot) {
-        return WHEN.format(slot.getStartsAt().atZoneSameInstant(ZoneId.of(timezone)));
+        return formatTime(slot.getStartsAt());
+    }
+
+    private String formatTime(OffsetDateTime time) {
+        return WHEN.format(time.atZoneSameInstant(ZoneId.of(timezone)));
     }
 
     private String track(MentoringSlot slot) {

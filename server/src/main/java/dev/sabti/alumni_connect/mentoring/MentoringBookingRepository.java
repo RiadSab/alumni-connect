@@ -45,9 +45,10 @@ public interface MentoringBookingRepository extends JpaRepository<MentoringBooki
             select b from MentoringBooking b
             where b.state = dev.sabti.alumni_connect.mentoring.BookingState.BOOKED
               and b.confirmSentAt is not null
-              and b.slot.startsAt <= :until
+              and b.slot.startsAt > :now and b.slot.startsAt <= :until
             """)
-    List<MentoringBooking> findUnconfirmed(@Param("until") OffsetDateTime until);
+    List<MentoringBooking> findUnconfirmed(@Param("now") OffsetDateTime now,
+                                           @Param("until") OffsetDateTime until);
 
     @Query("""
             select b from MentoringBooking b
