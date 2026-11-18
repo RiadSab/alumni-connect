@@ -7,14 +7,17 @@ export const NotificationType = [
   "APPLICATION_ACCEPTED",
   "APPLICATION_REJECTED",
   "INTERVIEW_SCHEDULED",
+  "MENTORING_SLOT_BOOKED",
+  "MENTORING_SESSION_CANCELLED",
+  "MENTORING_SESSION_RELEASED",
 ] as const;
 export type NotificationType = (typeof NotificationType)[number];
 
 export interface NotificationDTO {
   id: number;
-  type: NotificationType;
-  subject: string | null; // the job title
-  context: string | null; // the company
+  type: string; // The API may send newer event types than this client knows.
+  subject: string | null;
+  context: string | null;
   link: string | null;
   createdAt: string;
   readAt: string | null; // null = still unread, so still on the dashboard

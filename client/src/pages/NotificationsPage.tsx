@@ -3,23 +3,17 @@
 
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Bell, CalendarClock, CheckCircle2, XCircle } from "lucide-react";
+import { Bell } from "lucide-react";
 import {
   useMarkAllNotificationsRead,
   useMarkNotificationRead,
   useNotifications,
 } from "@/features/notifications/hooks";
-import { notificationTextKeys } from "@/features/notifications/labels";
+import { getNotificationPresentation } from "@/features/notifications/labels";
 import { useT } from "@/features/i18n/lang-context";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { NotificationDTO } from "@/types/notification";
-
-const ICONS = {
-  APPLICATION_ACCEPTED: CheckCircle2,
-  APPLICATION_REJECTED: XCircle,
-  INTERVIEW_SCHEDULED: CalendarClock,
-};
 
 export function NotificationsPage() {
   const { t } = useT();
@@ -82,9 +76,9 @@ function NotificationRow({ notification }: { notification: NotificationDTO }) {
   const { t, lang } = useT();
   const markRead = useMarkNotificationRead();
   const unread = notification.readAt === null;
-  const Icon = ICONS[notification.type];
+  const { textKey, icon: Icon } = getNotificationPresentation(notification.type);
 
-  const text = t(notificationTextKeys[notification.type], {
+  const text = t(textKey, {
     subject: notification.subject ?? "",
     context: notification.context ?? "",
   });

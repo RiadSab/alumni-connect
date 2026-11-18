@@ -4,7 +4,7 @@
 // glanceable summary, not another list page.
 
 import { Link } from "react-router-dom";
-import { Bookmark, Briefcase, CalendarClock, CheckCircle2, FileUp, UserPen } from "lucide-react";
+import { Bookmark, Briefcase, FileUp, UserPen } from "lucide-react";
 import { useAuth } from "@/features/auth/auth-context";
 import { useMyApplications, useMyApplicationStats } from "@/features/jobApplications/hooks";
 import { useRecommendedJobOffers } from "@/features/jobOffers/hooks";
@@ -15,7 +15,7 @@ import {
   useMarkNotificationRead,
   useUnreadNotifications,
 } from "@/features/notifications/hooks";
-import { notificationTextKeys } from "@/features/notifications/labels";
+import { getNotificationPresentation } from "@/features/notifications/labels";
 import type { NotificationDTO } from "@/types/notification";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -200,7 +200,7 @@ function NotificationBanner({ notification }: { notification: NotificationDTO })
     ? "border-[var(--color-brand-green)] bg-[color-mix(in_srgb,var(--color-brand-green)_8%,#fff)]"
     : "border-[var(--color-brand-purple-800)] bg-[var(--color-tint-lavender)]";
   const iconColor = accepted ? "text-[var(--color-brand-green)]" : "text-[var(--color-brand-purple-800)]";
-  const Icon = accepted ? CheckCircle2 : CalendarClock;
+  const { textKey, icon: Icon } = getNotificationPresentation(notification.type);
 
   return (
     <Link
@@ -210,7 +210,7 @@ function NotificationBanner({ notification }: { notification: NotificationDTO })
     >
       <Icon className={`size-5 shrink-0 ${iconColor}`} />
       <span className="min-w-0 flex-1 text-sm font-semibold text-foreground">
-        {t(notificationTextKeys[notification.type], {
+        {t(textKey, {
           subject: notification.subject ?? "",
           context: notification.context ?? "",
         })}
