@@ -40,7 +40,14 @@ export function useUploadResume() {
   return useMutation({
     mutationFn: (file: File) => candidatesApi.uploadResume(file),
     // flips the "no résumé yet" state to "on file" and refetches the new blob.
-    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.candidate.resume() }),
+    onSuccess: () =>
+        Promise.all([
+          qc.invalidateQueries({ queryKey: queryKeys.candidate.resume() }),
+          qc.invalidateQueries({
+            queryKey: queryKeys.candidate.me(),
+            exact: true
+          })
+        ])
   });
 }
 
